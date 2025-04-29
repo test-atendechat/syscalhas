@@ -126,6 +126,33 @@ require_once('includes/header.php');
                     $total_pago = floatval($pagamentos['total_pago'] ?? 0);
                     $valor_restante = max(0, $venda['valor_total'] - $total_pago);
                     
+                    // Verificar e atualizar o status de pagamento se necessário
+                    $valor_total = floatval($venda['valor_total']);
+                    $diferenca = abs($total_pago - $valor_total);
+                    $diferenca_minima = $diferenca < 0.01; // Tolerância de 1 centavo
+                    $pago_total_ou_acima = $total_pago >= $valor_total;
+                    
+                    // Verificar se o pagamento deve ser considerado como total
+                    $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($total_pago >= $valor_total * 0.999);
+                    
+                    // Se o status atual não corresponde ao status real calculado, atualizar
+                    $status_atual = $venda['status_pagamento'] ?? 'pendente';
+                    $status_calculado = $pagamento_total ? 'pago_total' : ($total_pago > 0 ? 'pago_parcial' : 'pendente');
+                    
+                    if ($status_atual != $status_calculado) {
+                        // Atualizar status de pagamento
+                        $stmt_update = $db->prepare("UPDATE vendas SET status_pagamento = :status WHERE id = :id");
+                        $stmt_update->bindParam(':status', $status_calculado);
+                        $stmt_update->bindParam(':id', $venda['id'], PDO::PARAM_INT);
+                        $stmt_update->execute();
+                        
+                        // Atualizar o status na venda atual para não precisar recarregar a página
+                        $venda['status_pagamento'] = $status_calculado;
+                        
+                        // Log da atualização do status
+                        error_log("Atualizando status de pagamento da venda ID {$venda['id']} de {$status_atual} para {$status_calculado}");
+                    }
+                    
                     if ($venda['status_pagamento'] == 'pago_parcial'):
                     ?>
                         <p class="mb-1"><strong>Valor Pago:</strong> <span class="text-primary"><?php echo formataValor($total_pago); ?></span></p>
