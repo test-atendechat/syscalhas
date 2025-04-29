@@ -59,7 +59,8 @@ if ($periodo == 'hoje') {
 $stmt = $db->prepare("
     SELECT 
         SUM(CASE WHEN m.tipo = 'entrada' THEN (m.quantidade * p.custo_unitario) ELSE 0 END) as valor_entradas,
-        SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) as valor_saidas
+        SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) as valor_saidas,
+        SUM(CASE WHEN m.tipo = 'saida' THEN (m.quantidade * p.custo_unitario) ELSE 0 END) as custo_produtos_vendidos
     FROM estoque_movimentacoes m
     JOIN produtos p ON m.produto_id = p.id
     WHERE m.data_movimentacao BETWEEN :data_inicio AND :data_fim
@@ -160,7 +161,8 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Cálculos de lucratividade
 $valor_entradas = $totais_movimentacoes['valor_entradas'] ?? 0;
 $valor_saidas = $totais_movimentacoes['valor_saidas'] ?? 0;
-$lucro_operacional = $valor_saidas - $valor_entradas;
+$custo_produtos_vendidos = $totais_movimentacoes['custo_produtos_vendidos'] ?? 0;
+$lucro_operacional = $valor_saidas - $custo_produtos_vendidos;
 $margem_lucro = $valor_saidas > 0 ? ($lucro_operacional / $valor_saidas) * 100 : 0;
 
 // Cálculos de lucratividade dos orçamentos
@@ -367,8 +369,8 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                         <td colspan="2"><strong>Vendas</strong></td>
                                     </tr>
                                     <tr>
-                                        <td>Custo dos Produtos</td>
-                                        <td class="text-end"><?php echo formataValor($valor_entradas); ?></td>
+                                        <td>Custo dos Produtos Vendidos</td>
+                                        <td class="text-end"><?php echo formataValor($custo_produtos_vendidos); ?></td>
                                     </tr>
                                     <tr>
                                         <td>Valor Total de Vendas</td>
@@ -376,7 +378,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     </tr>
                                     <tr>
                                         <td>Lucro em Vendas</td>
-                                        <td class="text-end"><?php echo formataValor($valor_saidas - $valor_entradas); ?></td>
+                                        <td class="text-end"><?php echo formataValor($valor_saidas - $custo_produtos_vendidos); ?></td>
                                     </tr>
                                     
                                     <tr class="table-light">
@@ -405,7 +407,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     
                                     <tr class="table-success">
                                         <td><strong>Lucro Total (Vendas + Orçamentos)</strong></td>
-                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas - $valor_entradas) + ($valor_orcamentos_aprovados - $custo_produtos)); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas - $custo_produtos_vendidos) + ($valor_orcamentos_aprovados - $custo_produtos)); ?></strong></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -446,7 +448,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     </tr>
                                     <tr>
                                         <td>Custo dos Materiais (Vendas)</td>
-                                        <td class="text-end"><?php echo formataValor($valor_entradas); ?></td>
+                                        <td class="text-end"><?php echo formataValor($custo_produtos_vendidos); ?></td>
                                     </tr>
                                     <tr>
                                         <td>Custo dos Materiais (Orçamentos)</td>
@@ -454,21 +456,22 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     </tr>
                                     <tr class="table-warning">
                                         <td><strong>Custo Total</strong></td>
-                                        <td class="text-end"><strong><?php echo formataValor($valor_entradas + $custo_produtos); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor($custo_produtos_vendidos + $custo_produtos); ?></strong></td>
                                     </tr>
                                     <tr class="table-light">
                                         <td colspan="2"></td>
                                     </tr>
                                     <tr class="table-success">
                                         <td><strong>Lucro Líquido</strong></td>
-                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas + $valor_orcamentos_aprovados) - ($valor_entradas + $custo_produtos)); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas + $valor_orcamentos_aprovados) - ($custo_produtos_vendidos + $custo_produtos)); ?></strong></td>
                                     </tr>
                                     <tr>
                                         <td>Margem de Lucro Líquido</td>
                                         <td class="text-end">
                                             <?php 
                                             $faturamento_total = $valor_saidas + $valor_orcamentos_aprovados;
-                                            $lucro_liquido = $faturamento_total - ($valor_entradas + $custo_produtos);
+                                            $custo_total = $custo_produtos_vendidos + $custo_produtos;
+                                            $lucro_liquido = $faturamento_total - $custo_total;
                                             $margem_liquida = $faturamento_total > 0 ? ($lucro_liquido / $faturamento_total) * 100 : 0;
                                             echo number_format($margem_liquida, 2, ',', '.') . '%';
                                             ?>
