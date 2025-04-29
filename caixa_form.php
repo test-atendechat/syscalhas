@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const valorInput = document.getElementById('valor');
     const form = document.getElementById('formCaixa');
     const orcamentoSelect = document.getElementById('orcamento_id');
+    const clienteSelect = document.getElementById('cliente_id');
     const opcoesPagamento = document.getElementById('opcoes-pagamento');
     const pagamentoTotalNao = document.getElementById('pagamento_total_nao');
     const textoPagamentoParcial = document.getElementById('texto-pagamento-parcial');
@@ -362,13 +363,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 const valorOrcamento = parseFloat(orcamentoSelect.selectedOptions[0].dataset.valor);
                 valorInput.value = valorOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
+            
+            // Desabilitar cliente se selecionado um orçamento
+            clienteSelect.disabled = true;
+            clienteSelect.value = '';
         } else {
             opcoesPagamento.style.display = 'none';
+            clienteSelect.disabled = false;
+        }
+    }
+    
+    // Função para verificar seleção de cliente
+    function verificarCliente() {
+        const clienteId = clienteSelect.value;
+        if (clienteId) {
+            // Desabilitar orçamento se selecionado um cliente
+            orcamentoSelect.disabled = true;
+            orcamentoSelect.value = '';
+            opcoesPagamento.style.display = 'none';
+        } else {
+            orcamentoSelect.disabled = false;
         }
     }
     
     // Verificar quando o orçamento é selecionado
     orcamentoSelect.addEventListener('change', verificarOrcamento);
+    
+    // Verificar quando o cliente é selecionado
+    clienteSelect.addEventListener('change', verificarCliente);
     
     // Mostrar/esconder texto de pagamento parcial
     pagamentoTotalNao.addEventListener('change', function() {
@@ -381,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Verificar no carregamento da página
     verificarOrcamento();
+    verificarCliente();
     
     valorInput.addEventListener('input', function(e) {
         let valor = e.target.value.replace(/\D/g, '');

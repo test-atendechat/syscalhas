@@ -23,10 +23,11 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
 }
 
 // Obter movimentações de caixa com base nos filtros
-$sql = "SELECT c.*, u.nome as usuario_nome, o.numero as orcamento_numero 
+$sql = "SELECT c.*, u.nome as usuario_nome, o.numero as orcamento_numero, cl.nome as cliente_nome, cl.id as cliente_id 
         FROM caixa c 
         LEFT JOIN usuarios u ON c.usuario_id = u.id 
-        LEFT JOIN orcamentos o ON c.orcamento_id = o.id ";
+        LEFT JOIN orcamentos o ON c.orcamento_id = o.id 
+        LEFT JOIN clientes cl ON c.cliente_id = cl.id ";
 
 $where = [];
 $params = [];
@@ -173,6 +174,7 @@ require_once('includes/header.php');
                         <th>Forma de Pagamento</th>
                         <th class="text-end">Valor</th>
                         <th>Referência</th>
+                        <th>Cliente</th>
                         <th>Usuário</th>
                         <th class="text-center">Ações</th>
                     </tr>
@@ -196,6 +198,15 @@ require_once('includes/header.php');
                                     <?php if ($mov['orcamento_id']): ?>
                                         <a href="orcamento_visualizar.php?id=<?php echo $mov['orcamento_id']; ?>" class="text-decoration-none">
                                             <i class="fas fa-file-invoice-dollar me-1"></i>Orçamento #<?php echo $mov['orcamento_numero']; ?>
+                                        </a>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($mov['cliente_id']): ?>
+                                        <a href="cliente_form.php?id=<?php echo $mov['cliente_id']; ?>" class="text-decoration-none">
+                                            <i class="fas fa-user me-1"></i><?php echo $mov['cliente_nome']; ?>
                                         </a>
                                     <?php else: ?>
                                         -
