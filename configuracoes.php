@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
             
             <div class="d-flex justify-content-end">
-                <button type="reset" class="btn btn-outline-secondary me-2">Restaurar</button>
+                <button type="button" id="btn-restaurar-cores" class="btn btn-outline-secondary me-2">Restaurar Cores Padrão</button>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save me-2"></i>Salvar Configurações
                 </button>
@@ -234,6 +234,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     mask: '(00) 00000-0000'
                 }
             ]
+        });
+    }
+    
+    // Botão para restaurar cores padrão
+    const btnRestaurarCores = document.getElementById('btn-restaurar-cores');
+    if (btnRestaurarCores) {
+        btnRestaurarCores.addEventListener('click', function() {
+            // Cores padrão do Bootstrap
+            document.getElementById('cor_principal').value = '#0d6efd';
+            document.getElementById('cor_secundaria').value = '#6c757d';
+            document.getElementById('cor_aprovado').value = '#198754';
+            document.getElementById('cor_pendente').value = '#ffc107';
+            document.getElementById('cor_rejeitado').value = '#dc3545';
+            
+            // Efeito visual para indicar a mudança
+            const coresInputs = document.querySelectorAll('input[type="color"]');
+            coresInputs.forEach(function(input) {
+                input.classList.add('border-primary');
+                setTimeout(function() {
+                    input.classList.remove('border-primary');
+                }, 800);
+            });
         });
     }
 });
