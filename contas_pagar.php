@@ -7,6 +7,13 @@ require_once('includes/auth.php');
 // Verificar se o usuário está logado
 verificarAutenticacao();
 
+// Verificar se o usuário tem permissão para gerenciar contas
+if (!verificarPermissao('gerenciar_contas')) {
+    $_SESSION['erro'] = "Você não tem permissão para acessar esta página.";
+    header("Location: dashboard.php");
+    exit;
+}
+
 // Incluir o script para contas recorrentes
 require_once('includes/gerar_contas_recorrentes.php');
 

@@ -38,6 +38,16 @@ function verificarPermissao($permissao) {
     return false;
 }
 
+/**
+ * Verifica se o usuário tem permissão para excluir
+ * 
+ * @return boolean True se tem permissão, False caso contrário
+ */
+function podeDeletar() {
+    // Apenas administradores podem excluir
+    return isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin';
+}
+
 // Esta função foi movida para a versão abaixo
 
 /**
