@@ -574,7 +574,36 @@ document.addEventListener('DOMContentLoaded', function() {
             total += calcularTotalItem(linha);
         });
         
+        // Verificar se pagamento é à vista para aplicar desconto
+        if (document.getElementById('pagamento_vista').checked) {
+            const descontoPercent = parseFloat(document.getElementById('desconto_vista').value);
+            if (!isNaN(descontoPercent) && descontoPercent > 0) {
+                const valorDesconto = total * (descontoPercent / 100);
+                total = total - valorDesconto;
+                // Mostrar o desconto aplicado
+                document.getElementById('desconto-info').innerText = 
+                    `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado: - R$ ${formatarMoeda(valorDesconto)} `;
+            }
+        }
+        
         document.getElementById('total-venda').textContent = 'R$ ' + formatarMoeda(total);
+    }
+    
+    // Função para mostrar/esconder informações de desconto
+    function toggleDesconto(mostrar) {
+        const descontoInfo = document.getElementById('desconto-info');
+        const prazoAlert = document.getElementById('pagamento-prazo-alert');
+        
+        if (mostrar) {
+            descontoInfo.style.display = 'block';
+            prazoAlert.style.display = 'none';
+        } else {
+            descontoInfo.style.display = 'none';
+            prazoAlert.style.display = 'block';
+        }
+        
+        // Recalcular total com ou sem desconto
+        calcularTotalVenda();
     }
     
     // Formatando campos de valor ao carregar a página
