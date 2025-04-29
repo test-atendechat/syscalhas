@@ -431,6 +431,66 @@ if (!$acesso_interno) {
             </tfoot>
         </table>
     </div>
+    
+    <?php if ($acesso_interno && count($pagamentos) > 0 && ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pago')): ?>
+    <div class="mt-4">
+        <h5><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Forma de Pagamento</th>
+                        <th>Descrição</th>
+                        <th>Usuário</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pagamentos as $pagamento): ?>
+                    <tr>
+                        <td><?php echo dataParaBr($pagamento['data_operacao']); ?></td>
+                        <td class="text-end"><?php echo formataValor($pagamento['valor']); ?></td>
+                        <td>
+                            <?php 
+                            switch ($pagamento['forma_pagamento']) {
+                                case 'dinheiro':
+                                    echo '<span class="badge bg-success">Dinheiro</span>';
+                                    break;
+                                case 'cartao_credito':
+                                    echo '<span class="badge bg-primary">Cartão de Crédito</span>';
+                                    break;
+                                case 'cartao_debito':
+                                    echo '<span class="badge bg-info">Cartão de Débito</span>';
+                                    break;
+                                case 'pix':
+                                    echo '<span class="badge bg-warning text-dark">PIX</span>';
+                                    break;
+                                default:
+                                    echo '<span class="badge bg-secondary">Outros</span>';
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo $pagamento['descricao']; ?></td>
+                        <td><?php echo $pagamento['usuario_nome'] ?? 'Sistema'; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <td colspan="1"><strong>Total Pago:</strong></td>
+                        <td class="text-end"><strong><?php echo formataValor($orcamento['valor_pago']); ?></strong></td>
+                        <td colspan="3">
+                            <?php if ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pendente'): ?>
+                            <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $orcamento['valor_pago']); ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if (!empty($orcamento['observacoes'])): ?>
         <div class="mt-4">
