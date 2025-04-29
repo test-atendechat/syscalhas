@@ -296,9 +296,9 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         $lucro_estimado = $valor_venda_estimado - $valor_custo_estimado;
                         ?>
                         <div class="col-md-6 text-center">
-                            <h2 class="text-success"><?php echo formataValor($totais['valor_entradas'] ?? 0); ?></h2>
+                            <h2 class="text-success"><?php echo formataValor(($totais['valor_entradas'] ?? 0) - $valor_custo_estimado); ?></h2>
                             <p>Valor Total Investido (custo)</p>
-                            <small class="text-muted">Baseado no preço de custo dos produtos</small>
+                            <small class="text-muted">Custo real de compra dos produtos vendidos</small>
                         </div>
                         <div class="col-md-6 text-center">
                             <h2 class="text-danger"><?php echo formataValor($totais['valor_saidas'] ?? 0); ?></h2>
@@ -310,26 +310,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                         </div>
                         
-                        <!-- Mostrar diferença entre vendas e investimento -->
-                        <div class="col-12 mt-3 text-center">
-                            <h4 class="<?php echo $lucro_total >= 0 ? 'text-success' : 'text-primary'; ?>">
-                                <?php echo formataValor(abs($lucro_total)); ?>
-                                <?php echo $lucro_total >= 0 ? 'de Lucro' : 'de Valor Investido no Estoque'; ?>
-                            </h4>
-                            <small class="text-muted">Diferença entre valor de vendas e valor investido</small>
-                            
-                            <?php if ($lucro_total < 0): // Mostrar o lucro estimado quando há investimento no estoque 
-                                // Calcular o lucro real entre (vendas realizadas - custo das vendas) + (valor de venda do estoque - custo do estoque)
-                                $lucro_atual = (($totais['valor_saidas'] ?? 0) - ($totais['valor_entradas'] ?? 0)) + $lucro_estimado;
-                            ?>
-                            <div class="mt-3">
-                                <h5 class="text-success">
-                                    Lucro Estimado Total: <?php echo formataValor($lucro_atual); ?>
-                                </h5>
-                                <small class="text-muted">Lucro após venda de todo o estoque atual pelo preço de venda</small>
-                            </div>
-                            <?php endif; ?>
-                        </div>
+
                     </div>
                     
                     <!-- Resumo por Unidade de Medida -->
