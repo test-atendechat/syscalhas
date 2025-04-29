@@ -14,6 +14,7 @@ $observacoes = '';
 $registrar_caixa = true;
 $mensagem = '';
 $conta = null;
+$forma_pagamento = '';
 
 // Verificar se a conta existe e é válida para estorno
 if ($id > 0) {
