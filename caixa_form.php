@@ -108,6 +108,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $erro = 'A descrição é obrigatória.';
     } elseif (empty($movimentacao['valor']) || !is_numeric($movimentacao['valor']) || $movimentacao['valor'] <= 0) {
         $erro = 'O valor é obrigatório e deve ser um número válido maior que zero.';
+    } elseif ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
+        // Verificar se o pagamento ultrapassa o valor total do orçamento
+        
+        // Buscar valor do orçamento
+        $stmt = $db->prepare("SELECT valor_total FROM orcamentos WHERE id = :orcamento_id");
+        $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+        $stmt->execute();
+        $orcamento_valor = $stmt->fetch(PDO::FETCH_ASSOC);
+        $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
+        
+        // Verificar pagamentos já realizados
+        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                               WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+        $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_ja_pago = floatval($pagamentos['total_pago'] ?? 0);
+        
+        // Garantir que não estamos contando duas vezes o mesmo pagamento em caso de edição
+        if ($movimentacao['id'] > 0) {
+            // Se for edição, descontar o valor anterior
+            $stmt = $db->prepare("SELECT valor FROM caixa WHERE id = :id");
+            $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+            $stmt->execute();
+            $movimento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($movimento_atual) {
+                $total_ja_pago -= floatval($movimento_atual['valor']);
+            }
+        }
+        
+        // Verificar se o valor atual + já pago ultrapassa o valor total do orçamento
+        $valor_atual = floatval($movimentacao['valor']);
+        $valor_total_apos_pagamento = $total_ja_pago + $valor_atual;
+        
+        if ($valor_total_apos_pagamento > $valor_orcamento) {
+            $valor_maximo_permitido = $valor_orcamento - $total_ja_pago;
+            if ($valor_maximo_permitido < 0) $valor_maximo_permitido = 0;
+            $erro = "O valor de R$ " . number_format($valor_atual, 2, ',', '.') . " ultrapassa o valor restante do orçamento. O valor máximo permitido é R$ " . number_format($valor_maximo_permitido, 2, ',', '.');
+        }
     } else {
         try {
             // Iniciar transação para garantir integridade
