@@ -84,44 +84,15 @@ require_once('includes/header.php');
 ?>
 
 <?php
-// Verificar se o caixa está aberto hoje
-$caixa_aberto = false;
-$caixa_atual = null;
+// Simplificar: não precisamos mais verificar se o caixa está aberto
+// Apenas definir a data atual como padrão
 $data_hoje = date('Y-m-d');
-
-// Verificar se a tabela existe antes de consultar
-try {
-    $stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
-    $stmt->bindParam(':data_hoje', $data_hoje);
-    $stmt->execute();
-    $caixa_aberto = $stmt->rowCount() > 0;
-    $caixa_atual = $caixa_aberto ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
-} catch (PDOException $e) {
-    // Se a tabela não existir, apenas continua com o caixa fechado
-    $caixa_aberto = false;
-    $caixa_atual = null;
-}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-cash-register me-2"></i>Controle de Caixa</h1>
     <div>
-        <?php if ($caixa_aberto): ?>
-            <div class="alert alert-success d-inline-block me-2 mb-0 py-2">
-                <i class="fas fa-check-circle me-1"></i>Caixa aberto em <?php echo date('d/m/Y H:i', strtotime($caixa_atual['hora_abertura'])); ?>
-            </div>
-            <a href="caixa_fechar.php" class="btn btn-danger">
-                <i class="fas fa-lock me-2"></i>Fechar Caixa
-            </a>
-        <?php else: ?>
-            <div class="alert alert-warning d-inline-block me-2 mb-0 py-2">
-                <i class="fas fa-exclamation-triangle me-1"></i>Caixa fechado
-            </div>
-            <a href="caixa_abrir.php" class="btn btn-success">
-                <i class="fas fa-lock-open me-2"></i>Abrir Caixa
-            </a>
-        <?php endif; ?>
-        <a href="caixa_form.php" class="btn btn-primary ms-2">
+        <a href="caixa_form.php" class="btn btn-primary">
             <i class="fas fa-plus-circle me-2"></i>Nova Movimentação
         </a>
         <a href="vendas.php" class="btn btn-info ms-2">
@@ -135,14 +106,6 @@ try {
         <div class="alert alert-success">Movimentação registrada com sucesso!</div>
     <?php elseif ($_GET['mensagem'] == 'excluido'): ?>
         <div class="alert alert-warning">Movimentação excluída com sucesso.</div>
-    <?php elseif ($_GET['mensagem'] == 'aberto'): ?>
-        <div class="alert alert-success">Caixa aberto com sucesso!</div>
-    <?php elseif ($_GET['mensagem'] == 'fechado'): ?>
-        <div class="alert alert-success">Caixa fechado com sucesso!</div>
-    <?php elseif ($_GET['mensagem'] == 'ja_aberto'): ?>
-        <div class="alert alert-warning">O caixa já está aberto hoje.</div>
-    <?php elseif ($_GET['mensagem'] == 'nao_aberto'): ?>
-        <div class="alert alert-danger">O caixa não está aberto. Abra o caixa primeiro.</div>
     <?php endif; ?>
 <?php endif; ?>
 
