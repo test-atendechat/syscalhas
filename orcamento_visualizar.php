@@ -178,6 +178,26 @@ if (!$acesso_interno) {
                     <span class="visually-hidden">Mais opções</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    <!-- Opções de status -->
+                    <?php if ($orcamento['status'] == 'aprovado'): ?>
+                        <?php if ($orcamento['status_pagamento'] == 'pendente'): ?>
+                            <li>
+                                <a class="dropdown-item" href="caixa_form.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] == 'pendente'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=finalizar">
+                                    <i class="fas fa-check-circle me-2"></i>Marcar como Finalizado
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções gerais -->
                     <li>
                         <a class="dropdown-item" href="#" onclick="imprimirOrcamento(); return false;">
                             <i class="fas fa-print me-2"></i>Imprimir
@@ -218,9 +238,24 @@ if (!$acesso_interno) {
                 <p class="text-muted mb-0">Orçamento de Calhas e Rufos</p>
             </div>
             <div class="col-md-6 text-md-end">
+                <!-- Status do orçamento -->
                 <span class="status-box status-<?php echo $orcamento['status']; ?>">
                     <?php echo ucfirst($orcamento['status']); ?>
                 </span>
+                
+                <!-- Status de pagamento -->
+                <?php if ($orcamento['status_pagamento'] == 'pago'): ?>
+                <span class="status-box status-pago ms-2">
+                    PAGO
+                </span>
+                <?php endif; ?>
+                
+                <!-- Status de execução -->
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                <span class="status-box status-finalizado ms-2">
+                    FINALIZADO
+                </span>
+                <?php endif; ?>
             </div>
         </div>
 

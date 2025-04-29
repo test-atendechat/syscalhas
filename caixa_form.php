@@ -1,0 +1,274 @@
+<?php
+require_once('includes/config.php');
+require_once('includes/db.php');
+require_once('includes/functions.php');
+require_once('includes/auth.php');
+
+// Verificar autenticação
+verificarAutenticacao();
+
+// Inicialização de variáveis
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$movimentacao = [
+    'id' => 0,
+    'data_operacao' => date('Y-m-d'),
+    'tipo' => 'entrada',
+    'descricao' => '',
+    'valor' => '',
+    'forma_pagamento' => 'dinheiro',
+    'orcamento_id' => null,
+    'observacoes' => ''
+];
+$erro = '';
+$sucesso = '';
+$titulo = 'Registrar Nova Movimentação';
+$modo = 'cadastrar';
+
+// Se for edição, buscar dados da movimentação
+if ($id > 0) {
+    $stmt = $db->prepare("SELECT * FROM caixa WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() == 1) {
+        $movimentacao = $stmt->fetch(PDO::FETCH_ASSOC);
+        $titulo = 'Editar Movimentação';
+        $modo = 'editar';
+    } else {
+        $erro = 'Movimentação não encontrada.';
+    }
+}
+
+// Processar formulário
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Capturar dados do formulário
+    $movimentacao = [
+        'id' => isset($_POST['id']) ? intval($_POST['id']) : 0,
+        'data_operacao' => $_POST['data_operacao'] ?? date('Y-m-d'),
+        'tipo' => $_POST['tipo'] ?? 'entrada',
+        'descricao' => limpaString($_POST['descricao'] ?? ''),
+        'valor' => str_replace(',', '.', str_replace('.', '', $_POST['valor'] ?? '0')),
+        'forma_pagamento' => $_POST['forma_pagamento'] ?? 'dinheiro',
+        'orcamento_id' => !empty($_POST['orcamento_id']) ? intval($_POST['orcamento_id']) : null,
+        'observacoes' => limpaString($_POST['observacoes'] ?? '')
+    ];
+    
+    // Validações
+    if (empty($movimentacao['descricao'])) {
+        $erro = 'A descrição é obrigatória.';
+    } elseif (empty($movimentacao['valor']) || !is_numeric($movimentacao['valor']) || $movimentacao['valor'] <= 0) {
+        $erro = 'O valor é obrigatório e deve ser um número válido maior que zero.';
+    } else {
+        try {
+            // Iniciar transação para garantir integridade
+            $db->beginTransaction();
+            
+            // Inserir ou atualizar movimentação
+            if ($movimentacao['id'] > 0) {
+                // Atualizar
+                $stmt = $db->prepare("UPDATE caixa SET 
+                    data_operacao = :data_operacao,
+                    tipo = :tipo,
+                    descricao = :descricao,
+                    valor = :valor,
+                    forma_pagamento = :forma_pagamento,
+                    orcamento_id = :orcamento_id,
+                    observacoes = :observacoes
+                    WHERE id = :id");
+                $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+                $mensagem = 'atualizado';
+            } else {
+                // Inserir
+                $stmt = $db->prepare("INSERT INTO caixa (
+                    data_operacao, tipo, descricao, valor, forma_pagamento, orcamento_id, usuario_id, observacoes
+                ) VALUES (
+                    :data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :orcamento_id, :usuario_id, :observacoes
+                )");
+                $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
+                $mensagem = 'cadastrado';
+            }
+            
+            // Bind de parâmetros
+            $stmt->bindParam(':data_operacao', $movimentacao['data_operacao']);
+            $stmt->bindParam(':tipo', $movimentacao['tipo']);
+            $stmt->bindParam(':descricao', $movimentacao['descricao']);
+            $stmt->bindParam(':valor', $movimentacao['valor']);
+            $stmt->bindParam(':forma_pagamento', $movimentacao['forma_pagamento']);
+            $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+            $stmt->bindParam(':observacoes', $movimentacao['observacoes']);
+            
+            $stmt->execute();
+            
+            // Se estiver vinculado a um orçamento e for uma entrada, atualizar status do pagamento
+            if ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
+                $stmt = $db->prepare("UPDATE orcamentos SET 
+                    status_pagamento = 'pago', 
+                    data_pagamento = :data_pagamento 
+                    WHERE id = :orcamento_id");
+                $stmt->bindParam(':data_pagamento', $movimentacao['data_operacao']);
+                $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                $stmt->execute();
+            }
+            
+            // Finalizar transação
+            $db->commit();
+            
+            // Redirecionar para a listagem de movimentações
+            header("Location: caixa.php?mensagem={$mensagem}");
+            exit;
+            
+        } catch (Exception $e) {
+            $db->rollback();
+            $erro = 'Erro ao salvar movimentação: ' . $e->getMessage();
+        }
+    }
+}
+
+// Buscar orçamentos pendentes de pagamento para vincular
+$orcamentos_pendentes = [];
+if ($movimentacao['id'] == 0 || $movimentacao['orcamento_id'] != null) {
+    $sql = "SELECT id, numero, status, forma_pagamento, valor_total, data_criacao, 
+           (SELECT nome FROM clientes WHERE id = orcamentos.cliente_id) as cliente_nome
+           FROM orcamentos 
+           WHERE status = 'aprovado' AND status_pagamento = 'pendente'
+           OR id = :orcamento_id 
+           ORDER BY data_criacao DESC";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+    $stmt->execute();
+    $orcamentos_pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Agora podemos incluir o header, depois de qualquer possível redirecionamento
+require_once('includes/header.php');
+?>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-money-bill-wave me-2"></i><?php echo $titulo; ?></h1>
+    <a href="caixa.php" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+</div>
+
+<?php if ($erro): ?>
+    <div class="alert alert-danger"><?php echo $erro; ?></div>
+<?php endif; ?>
+
+<?php if ($sucesso): ?>
+    <div class="alert alert-success"><?php echo $sucesso; ?></div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <i class="fas fa-edit me-2"></i>Formulário de Movimentação
+    </div>
+    <div class="card-body">
+        <form method="post" action="caixa_form.php" id="formCaixa">
+            <input type="hidden" name="id" value="<?php echo $movimentacao['id']; ?>">
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="data_operacao" class="form-label">Data <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $movimentacao['data_operacao']; ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="tipo" class="form-label">Tipo <span class="text-danger">*</span></label>
+                    <div class="form-control">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo" id="tipo_entrada" value="entrada" <?php echo $movimentacao['tipo'] == 'entrada' ? 'checked' : ''; ?> required>
+                            <label class="form-check-label" for="tipo_entrada">Entrada</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipo" id="tipo_saida" value="saida" <?php echo $movimentacao['tipo'] == 'saida' ? 'checked' : ''; ?> required>
+                            <label class="form-check-label" for="tipo_saida">Saída</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="forma_pagamento" class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
+                    <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
+                        <option value="dinheiro" <?php echo $movimentacao['forma_pagamento'] == 'dinheiro' ? 'selected' : ''; ?>>Dinheiro</option>
+                        <option value="cartao" <?php echo $movimentacao['forma_pagamento'] == 'cartao' ? 'selected' : ''; ?>>Cartão</option>
+                        <option value="pix" <?php echo $movimentacao['forma_pagamento'] == 'pix' ? 'selected' : ''; ?>>PIX</option>
+                        <option value="transferencia" <?php echo $movimentacao['forma_pagamento'] == 'transferencia' ? 'selected' : ''; ?>>Transferência</option>
+                        <option value="outro" <?php echo $movimentacao['forma_pagamento'] == 'outro' ? 'selected' : ''; ?>>Outro</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="descricao" class="form-label">Descrição <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="descricao" name="descricao" value="<?php echo $movimentacao['descricao']; ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="valor" class="form-label">Valor <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="text" class="form-control" id="valor" name="valor" value="<?php echo !empty($movimentacao['valor']) ? number_format((float)$movimentacao['valor'], 2, ',', '.') : ''; ?>" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="orcamento_id" class="form-label">Vincular a Orçamento</label>
+                <select class="form-select" id="orcamento_id" name="orcamento_id">
+                    <option value="">Nenhum (Movimentação avulsa)</option>
+                    <?php foreach ($orcamentos_pendentes as $orc): ?>
+                        <option value="<?php echo $orc['id']; ?>" <?php echo ($movimentacao['orcamento_id'] == $orc['id']) ? 'selected' : ''; ?>>
+                            #<?php echo $orc['numero']; ?> - <?php echo $orc['cliente_nome']; ?> - <?php echo formataValor($orc['valor_total']); ?> - <?php echo dataParaBr($orc['data_criacao']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text text-muted">
+                    Ao vincular um orçamento, esta movimentação marcará o orçamento como PAGO automaticamente (se for uma entrada).
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="observacoes" class="form-label">Observações</label>
+                <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?php echo $movimentacao['observacoes']; ?></textarea>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i><?php echo $modo == 'cadastrar' ? 'Registrar' : 'Atualizar'; ?> Movimentação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatação de valores monetários
+    const valorInput = document.getElementById('valor');
+    const form = document.getElementById('formCaixa');
+    
+    valorInput.addEventListener('input', function(e) {
+        let valor = e.target.value.replace(/\D/g, '');
+        
+        if (valor.length === 0) {
+            e.target.value = '';
+            return;
+        }
+        
+        // Converter para formato de moeda
+        valor = (parseInt(valor) / 100).toFixed(2);
+        e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    });
+
+    // Validação do formulário
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+
+<?php
+require_once('includes/footer.php');
+?>

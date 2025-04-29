@@ -54,6 +54,18 @@ body {
     color: #721c24;
 }
 
+.status-pago {
+    background-color: #0dcaf0;
+    color: #055160;
+    font-weight: bold;
+}
+
+.status-finalizado {
+    background-color: #6610f2;
+    color: #ffffff;
+    font-weight: bold;
+}
+
 /* Estoque */
 .estoque-baixo {
     background-color: #fff3cd !important;
