@@ -149,9 +149,11 @@ require_once('includes/header.php');
                                         <a href="cliente_form.php?id=<?php echo $cliente['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <?php if (podeDeletar()): ?>
                                         <button type="button" class="btn btn-sm btn-danger" title="Excluir" onclick="confirmarExclusao(<?php echo $cliente['id']; ?>, '<?php echo $cliente['nome']; ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        <?php endif; ?>
                                         <a href="orcamento_form.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn btn-sm btn-success" title="Novo Orçamento">
                                             <i class="fas fa-file-invoice-dollar"></i>
                                         </a>

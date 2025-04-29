@@ -291,7 +291,9 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="perfil.php"><i class="fas fa-id-card me-1"></i>Meu Perfil</a></li>
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
                                     <li><a class="dropdown-item" href="configuracoes.php"><i class="fas fa-cog me-1"></i>Configurações</a></li>
+                                    <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-1"></i>Sair</a></li>
                                 </ul>
