@@ -116,6 +116,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 $stmt->execute();
 
                 $id = $db->lastInsertId();
+                
+                // Processar itens (se houver)
+                if (isset($_POST['item_id']) && is_array($_POST['item_id'])) {
+                    // Inserir cada item do formulário
+                    foreach ($_POST['item_id'] as $index => $item_id) {
+                        $produto_id = intval($_POST['produto_id'][$index]);
+                        $descricao = limpaString($_POST['descricao'][$index]);
+                        $unidade = limpaString($_POST['unidade'][$index]);
+                        $quantidade = floatval(str_replace(',', '.', $_POST['quantidade'][$index]));
+                        $valor_unitario = floatval(str_replace(',', '.', $_POST['valor_unitario'][$index]));
+                        $valor_total_item = $quantidade * $valor_unitario;
+                        
+                        if ($produto_id > 0) { // Verificar se há um produto selecionado
+                            // Inserir item
+                            $stmt = $db->prepare("INSERT INTO orcamento_itens 
+                                                (orcamento_id, produto_id, descricao, unidade, quantidade, valor_unitario, valor_total) 
+                                                VALUES 
+                                                (:orcamento_id, :produto_id, :descricao, :unidade, :quantidade, :valor_unitario, :valor_total)");
+                                                
+                            $stmt->bindValue(':orcamento_id', $id, PDO::PARAM_INT);
+                            $stmt->bindValue(':produto_id', $produto_id, PDO::PARAM_INT);
+                            $stmt->bindValue(':descricao', $descricao);
+                            $stmt->bindValue(':unidade', $unidade);
+                            $stmt->bindValue(':quantidade', $quantidade);
+                            $stmt->bindValue(':valor_unitario', $valor_unitario);
+                            $stmt->bindValue(':valor_total', $valor_total_item);
+                            $stmt->execute();
+                        }
+                    }
+                    
+                    // Calcular os totais
+                    $total_produtos = calcularTotalOrcamento($id);
+                    $valor_mao_obra = $total_produtos * ($taxa_mao_obra / 100);
+                    $valor_total = $total_produtos + $valor_mao_obra;
+                    
+                    // Apply discount if payment method is cash
+                    if ($forma_pagamento == 'vista') {
+                        $valor_total -= ($valor_total * ($desconto_vista / 100));
+                    }
+                    
+                    // Atualizar totais no orçamento
+                    $stmt = $db->prepare("UPDATE orcamentos SET 
+                                        valor_produtos = :valor_produtos, 
+                                        valor_mao_obra = :valor_mao_obra, 
+                                        valor_total = :valor_total 
+                                        WHERE id = :id");
+                    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+                    $stmt->bindValue(':valor_produtos', $total_produtos);
+                    $stmt->bindValue(':valor_mao_obra', $valor_mao_obra);
+                    $stmt->bindValue(':valor_total', $valor_total);
+                    $stmt->execute();
+                }
 
                 // Redirecionar para a edição com o ID gerado
                 $db->commit();
