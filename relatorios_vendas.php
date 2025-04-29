@@ -399,7 +399,7 @@ if (count($vendas) > 0) {
                     <thead>
                         <tr>
                             <th>Período</th>
-                            <th class="text-center">Quantidade</th>
+                            <th class="text-center">Qtd. Transações</th>
                             <th class="text-end">Valor Total</th>
                             <th class="text-end">% do Total</th>
                         </tr>
@@ -424,7 +424,7 @@ if (count($vendas) > 0) {
                                         ?>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center"><?php echo number_format($venda['quantidade'], 2, ',', '.'); ?></td>
+                                <td class="text-center"><?php echo number_format($venda['quantidade'], 0); ?></td>
                                 <td class="text-end"><?php echo formataValor($venda['valor_total']); ?></td>
                                 <td class="text-end">
                                     <?php 
@@ -441,7 +441,7 @@ if (count($vendas) > 0) {
                             <th class="text-center">
                                 <?php 
                                     $total_quantidade = array_sum(array_column($vendas, 'quantidade'));
-                                    echo number_format($total_quantidade, 2, ',', '.'); 
+                                    echo number_format($total_quantidade, 0); 
                                 ?>
                             </th>
                             <th class="text-end"><?php echo formataValor($total_vendas); ?></th>
@@ -488,6 +488,26 @@ if (count($vendas) > 0) {
             $stmt_produtos->bindParam(':data_fim', $data_fim);
             $stmt_produtos->execute();
             $produtos_vendidos = $stmt_produtos->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Calcular totais por unidade de medida
+            $totais_por_unidade = [];
+            $unidades_encontradas = [];
+            foreach ($produtos_vendidos as $produto) {
+                $unidade = $produto['unidade'];
+                if (!in_array($unidade, $unidades_encontradas)) {
+                    $unidades_encontradas[] = $unidade;
+                }
+                
+                if (!isset($totais_por_unidade[$unidade])) {
+                    $totais_por_unidade[$unidade] = [
+                        'quantidade' => 0,
+                        'valor' => 0
+                    ];
+                }
+                
+                $totais_por_unidade[$unidade]['quantidade'] += $produto['total_quantidade'];
+                $totais_por_unidade[$unidade]['valor'] += $produto['valor_total'];
+            }
             ?>
             
             <div class="table-responsive">
@@ -496,7 +516,7 @@ if (count($vendas) > 0) {
                         <tr>
                             <th>Produto</th>
                             <th>Categoria</th>
-                            <th class="text-center">Quantidade</th>
+                            <th class="text-center">Quantidade e Unidade</th>
                             <th class="text-end">Valor Total</th>
                             <th class="text-end">% do Total</th>
                         </tr>
@@ -525,6 +545,31 @@ if (count($vendas) > 0) {
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <?php if (count($produtos_vendidos) > 0 && count($unidades_encontradas) > 0): ?>
+                    <tfoot class="table-group-divider">
+                        <tr class="table-secondary">
+                            <th colspan="2">Resumo por Unidades</th>
+                            <th class="text-center"></th>
+                            <th class="text-end"></th>
+                            <th class="text-end"></th>
+                        </tr>
+                        <?php foreach ($totais_por_unidade as $unidade => $total): ?>
+                        <tr>
+                            <td colspan="2">Total em <?php echo $unidade; ?></td>
+                            <td class="text-center">
+                                <strong><?php echo number_format($total['quantidade'], 2, ',', '.') . ' ' . $unidade; ?></strong>
+                            </td>
+                            <td class="text-end"><?php echo formataValor($total['valor']); ?></td>
+                            <td class="text-end">
+                                <?php 
+                                    $percentual = ($total_vendas > 0) ? ($total['valor'] / $total_vendas) * 100 : 0;
+                                    echo number_format($percentual, 2, ',', '.') . '%';
+                                ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tfoot>
+                    <?php endif; ?>
                 </table>
             </div>
         </div>
