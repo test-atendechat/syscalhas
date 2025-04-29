@@ -35,8 +35,7 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
     } elseif ($acao == 'reabrir') {
         // Reabrir orçamento rejeitado (mudar status para pendente)
         $stmt = $db->prepare("UPDATE orcamentos SET 
-                            status = 'pendente',
-                            data_atualizacao = CURRENT_DATE
+                            status = 'pendente'
                             WHERE id = :id AND status = 'rejeitado'");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         
@@ -237,6 +236,16 @@ if (!$acesso_interno) {
                             </li>
                         <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções específicas para orçamentos rejeitados -->
+                    <?php if ($orcamento['status'] == 'rejeitado'): ?>
+                    <li>
+                        <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=reabrir">
+                            <i class="fas fa-redo-alt me-2"></i>Reabrir Orçamento
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
                     <?php endif; ?>
                     
                     <!-- Opções gerais -->

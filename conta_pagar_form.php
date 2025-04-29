@@ -18,6 +18,8 @@ $status = 'pendente';
 $observacoes = '';
 $documento = '';
 $categoria = '';
+$recorrente = false;
+$intervalo_dias = 30;
 $mensagem = '';
 $titulo = 'Nova Conta a Pagar';
 $acao = 'cadastrar';
@@ -186,6 +188,16 @@ require_once('includes/header.php');
                         <input type="text" class="form-control monetary-input" id="valor" name="valor" value="<?php echo number_format($valor, 2, ',', '.'); ?>" required>
                     </div>
                     <div class="invalid-feedback">Por favor, informe o valor.</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="recorrente" name="recorrente" value="1" <?php echo $recorrente ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="recorrente">Conta Recorrente (mensal)</label>
+                    </div>
+                    <div class="form-text">Se marcado, esta conta será gerada automaticamente todo mês com a mesma data de vencimento.</div>
                 </div>
             </div>
             
