@@ -21,6 +21,7 @@ $movimentacao = [
     'valor' => '',
     'forma_pagamento' => 'dinheiro',
     'orcamento_id' => null,
+    'cliente_id' => null,
     'observacoes' => ''
 ];
 $erro = '';
@@ -84,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'valor' => str_replace(',', '.', str_replace('.', '', $_POST['valor'] ?? '0')),
         'forma_pagamento' => $_POST['forma_pagamento'] ?? 'dinheiro',
         'orcamento_id' => !empty($_POST['orcamento_id']) ? intval($_POST['orcamento_id']) : null,
+        'cliente_id' => !empty($_POST['cliente_id']) ? intval($_POST['cliente_id']) : null,
         'observacoes' => limpaString($_POST['observacoes'] ?? '')
     ];
     
@@ -107,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     valor = :valor,
                     forma_pagamento = :forma_pagamento,
                     orcamento_id = :orcamento_id,
+                    cliente_id = :cliente_id,
                     observacoes = :observacoes
                     WHERE id = :id");
                 $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
@@ -114,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 // Inserir
                 $stmt = $db->prepare("INSERT INTO caixa (
-                    data_operacao, tipo, descricao, valor, forma_pagamento, orcamento_id, usuario_id, observacoes
+                    data_operacao, tipo, descricao, valor, forma_pagamento, orcamento_id, cliente_id, usuario_id, observacoes
                 ) VALUES (
-                    :data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :orcamento_id, :usuario_id, :observacoes
+                    :data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :orcamento_id, :cliente_id, :usuario_id, :observacoes
                 )");
                 $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
                 $mensagem = 'cadastrado';
