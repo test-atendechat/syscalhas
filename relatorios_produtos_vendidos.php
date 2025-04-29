@@ -74,7 +74,7 @@ $sql = "SELECT
         WHERE 
             m.tipo = 'saida'
             AND (m.orcamento_id IS NULL OR o.status != 'rejeitado')
-            AND DATE(m.data_criacao) BETWEEN :data_inicio AND :data_fim
+            AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim
         GROUP BY 
             p.id, p.codigo, p.descricao, p.unidade, p.valor_unitario, c.nome
         ORDER BY 
