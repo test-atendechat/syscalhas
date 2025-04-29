@@ -73,8 +73,8 @@ $stmt = $db->prepare("
     SELECT 
         COUNT(*) as total_vendas,
         SUM(valor_total) as valor_total_vendas,
-        SUM(valor_pago) as valor_pago_vendas,
-        SUM(valor_total - valor_pago) as valor_pendente_vendas
+        SUM(valor_total) as valor_pago_vendas,
+        0 as valor_pendente_vendas
     FROM vendas
     WHERE data_venda BETWEEN :data_inicio AND :data_fim
 ");
@@ -93,7 +93,7 @@ $stmt = $db->prepare("
         SUM(valor_total) as valor_total_orcamentos,
         SUM(CASE WHEN status = 'aprovado' THEN valor_total ELSE 0 END) as valor_orcamentos_aprovados
     FROM orcamentos
-    WHERE data_emissao BETWEEN :data_inicio AND :data_fim
+    WHERE data_criacao BETWEEN :data_inicio AND :data_fim
 ");
 $stmt->bindValue(':data_inicio', $data_inicio_mysql);
 $stmt->bindValue(':data_fim', $data_fim_mysql);

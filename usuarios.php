@@ -131,7 +131,7 @@ if (isset($_GET['editar'])) {
 }
 
 // Buscar todos os usuários
-$stmt = $db->query("SELECT id, nome, email, nivel, ativo, data_criacao, ultimo_acesso FROM usuarios ORDER BY nome");
+$stmt = $db->query("SELECT id, nome, email, nivel, ativo FROM usuarios ORDER BY nome");
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
@@ -163,8 +163,6 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <th>E-mail</th>
                         <th>Nível</th>
                         <th>Status</th>
-                        <th>Criado em</th>
-                        <th>Último Acesso</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -184,8 +182,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php echo $u['ativo'] ? 'Ativo' : 'Inativo'; ?>
                                     </span>
                                 </td>
-                                <td><?php echo dataParaBr($u['data_criacao']); ?></td>
-                                <td><?php echo !empty($u['ultimo_acesso']) ? dataParaBr($u['ultimo_acesso'], true) : 'Nunca'; ?></td>
+
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a href="?editar=<?php echo $u['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
@@ -207,7 +204,7 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="text-center">Nenhum usuário cadastrado.</td>
+                            <td colspan="5" class="text-center">Nenhum usuário cadastrado.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
