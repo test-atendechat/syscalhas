@@ -24,6 +24,7 @@ $configuracoes = [
     'empresa_endereco' => '',
     'empresa_cnpj' => '',
     'taxa_padrao_mao_obra' => 100, // Valor padrão para a taxa de mão de obra (em %)
+    'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
     'estoque_alerta_minimo' => 50, // Valor padrão para alerta de estoque mínimo
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
 ];
@@ -134,6 +135,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h5><i class="fas fa-file-invoice-dollar me-2"></i>Configurações de Orçamentos</h5>
                 <hr>
                 <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="desconto_pagamento_vista" class="form-label">Desconto para Pagamento à Vista (%)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="desconto_pagamento_vista" name="desconto_pagamento_vista" step="0.01" min="0" max="100" value="<?php echo $configuracoes['desconto_pagamento_vista']; ?>">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <div class="form-text">Percentual de desconto aplicado em pagamentos à vista.</div>
+                    </div>
                     <div class="col-md-6 mb-3">
                         <label for="taxa_padrao_mao_obra" class="form-label">Taxa Padrão de Mão de Obra (%)</label>
                         <div class="input-group">
