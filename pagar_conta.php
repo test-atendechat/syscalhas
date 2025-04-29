@@ -175,7 +175,15 @@ require_once('includes/header.php');
                         <p><strong>Valor:</strong> <?php echo formataValor($conta['valor']); ?></p>
                         <p>
                             <strong>Status:</strong> 
-                            <span class="badge bg-warning text-dark">Pendente</span>
+                            <?php if ($conta['status'] == 'pendente'): ?>
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                            <?php elseif ($conta['status'] == 'pago_parcial'): ?>
+                                <span class="badge bg-info text-dark">Pago Parcial</span>
+                                <div class="small mt-1">
+                                    <?php echo formataValor($conta['valor_pago']) . ' de ' . formataValor($conta['valor']); ?>
+                                    (<?php echo number_format(($conta['valor_pago'] / $conta['valor']) * 100, 0); ?>%)
+                                </div>
+                            <?php endif; ?>
                         </p>
                     </div>
                 </div>

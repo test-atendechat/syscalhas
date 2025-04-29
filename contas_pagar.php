@@ -287,17 +287,17 @@ require_once('includes/header.php');
                             <a href="conta_pagar_form.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <?php if ($conta['status'] == 'pendente'): ?>
-                            <a href="pagar_conta.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-success">
+                            <?php if ($conta['status'] == 'pendente' || $conta['status'] == 'pago_parcial'): ?>
+                            <a href="pagar_conta.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-success" title="<?php echo $conta['status'] == 'pago_parcial' ? 'Completar pagamento' : 'Pagar'; ?>">
                                 <i class="fas fa-money-bill-wave"></i>
                             </a>
                             <?php endif; ?>
-                            <?php if ($conta['status'] == 'pago'): ?>
-                            <a href="estornar_pagamento.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-warning">
+                            <?php if ($conta['status'] == 'pago' || $conta['status'] == 'pago_parcial'): ?>
+                            <a href="estornar_pagamento.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-warning" title="Estornar pagamento">
                                 <i class="fas fa-undo-alt"></i>
                             </a>
                             <?php endif; ?>
-                            <?php if ($conta['status'] != 'pago'): ?>
+                            <?php if ($conta['status'] != 'pago' && $conta['status'] != 'pago_parcial'): ?>
                             <button type="button" class="btn btn-sm btn-outline-danger" 
                                     onclick="confirmarExclusao(<?php echo $conta['id']; ?>, '<?php echo addslashes($conta["descricao"]); ?>', 'contas_pagar.php')">
                                 <i class="fas fa-trash"></i>

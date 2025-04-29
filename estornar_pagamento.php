@@ -17,10 +17,10 @@ $conta = null;
 
 // Verificar se a conta existe e é válida para estorno
 if ($id > 0) {
-    $stmt = $db->prepare("SELECT c.*, p.valor as valor_pago, p.forma_pagamento, p.data_pagamento, p.caixa_id 
+    $stmt = $db->prepare("SELECT c.*, p.valor as valor_ultimo_pagamento, p.forma_pagamento, p.data_pagamento, p.caixa_id 
                           FROM contas_pagar c 
                           LEFT JOIN pagamentos_contas p ON p.conta_id = c.id 
-                          WHERE c.id = ? AND c.status = 'pago' 
+                          WHERE c.id = ? AND (c.status = 'pago' OR c.status = 'pago_parcial') 
                           ORDER BY p.id DESC LIMIT 1");
     $stmt->execute([$id]);
     $conta = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $conta) {
     $data_estorno = $_POST['data_estorno'];
     $observacoes = trim($_POST['observacoes']);
     $registrar_caixa = isset($_POST['registrar_caixa']);
-    $valor_estorno = floatval($conta['valor_pago']);
+    // Usar o valor do último pagamento registrado para o estorno
+    $valor_estorno = floatval($conta['valor_ultimo_pagamento']);
     $forma_pagamento = $conta['forma_pagamento'];
     
     // Validar campos obrigatórios
@@ -140,7 +141,8 @@ require_once('includes/header.php');
                 <p><strong>Descrição:</strong> <?php echo $conta['descricao']; ?></p>
                 <p><strong>Fornecedor:</strong> <?php echo $conta['fornecedor'] ?: 'Não informado'; ?></p>
                 <p><strong>Valor Original:</strong> <?php echo formataValor($conta['valor']); ?></p>
-                <p><strong>Valor Pago:</strong> <?php echo formataValor($conta['valor_pago']); ?></p>
+                <p><strong>Valor Pago Total:</strong> <?php echo formataValor($conta['valor_pago']); ?></p>
+                <p><strong>Valor do Estorno:</strong> <?php echo formataValor($conta['valor_ultimo_pagamento']); ?></p>
             </div>
             <div class="col-md-6">
                 <p><strong>Vencimento:</strong> <?php echo dataParaBr($conta['data_vencimento']); ?></p>
