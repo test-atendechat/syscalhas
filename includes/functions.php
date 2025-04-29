@@ -38,6 +38,7 @@ function limpaString($str) {
  * @return string Valor formatado
  */
 function formataValor($valor, $simbolo = 'R$') {
+    if ($valor === null) $valor = 0;
     return $simbolo . ' ' . number_format($valor, 2, ',', '.');
 }
 
@@ -121,7 +122,22 @@ function mesParaPtBr($mes) {
  * @param string $forma Código da forma de pagamento
  * @return string Texto legível da forma de pagamento
  */
-// Função foi movida para o topo do arquivo
+function formaPagamentoParaTexto($forma) {
+    switch ($forma) {
+        case 'dinheiro':
+            return 'Dinheiro';
+        case 'cartao':
+            return 'Cartão';
+        case 'pix':
+            return 'PIX';
+        case 'transferencia':
+            return 'Transferência';
+        case 'cheque':
+            return 'Cheque';
+        default:
+            return $forma ? ucfirst($forma) : 'Não informado';
+    }
+}
 
 /**
  * Gera um número único para orçamento no formato ANO/MÊS/SEQUENCIAL

@@ -178,8 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $debug_info = "Orcamento ID: {$movimentacao['orcamento_id']}, Valor Total: {$valor_orcamento}, Total Pago: {$total_pago}, Percentual: {$percentual_pago}%";
                 error_log($debug_info);
                 
-                // Considerar como pago total apenas se o percentual for de pelo menos 99.5%
-                $pagamento_total = ($percentual_pago >= 99.5);
+                // Considerar como pago total apenas se o valor pago for pelo menos igual ao valor total ou a diferença for muito pequena (< R$0,10)
+                $pagamento_total = ($total_pago >= $valor_orcamento) || ($diferenca < 0.1);
                 
                 // Configurar status de pagamento como total ou parcial
                 $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
