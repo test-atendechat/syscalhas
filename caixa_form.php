@@ -314,7 +314,7 @@ require_once('includes/header.php');
         <i class="fas fa-edit me-2"></i>Formulário de Movimentação
     </div>
     <div class="card-body">
-        <form method="post" action="caixa_form.php" id="formCaixa">
+        <form method="post" id="formCaixa">
             <input type="hidden" name="id" value="<?php echo $movimentacao['id']; ?>">
             <?php if ($orcamento_id > 0): ?>
             <input type="hidden" name="orcamento_id_get" value="<?php echo $orcamento_id; ?>">
