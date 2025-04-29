@@ -62,6 +62,15 @@
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'caixa') !== false || strpos($pagina_atual, 'vendas') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cash-register me-1"></i>Caixa e Vendas
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="caixa.php"><i class="fas fa-money-bill-wave me-1"></i>Caixa</a></li>
+                                    <li><a class="dropdown-item" href="vendas.php"><i class="fas fa-shopping-cart me-1"></i>Histórico de Vendas</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'produto') !== false || strpos($pagina_atual, 'estoque') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-boxes me-1"></i>Produtos e Estoque
                                 </a>

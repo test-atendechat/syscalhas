@@ -10,6 +10,32 @@ $itens = [];
 $cliente = null;
 $mensagem = '';
 
+// Processar ações como marcar como finalizado
+if (isset($_GET['id']) && isset($_GET['acao']) && $_GET['acao'] == 'finalizar') {
+    // Verificar autenticação primeiro
+    require_once('includes/auth.php');
+    verificarAutenticacao();
+    
+    $id = intval($_GET['id']);
+    
+    // Atualizar status de execução para finalizado
+    $stmt = $db->prepare("UPDATE orcamentos SET 
+                        status_execucao = 'finalizado', 
+                        data_finalizacao = CURRENT_DATE 
+                        WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    
+    if ($stmt->execute()) {
+        $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
+    } else {
+        $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
+    }
+    
+    // Redirecionar para remover a ação da URL
+    header("Location: orcamento_visualizar.php?id={$id}");
+    exit;
+}
+
 // Verificando tipo de acesso
 if (isset($_GET['id'])) {
     // Acesso interno (painel administrativo)
