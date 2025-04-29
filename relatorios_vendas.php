@@ -83,7 +83,7 @@ $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Construir consulta SQL para vendas
 // Considerar vendas como orçamentos aprovados e saídas diretas do estoque com motivo "Venda"
 $sql_base = "SELECT 
-                DATE(m.data_criacao) as data,
+                DATE(m.data_movimentacao) as data,
                 SUM(m.valor_total) as valor_total,
                 SUM(m.quantidade) as quantidade
             FROM 
@@ -94,7 +94,7 @@ $sql_base = "SELECT
                 orcamentos o ON m.orcamento_id = o.id
             WHERE 
                 (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
-                AND DATE(m.data_criacao) BETWEEN :data_inicio AND :data_fim";
+                AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
 
 // Adicionar filtro de categoria se selecionado
 if ($categoria_id > 0) {
