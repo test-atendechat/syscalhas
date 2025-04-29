@@ -170,59 +170,124 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                                     <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                                 </a>
                             </li>
+                            
+                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_orcamentos')): ?>
                             <li class="nav-item">
                                 <a class="nav-link <?php echo (strpos($pagina_atual, 'orcamento') !== false) ? 'active' : ''; ?>" href="orcamentos.php">
                                     <i class="fas fa-file-invoice-dollar me-1"></i>Orçamentos
                                 </a>
                             </li>
+                            <?php endif; ?>
+                            
+                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_clientes')): ?>
                             <li class="nav-item">
                                 <a class="nav-link <?php echo (strpos($pagina_atual, 'cliente') !== false) ? 'active' : ''; ?>" href="clientes.php">
                                     <i class="fas fa-users me-1"></i>Clientes
                                 </a>
                             </li>
+                            <?php endif; ?>
+                            
+                            <?php 
+                            // Verifica se o usuário tem acesso a pelo menos uma seção financeira
+                            $mostra_financas = ($_SESSION['usuario']['nivel'] === 'admin' || 
+                                               verificarPermissao('gerenciar_caixa') || 
+                                               verificarPermissao('gerenciar_vendas') || 
+                                               verificarPermissao('gerenciar_contas'));
+                            
+                            if ($mostra_financas): 
+                            ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'caixa') !== false || strpos($pagina_atual, 'vendas') !== false || strpos($pagina_atual, 'conta') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-cash-register me-1"></i>Finanças
                                 </a>
                                 <ul class="dropdown-menu">
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_caixa')): ?>
                                     <li><a class="dropdown-item" href="caixa.php"><i class="fas fa-money-bill-wave me-1"></i>Caixa</a></li>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_vendas')): ?>
                                     <li><a class="dropdown-item" href="vendas.php"><i class="fas fa-shopping-cart me-1"></i>Histórico de Vendas</a></li>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_contas')): ?>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="contas_pagar.php"><i class="fas fa-file-invoice me-1"></i>Contas a Pagar</a></li>
+                                    <?php endif; ?>
                                 </ul>
                             </li>
+                            <?php endif; ?>
+                            
+                            <?php 
+                            // Verifica se o usuário tem acesso a pelo menos uma seção de produtos/estoque
+                            $mostra_produtos = ($_SESSION['usuario']['nivel'] === 'admin' || 
+                                              verificarPermissao('gerenciar_produtos') || 
+                                              verificarPermissao('gerenciar_estoque'));
+                            
+                            if ($mostra_produtos): 
+                            ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'produto') !== false || strpos($pagina_atual, 'estoque') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-boxes me-1"></i>Produtos e Estoque
                                 </a>
                                 <ul class="dropdown-menu">
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_produtos')): ?>
                                     <li><a class="dropdown-item" href="produtos.php"><i class="fas fa-box me-1"></i>Cadastro de Produtos</a></li>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_estoque')): ?>
                                     <li><a class="dropdown-item" href="estoque.php"><i class="fas fa-warehouse me-1"></i>Controle de Estoque</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="estoque_entrada.php"><i class="fas fa-arrow-alt-circle-down me-1"></i>Entrada de Estoque</a></li>
                                     <li><a class="dropdown-item" href="estoque_saida.php"><i class="fas fa-arrow-alt-circle-up me-1"></i>Saída de Estoque</a></li>
                                     <li><a class="dropdown-item" href="estoque_movimentacoes.php"><i class="fas fa-exchange-alt me-1"></i>Movimentações</a></li>
+                                    <?php endif; ?>
                                 </ul>
                             </li>
+                            <?php endif; ?>
+                            
+                            <?php 
+                            // Verifica se o usuário tem acesso a pelo menos uma seção de relatórios
+                            $mostra_relatorios = ($_SESSION['usuario']['nivel'] === 'admin' || 
+                                                verificarPermissao('visualizar_relatorios_gerais') || 
+                                                verificarPermissao('visualizar_relatorios_financeiros'));
+                            
+                            if ($mostra_relatorios): 
+                            ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'relatorio') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-chart-bar me-1"></i>Relatórios
                                 </a>
                                 <ul class="dropdown-menu">
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_gerais')): ?>
                                     <li><a class="dropdown-item" href="relatorios_orcamentos.php"><i class="fas fa-file-invoice me-1"></i>Orçamentos</a></li>
                                     <li><a class="dropdown-item" href="relatorios_vendas.php"><i class="fas fa-chart-line me-1"></i>Vendas</a></li>
-                                    <li><a class="dropdown-item" href="relatorios_contas.php"><i class="fas fa-money-check-alt me-1"></i>Contas a Pagar</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i>Estoque Baixo</a></li>
                                     <li><a class="dropdown-item" href="relatorios_produtos_vendidos.php"><i class="fas fa-trophy me-1"></i>Produtos mais Vendidos</a></li>
+                                    <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i>Estoque Baixo</a></li>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_financeiros')): ?>
+                                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_contas')): ?>
+                                    <li><a class="dropdown-item" href="relatorios_contas.php"><i class="fas fa-money-check-alt me-1"></i>Contas a Pagar</a></li>
+                                    <?php endif; ?>
+                                    <li><a class="dropdown-item" href="relatorio_financeiro.php"><i class="fas fa-chart-pie me-1"></i>Relatório Financeiro</a></li>
+                                    <?php endif; ?>
                                 </ul>
                             </li>
+                            <?php endif; ?>
+                            
+                            <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
+                            <li class="nav-item">
+                                <a class="nav-link <?php echo (strpos($pagina_atual, 'usuario') !== false) ? 'active' : ''; ?>" href="usuarios.php">
+                                    <i class="fas fa-user-cog me-1"></i>Usuários
+                                </a>
+                            </li>
+                            <?php endif; ?>
                         </ul>
 
                         <div class="d-flex">
                             <div class="dropdown">
                                 <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user-circle me-1"></i><?php echo $_SESSION['usuario_nome']; ?>
+                                    <i class="fas fa-user-circle me-1"></i><?php echo $_SESSION['usuario']['nome']; ?>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="perfil.php"><i class="fas fa-id-card me-1"></i>Meu Perfil</a></li>

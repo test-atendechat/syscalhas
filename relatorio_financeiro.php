@@ -2,8 +2,12 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('includes/auth.php');
 
-// Verificar se o usuário está logado e tem permissão para acessar esta página
+// Verificar se o usuário está logado
+verificarAutenticacao();
+
+// Verificar se o usuário tem permissão para acessar esta página
 // Administradores sempre têm acesso, outros usuários precisam de permissão específica
 if (!isset($_SESSION['usuario']) || 
     ($_SESSION['usuario']['nivel'] !== 'admin' && !verificarPermissao('visualizar_relatorios_financeiros'))) {
