@@ -176,7 +176,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $valor_atual = floatval($movimentacao['valor']);
             $valor_total_apos_pagamento = $total_ja_pago + $valor_atual;
             
-            if ($valor_total_apos_pagamento > $valor_orcamento) {
+            // Arredondamos os valores para 2 casas decimais para evitar problemas de comparação com números de ponto flutuante
+            $valor_total_apos_pagamento_arredondado = round($valor_total_apos_pagamento, 2);
+            $valor_orcamento_arredondado = round($valor_orcamento, 2);
+            
+            // Tolerância mínima para considerar valores iguais (0.01 centavo)
+            if ($valor_total_apos_pagamento_arredondado > $valor_orcamento_arredondado + 0.01) {
                 $valor_maximo_permitido = $valor_orcamento - $total_ja_pago;
                 if ($valor_maximo_permitido < 0) $valor_maximo_permitido = 0;
                 $erro = "O valor de R$ " . number_format($valor_atual, 2, ',', '.') . " ultrapassa o valor restante do orçamento. O valor máximo permitido é R$ " . number_format($valor_maximo_permitido, 2, ',', '.');
