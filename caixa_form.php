@@ -420,6 +420,12 @@ require_once('includes/header.php');
             <input type="hidden" name="id" value="<?php echo $movimentacao['id']; ?>">
             <?php if ($orcamento_id > 0): ?>
             <input type="hidden" name="orcamento_id_get" value="<?php echo $orcamento_id; ?>">
+            <?php if (isset($movimentacao['valor_total_orcamento'])): ?>
+            <input type="hidden" name="valor_total_orcamento" value="<?php echo $movimentacao['valor_total_orcamento']; ?>">
+            <?php endif; ?>
+            <?php if (isset($movimentacao['total_ja_pago'])): ?>
+            <input type="hidden" name="total_ja_pago" value="<?php echo $movimentacao['total_ja_pago']; ?>">
+            <?php endif; ?>
             <?php endif; ?>
             
             <?php if (isset($movimentacao['orcamento_id']) && $movimentacao['orcamento_id'] > 0 && isset($movimentacao['valor_total_orcamento'])): ?>
