@@ -58,9 +58,10 @@ if ($periodo == 'hoje') {
 // Consultar dados financeiros do estoque
 $stmt = $db->prepare("
     SELECT 
-        SUM(CASE WHEN m.tipo = 'entrada' THEN m.valor_total ELSE 0 END) as valor_entradas,
+        SUM(CASE WHEN m.tipo = 'entrada' THEN (m.quantidade * p.custo_unitario) ELSE 0 END) as valor_entradas,
         SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) as valor_saidas
     FROM estoque_movimentacoes m
+    JOIN produtos p ON m.produto_id = p.id
     WHERE m.data_movimentacao BETWEEN :data_inicio AND :data_fim
 ");
 $stmt->bindValue(':data_inicio', $data_inicio_mysql);
