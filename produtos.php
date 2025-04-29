@@ -214,10 +214,12 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                                     <a href="produto_form.php?id=<?php echo $produto['id']; ?>" class="btn btn-sm btn-info" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <?php if (podeDeletar()): ?>
                                     <button type="button" class="btn btn-sm btn-danger" title="Excluir" 
                                             onclick="confirmarExclusao(<?php echo $produto['id']; ?>, '<?php echo addslashes($produto['descricao']); ?>')">
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

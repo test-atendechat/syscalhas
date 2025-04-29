@@ -271,9 +271,11 @@ require_once('includes/header.php');
                                         <a href="orcamento_form.php?id=<?php echo $orcamento['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <?php if (podeDeletar()): ?>
                                         <button type="button" class="btn btn-sm btn-danger" title="Excluir" onclick="confirmarExclusao(<?php echo $orcamento['id']; ?>, '<?php echo $orcamento['numero']; ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        <?php endif; ?>
                                         
                                         <?php if ($orcamento['status'] == 'pendente'): ?>
                                             <div class="btn-group">

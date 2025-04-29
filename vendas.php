@@ -194,9 +194,11 @@ require_once('includes/header.php');
                                     <a href="venda_visualizar.php?id=<?php echo $venda['id']; ?>" class="btn btn-sm btn-info" title="Visualizar">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <?php if (podeDeletar()): ?>
                                     <a href="#" onclick="confirmarExclusao(<?php echo $venda['id']; ?>, '<?php echo $venda['numero']; ?>', 'vendas.php'); return false;" class="btn btn-sm btn-danger" title="Excluir">
                                         <i class="fas fa-trash"></i>
                                     </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
