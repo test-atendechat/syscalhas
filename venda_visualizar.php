@@ -172,8 +172,8 @@ require_once('includes/header.php');
         </div>
     </div>
     
-    <!-- Seção para registrar pagamento se pendente -->
-    <?php if ((!isset($venda['status_pagamento']) || $venda['status_pagamento'] == 'pendente') && !empty($venda['cliente_id'])): ?>
+    <!-- Seção para registrar pagamento se pendente ou parcial -->
+    <?php if ((!isset($venda['status_pagamento']) || $venda['status_pagamento'] == 'pendente' || $venda['status_pagamento'] == 'pago_parcial') && !empty($venda['cliente_id'])): ?>
     <div class="card mt-4 mb-4">
         <div class="card-header bg-warning text-dark">
             <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento

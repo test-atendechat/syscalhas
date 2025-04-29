@@ -132,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->bindParam(':valor', $movimentacao['valor']);
             $stmt->bindParam(':forma_pagamento', $movimentacao['forma_pagamento']);
             $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+            $stmt->bindParam(':cliente_id', $movimentacao['cliente_id'], PDO::PARAM_INT);
             $stmt->bindParam(':observacoes', $movimentacao['observacoes']);
             
             $stmt->execute();
@@ -198,6 +199,13 @@ if ($movimentacao['id'] == 0 || $movimentacao['orcamento_id'] != null) {
     $stmt->execute();
     $orcamentos_pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// Buscar todos os clientes para vincular
+$clientes = [];
+$sql = "SELECT id, nome, telefone FROM clientes ORDER BY nome ASC";
+$stmt = $db->prepare($sql);
+$stmt->execute();
+$clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Agora podemos incluir o header, depois de qualquer possível redirecionamento
 require_once('includes/header.php');
@@ -270,19 +278,35 @@ require_once('includes/header.php');
                 </div>
             </div>
             
-            <div class="mb-3">
-                <label for="orcamento_id" class="form-label">Vincular a Orçamento</label>
-                <select class="form-select" id="orcamento_id" name="orcamento_id">
-                    <option value="">Nenhum (Movimentação avulsa)</option>
-                    <?php foreach ($orcamentos_pendentes as $orc): ?>
-                        <option value="<?php echo $orc['id']; ?>" <?php echo ($movimentacao['orcamento_id'] == $orc['id']) ? 'selected' : ''; ?>
-                                data-valor="<?php echo $orc['valor_total']; ?>">
-                            #<?php echo $orc['numero']; ?> - <?php echo $orc['cliente_nome']; ?> - <?php echo formataValor($orc['valor_total']); ?> - <?php echo dataParaBr($orc['data_criacao']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="form-text text-muted">
-                    Ao vincular um orçamento, esta movimentação marcará o orçamento como pago automaticamente (se for uma entrada).
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="orcamento_id" class="form-label">Vincular a Orçamento</label>
+                    <select class="form-select" id="orcamento_id" name="orcamento_id">
+                        <option value="">Nenhum (Movimentação avulsa)</option>
+                        <?php foreach ($orcamentos_pendentes as $orc): ?>
+                            <option value="<?php echo $orc['id']; ?>" <?php echo ($movimentacao['orcamento_id'] == $orc['id']) ? 'selected' : ''; ?>
+                                    data-valor="<?php echo $orc['valor_total']; ?>">
+                                #<?php echo $orc['numero']; ?> - <?php echo $orc['cliente_nome']; ?> - <?php echo formataValor($orc['valor_total']); ?> - <?php echo dataParaBr($orc['data_criacao']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text text-muted">
+                        Ao vincular um orçamento, esta movimentação marcará o orçamento como pago automaticamente (se for uma entrada).
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="cliente_id" class="form-label">Vincular a Cliente</label>
+                    <select class="form-select" id="cliente_id" name="cliente_id">
+                        <option value="">Nenhum (Movimentação avulsa)</option>
+                        <?php foreach ($clientes as $cli): ?>
+                            <option value="<?php echo $cli['id']; ?>" <?php echo ($movimentacao['cliente_id'] == $cli['id']) ? 'selected' : ''; ?>>
+                                <?php echo $cli['nome']; ?> - <?php echo $cli['telefone']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text text-muted">
+                        Você pode vincular esta movimentação a um cliente para facilitar o rastreamento de pagamentos.
+                    </div>
                 </div>
             </div>
             
