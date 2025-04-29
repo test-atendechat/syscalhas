@@ -517,7 +517,7 @@ require_once('includes/header.php');
             <input type="text" class="form-control" name="unidade[]" required>
         </td>
         <td>
-            <input type="text" class="form-control quantidade-input" name="quantidade[]" value="1,00" required>
+            <input type="text" class="form-control monetary-input quantidade-input" name="quantidade[]" value="1,00" required>
         </td>
         <td>
             <input type="text" class="form-control monetary-input valor-unitario" name="valor_unitario[]" value="0,00" required>
@@ -541,6 +541,43 @@ document.addEventListener('DOMContentLoaded', function() {
             mask: '00/00/0000'
         });
     }
+    
+    // Inicializar formatação monetária para campos existentes
+    document.querySelectorAll('.monetary-input').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            if (valor.length === 0) {
+                e.target.value = '';
+                return;
+            }
+            valor = (parseInt(valor) / 100).toFixed(2);
+            e.target.value = valor.replace('.', ',');
+        });
+    });
+    
+    // Inicializar formatação decimal para campos de quantidade
+    document.querySelectorAll('.quantidade-input').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+            // Remover formatação anterior
+            let valor = e.target.value.replace(/\./g, '').replace(',', '.');
+            
+            // Se não for um número válido, limpar o campo
+            if (isNaN(parseFloat(valor)) || !isFinite(valor)) {
+                e.target.value = '';
+                return;
+            }
+            
+            // Formatar com 2 casas decimais
+            valor = parseFloat(valor).toFixed(2);
+            e.target.value = valor.replace('.', ',');
+            
+            // Recalcular totais se estiver em uma linha de item
+            if (e.target.closest('.linha-item')) {
+                calcularValorTotalItem(e.target.closest('.linha-item'));
+                recalcularTotais();
+            }
+        });
+    });
 
     // Função para calcular o valor total de um item
     function calcularValorTotalItem(row) {
@@ -644,6 +681,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 valor = (parseInt(valor) / 100).toFixed(2);
                 e.target.value = valor.replace('.', ',');
+            });
+        });
+        
+        // Inicializar formatação decimal para campos de quantidade
+        const quantidadeInputs = novaLinha.querySelectorAll('.quantidade-input');
+        quantidadeInputs.forEach(function(input) {
+            input.addEventListener('input', function(e) {
+                // Remover formatação anterior
+                let valor = e.target.value.replace(/\./g, '').replace(',', '.');
+                
+                // Se não for um número válido, limpar o campo
+                if (isNaN(parseFloat(valor)) || !isFinite(valor)) {
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Formatar com 2 casas decimais
+                valor = parseFloat(valor).toFixed(2);
+                e.target.value = valor.replace('.', ',');
+                
+                // Recalcular totais se estiver em uma linha de item
+                if (e.target.closest('.linha-item')) {
+                    calcularValorTotalItem(e.target.closest('.linha-item'));
+                    recalcularTotais();
+                }
             });
         });
 

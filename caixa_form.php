@@ -309,32 +309,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     // Registrar no log para depuração
                     error_log("Redirecionando após salvar pagamento para orçamento ID: {$orcamento_id_redirect}");
                     
-                    // Se o orçamento foi totalmente pago, direcionar para a vizualização do orçamento
+                    // Verificar o status do pagamento
                     $stmt = $db->prepare("SELECT status_pagamento FROM orcamentos WHERE id = :id");
                     $stmt->bindParam(':id', $orcamento_id_redirect, PDO::PARAM_INT);
                     $stmt->execute();
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
                     
+                    // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
                         header("Location: orcamento_visualizar.php?id={$orcamento_id_redirect}&mensagem=pago");
                     } else {
-                        // Forçar recarregamento completo para atualizar todos os valores calculados
-                        header("Location: caixa_form.php?orcamento_id={$orcamento_id_redirect}&mensagem={$mensagem}&ts=".time());
+                        // Agora redirecionamos para a página de orçamento mesmo com pagamento parcial
+                        header("Location: orcamento_visualizar.php?id={$orcamento_id_redirect}&mensagem=pagamento_parcial");
                     }
                     exit;
                 } elseif (isset($_POST['orcamento_id_get']) && !empty($_POST['orcamento_id_get'])) {
                     $orcamento_id_redirect = intval($_POST['orcamento_id_get']);
-                    // Se o orçamento foi totalmente pago, direcionar para a vizualização do orçamento
+                    // Verificar o status do pagamento
                     $stmt = $db->prepare("SELECT status_pagamento FROM orcamentos WHERE id = :id");
                     $stmt->bindParam(':id', $orcamento_id_redirect, PDO::PARAM_INT);
                     $stmt->execute();
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
                     
+                    // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
                         header("Location: orcamento_visualizar.php?id={$orcamento_id_redirect}&mensagem=pago");
                     } else {
-                        // Forçar recarregamento completo para atualizar todos os valores calculados
-                        header("Location: caixa_form.php?orcamento_id={$orcamento_id_redirect}&mensagem={$mensagem}&ts=".time());
+                        // Agora redirecionamos para a página de orçamento mesmo com pagamento parcial
+                        header("Location: orcamento_visualizar.php?id={$orcamento_id_redirect}&mensagem=pagamento_parcial");
                     }
                     exit;
                 } else {
