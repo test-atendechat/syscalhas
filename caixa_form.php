@@ -9,6 +9,10 @@ verificarAutenticacao();
 
 // Inicialização de variáveis
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
+$orcamento = null;
+$cliente = null;
+
 $movimentacao = [
     'id' => 0,
     'data_operacao' => date('Y-m-d'),
@@ -23,6 +27,36 @@ $erro = '';
 $sucesso = '';
 $titulo = 'Registrar Nova Movimentação';
 $modo = 'cadastrar';
+
+// Se for uma movimentação relacionada a um orçamento
+if ($orcamento_id > 0) {
+    require_once('includes/db.php');
+    $stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome, c.id as cliente_id 
+                        FROM orcamentos o
+                        JOIN clientes c ON o.cliente_id = c.id
+                        WHERE o.id = :id");
+    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Se o orçamento já estiver pago, redirecionar
+        if ($orcamento['status_pagamento'] == 'pago') {
+            header("Location: orcamento_visualizar.php?id={$orcamento_id}&mensagem=pago");
+            exit;
+        }
+        
+        // Preencher movimentação com dados do orçamento
+        $movimentacao['descricao'] = "Pagamento do orçamento #{$orcamento['numero']}";
+        $movimentacao['valor'] = $orcamento['valor_total'];
+        $movimentacao['orcamento_id'] = $orcamento_id;
+        $movimentacao['forma_pagamento'] = $orcamento['forma_pagamento'];
+        $titulo = 'Registrar Pagamento de Orçamento';
+    } else {
+        $erro = 'Orçamento não encontrado.';
+    }
+}
 
 // Se for edição, buscar dados da movimentação
 if ($id > 0) {
