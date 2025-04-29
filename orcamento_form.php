@@ -169,9 +169,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                     $stmt->execute();
                 }
 
-                // Redirecionar para a edição com o ID gerado
+                // Redirecionar para a visualização com o ID gerado
                 $db->commit();
-                header("Location: orcamento_form.php?id={$id}&mensagem=cadastrado");
+                header("Location: orcamento_visualizar.php?id={$id}&mensagem=cadastrado");
                 exit;
             } else if ($acao_form == 'atualizar' && $id > 0) {
                 // Atualizar o orçamento

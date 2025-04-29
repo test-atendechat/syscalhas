@@ -10,25 +10,41 @@ $itens = [];
 $cliente = null;
 $mensagem = '';
 
-// Processar ações como marcar como finalizado
-if (isset($_GET['id']) && isset($_GET['acao']) && $_GET['acao'] == 'finalizar') {
+// Processar ações como marcar como finalizado ou reabrir orçamento
+if (isset($_GET['id']) && isset($_GET['acao'])) {
     // Verificar autenticação primeiro
     require_once('includes/auth.php');
     verificarAutenticacao();
     
     $id = intval($_GET['id']);
+    $acao = $_GET['acao'];
     
-    // Atualizar status de execução para finalizado
-    $stmt = $db->prepare("UPDATE orcamentos SET 
-                        status_execucao = 'finalizado', 
-                        data_finalizacao = CURRENT_DATE 
-                        WHERE id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    
-    if ($stmt->execute()) {
-        $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
-    } else {
-        $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
+    if ($acao == 'finalizar') {
+        // Atualizar status de execução para finalizado
+        $stmt = $db->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'finalizado', 
+                            data_finalizacao = CURRENT_DATE 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
+        }
+    } elseif ($acao == 'reabrir') {
+        // Reabrir orçamento rejeitado (mudar status para pendente)
+        $stmt = $db->prepare("UPDATE orcamentos SET 
+                            status = 'pendente',
+                            data_atualizacao = CURRENT_DATE
+                            WHERE id = :id AND status = 'rejeitado'");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute() && $stmt->rowCount() > 0) {
+            $mensagem = alerta('Orçamento reaberto com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao reabrir orçamento.', 'danger');
+        }
     }
     
     // Redirecionar para remover a ação da URL
@@ -237,6 +253,11 @@ if (!$acesso_interno) {
                     <li>
                         <a class="dropdown-item" href="mailto:<?php echo $cliente['email']; ?>?subject=Orçamento <?php echo $orcamento['numero']; ?>&body=Olá <?php echo $cliente['nome']; ?>, segue o link para acessar seu orçamento: <?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
                             <i class="fas fa-envelope me-2"></i>Enviar por Email
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="https://api.whatsapp.com/send?phone=<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>&text=Olá <?php echo urlencode($cliente['nome']); ?>, segue o link para acessar seu orçamento: <?php echo urlencode(BASE_URL . 'orcamento_visualizar.php?codigo=' . $orcamento['codigo_acesso']); ?>" target="_blank">
+                            <i class="fab fa-whatsapp me-2 text-success"></i>Enviar por WhatsApp
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
