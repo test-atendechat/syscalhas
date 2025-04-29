@@ -432,7 +432,7 @@ if (!$acesso_interno) {
         </table>
     </div>
     
-    <?php if ($acesso_interno && count($pagamentos) > 0 && ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pago')): ?>
+    <?php if ($acesso_interno && count($pagamentos) > 0): ?>
     <div class="mt-4">
         <h5><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h5>
         <div class="table-responsive">
@@ -479,9 +479,9 @@ if (!$acesso_interno) {
                 <tfoot>
                     <tr class="table-info">
                         <td colspan="1"><strong>Total Pago:</strong></td>
-                        <td class="text-end"><strong><?php echo formataValor($orcamento['valor_pago']); ?></strong></td>
+                        <td class="text-end"><strong><?php echo isset($orcamento['valor_pago']) ? formataValor($orcamento['valor_pago']) : formataValor(0); ?></strong></td>
                         <td colspan="3">
-                            <?php if ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pendente'): ?>
+                            <?php if (isset($orcamento['valor_pago']) && ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pendente')): ?>
                             <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $orcamento['valor_pago']); ?></span>
                             <?php endif; ?>
                         </td>
