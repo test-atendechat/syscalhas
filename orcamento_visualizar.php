@@ -86,6 +86,12 @@ if (isset($_GET['id'])) {
         $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
+        }
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
     }
@@ -479,10 +485,10 @@ if (!$acesso_interno) {
                 <tfoot>
                     <tr class="table-info">
                         <td colspan="1"><strong>Total Pago:</strong></td>
-                        <td class="text-end"><strong><?php echo isset($orcamento['valor_pago']) ? formataValor($orcamento['valor_pago']) : formataValor(0); ?></strong></td>
+                        <td class="text-end"><strong><?php echo formataValor($total_pago); ?></strong></td>
                         <td colspan="3">
-                            <?php if (isset($orcamento['valor_pago']) && ($orcamento['status_pagamento'] == 'pago_parcial' || $orcamento['status_pagamento'] == 'pendente')): ?>
-                            <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $orcamento['valor_pago']); ?></span>
+                            <?php if ($total_pago > 0 && $total_pago < $orcamento['valor_total']): ?>
+                            <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $total_pago); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
