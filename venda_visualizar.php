@@ -185,6 +185,15 @@ require_once('includes/header.php');
                 <input type="hidden" name="valor_total" value="<?php echo $venda['valor_total']; ?>">
                 <input type="hidden" name="cliente_id" value="<?php echo $venda['cliente_id']; ?>">
                 
+                <?php
+                // Calcular valor restante a pagar
+                $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
+                $stmt->bindParam(':venda_id', $venda['id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+                $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+                $valor_restante = max(0, $venda['valor_total'] - $total_pago);
+                ?>
                 <div class="row align-items-end">
                     <div class="col-md-4 mb-3">
                         <label for="forma_pagamento" class="form-label">Forma de Pagamento</label>
@@ -196,10 +205,10 @@ require_once('includes/header.php');
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label for="valor_pago" class="form-label">Valor Pago</label>
+                        <label for="valor_pago" class="form-label">Valor Restante a Pagar</label>
                         <div class="input-group">
                             <span class="input-group-text">R$</span>
-                            <input type="text" class="form-control" id="valor_pago" name="valor_pago" value="<?php echo number_format($venda['valor_total'], 2, ',', '.'); ?>" required>
+                            <input type="text" class="form-control" id="valor_pago" name="valor_pago" value="<?php echo number_format($valor_restante, 2, ',', '.'); ?>" required>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">

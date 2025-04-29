@@ -57,9 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total_pago_anterior = floatval($pagamentos['total_pago'] ?? 0);
         $total_pago = $total_pago_anterior + $valor_pago;
         
-        // Determinar se o valor total foi atingido (com tolerância para arredondamentos)
-        $diferenca = abs($total_pago - $valor_total);
-        $pagamento_total = ($diferenca <= 0.01 || $total_pago >= $valor_total);
+        // Determinar se o valor total foi atingido
+        // Calcular a porcentagem paga em relação ao valor total (para evitar problemas com pequenos valores)
+        $percentual_pago = ($valor_total > 0) ? ($total_pago / $valor_total) * 100 : 0;
+        
+        // Considerar como pago total apenas se o percentual for de pelo menos 99.5%
+        $pagamento_total = ($percentual_pago >= 99.5);
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';

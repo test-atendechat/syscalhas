@@ -170,7 +170,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Determinar automaticamente se é pagamento total ou parcial
                 $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
                 $diferenca = abs($total_pago - $valor_orcamento);
-                $pagamento_total = ($diferenca <= 0.01 || $total_pago >= $valor_orcamento); // Tolerar pequenas diferenças por arredondamento e considerar como pago total se o valor pago for maior ou igual ao valor do orçamento
+                
+                // Calcular a porcentagem paga em relação ao valor total (para evitar problemas com pequenos valores)
+                $percentual_pago = ($valor_orcamento > 0) ? ($total_pago / $valor_orcamento) * 100 : 0;
+                
+                // Considerar como pago total apenas se o percentual for de pelo menos 99.5%
+                $pagamento_total = ($percentual_pago >= 99.5);
                 
                 // Configurar status de pagamento como total ou parcial
                 $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
