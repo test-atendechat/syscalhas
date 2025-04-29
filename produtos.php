@@ -51,7 +51,10 @@ $total_registros = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
 // Obter produtos
-$stmt = $db->prepare("SELECT p.*, c.nome as categoria_nome 
+$stmt = $db->prepare("SELECT p.*, c.nome as categoria_nome,
+                      (p.valor_unitario - p.custo_unitario) as lucro,
+                      CASE WHEN p.custo_unitario > 0 THEN ((p.valor_unitario - p.custo_unitario) / p.custo_unitario * 100) ELSE 0 END as margem_lucro,
+                      CASE WHEN p.estoque_atual < p.estoque_minimo THEN true ELSE false END as estoque_baixo
                       FROM produtos p 
                       JOIN categorias c ON p.categoria_id = c.id 
                       WHERE {$where} 
@@ -163,18 +166,50 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                             <th>Descrição</th>
                             <th>Categoria</th>
                             <th>Unidade</th>
-                            <th>Valor Unitário</th>
+                            <th>Estoque</th>
+                            <th>Custo</th>
+                            <th>Valor Venda</th>
+                            <th>Lucro</th>
+                            <th>Margem</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($produtos as $produto): ?>
-                            <tr>
+                            <tr <?php echo $produto['estoque_baixo'] ? 'class="table-danger"' : ''; ?>>
                                 <td><?php echo $produto['codigo']; ?></td>
-                                <td><?php echo $produto['descricao']; ?></td>
+                                <td>
+                                    <?php echo $produto['descricao']; ?>
+                                    <?php if ($produto['estoque_baixo']): ?>
+                                        <span class="badge bg-danger ms-1" title="Estoque abaixo do mínimo">!</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo $produto['categoria_nome']; ?></td>
                                 <td><?php echo $produto['unidade']; ?></td>
+                                <td>
+                                    <?php echo number_format($produto['estoque_atual'], 0); ?>
+                                    <?php if ($produto['estoque_minimo'] > 0): ?>
+                                        <small class="text-muted d-block">Min: <?php echo $produto['estoque_minimo']; ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo formataValor($produto['custo_unitario']); ?></td>
                                 <td><?php echo formataValor($produto['valor_unitario']); ?></td>
+                                <td>
+                                    <?php if ($produto['custo_unitario'] > 0): ?>
+                                        <?php echo formataValor($produto['lucro']); ?>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($produto['custo_unitario'] > 0): ?>
+                                        <span class="badge <?php echo $produto['margem_lucro'] < 20 ? 'bg-danger' : ($produto['margem_lucro'] < 40 ? 'bg-warning' : 'bg-success'); ?>">
+                                            <?php echo number_format($produto['margem_lucro'], 0); ?>%
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <a href="produto_form.php?id=<?php echo $produto['id']; ?>" class="btn btn-sm btn-info" title="Editar">
                                         <i class="fas fa-edit"></i>

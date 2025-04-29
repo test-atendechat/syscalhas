@@ -250,21 +250,81 @@ require_once('includes/header.php');
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Formatação de valor unitário
+    // Formatação de campos de moeda
     const valorUnitario = document.getElementById('valor_unitario');
+    const custoUnitario = document.getElementById('custo_unitario');
+    const margemLucro = document.getElementById('margem_lucro');
+    const lucroValor = document.getElementById('lucro_valor');
+    const estoqueMinimo = document.getElementById('estoque_minimo');
     const form = document.getElementById('formProduto');
     
-    valorUnitario.addEventListener('input', function(e) {
-        let valor = e.target.value.replace(/\D/g, '');
+    // Função para formatar campos de moeda
+    function formatarMoeda(input) {
+        let valor = input.value.replace(/\D/g, '');
         
         if (valor.length === 0) {
-            e.target.value = '';
-            return;
+            input.value = '';
+            return 0;
         }
         
         // Converter para formato de moeda
-        valor = (parseInt(valor) / 100).toFixed(2);
-        e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        const valorNumerico = parseInt(valor) / 100;
+        input.value = valorNumerico.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return valorNumerico;
+    }
+    
+    // Função para calcular margem de lucro
+    function calcularMargemLucro() {
+        const valorVenda = parseFloat(valorUnitario.value.replace('.', '').replace(',', '.')) || 0;
+        const valorCusto = parseFloat(custoUnitario.value.replace('.', '').replace(',', '.')) || 0;
+        
+        if (valorCusto > 0 && valorVenda > 0) {
+            const lucro = valorVenda - valorCusto;
+            const percentual = (lucro / valorCusto) * 100;
+            
+            margemLucro.value = percentual.toFixed(2).replace('.', ',');
+            lucroValor.textContent = 'Lucro estimado: R$ ' + lucro.toFixed(2).replace('.', ',');
+            
+            // Mudar cor conforme margem de lucro
+            if (percentual < 20) {
+                lucroValor.className = 'text-danger';
+            } else if (percentual < 40) {
+                lucroValor.className = 'text-warning';
+            } else {
+                lucroValor.className = 'text-success';
+            }
+        } else {
+            margemLucro.value = '0,00';
+            lucroValor.textContent = 'Lucro estimado: R$ 0,00';
+            lucroValor.className = 'text-muted';
+        }
+    }
+    
+    // Aplicar formatação aos campos de moeda
+    valorUnitario.addEventListener('input', function(e) {
+        formatarMoeda(this);
+        calcularMargemLucro();
+    });
+    
+    custoUnitario.addEventListener('input', function(e) {
+        formatarMoeda(this);
+        calcularMargemLucro();
+    });
+    
+    // Formatar campo de estoque mínimo (apenas números)
+    estoqueMinimo.addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '');
+    });
+    
+    // Calcular margem de lucro inicial se os valores já estiverem preenchidos
+    calcularMargemLucro();
+    
+    // Atualizar texto da unidade de medida quando mudar a unidade
+    const unidadeSelect = document.getElementById('unidade');
+    const unidadeTexto = document.querySelector('#estoque_minimo + .input-group-text');
+    
+    unidadeSelect.addEventListener('change', function() {
+        unidadeTexto.textContent = this.value;
     });
 
     // Validação do formulário

@@ -2,14 +2,18 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('includes/auth.php');
+
+// Verificar se o usuário está logado
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 $titulo = "Relatório de Estoque Baixo";
 require_once('includes/header.php');
 
-// Definir o nível de estoque considerado como baixo (pode ser colocado nas configurações)
-$nivel_baixo = 5; // considerar estoque como baixo quando estiver abaixo de 5 unidades
-
-// Buscar produtos com estoque baixo
+// Buscar produtos com estoque abaixo do mínimo configurado
 $sql = "SELECT 
             p.id, 
             p.codigo, 
@@ -18,19 +22,24 @@ $sql = "SELECT
             p.estoque_atual, 
             p.estoque_minimo, 
             p.valor_unitario,
-            c.nome as categoria
+            p.custo_unitario,
+            (p.valor_unitario - p.custo_unitario) as lucro,
+            CASE WHEN p.custo_unitario > 0 
+                THEN ((p.valor_unitario - p.custo_unitario) / p.custo_unitario) * 100 
+                ELSE 0 END as margem_lucro,
+            c.nome as categoria,
+            (p.estoque_minimo - p.estoque_atual) as deficit
         FROM 
             produtos p
         LEFT JOIN 
             categorias c ON p.categoria_id = c.id
         WHERE 
-            p.estoque_atual <= p.estoque_minimo OR p.estoque_atual <= :nivel_baixo
+            p.estoque_atual < p.estoque_minimo AND p.estoque_minimo > 0
         ORDER BY 
-            (p.estoque_atual / CASE WHEN p.estoque_minimo > 0 THEN p.estoque_minimo ELSE 1 END) ASC,
+            (p.estoque_atual / p.estoque_minimo) ASC,
             p.descricao ASC";
 
 $stmt = $db->prepare($sql);
-$stmt->bindParam(':nivel_baixo', $nivel_baixo);
 $stmt->execute();
 $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
