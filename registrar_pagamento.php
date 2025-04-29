@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $valor_restante = max(0, $valor_total - $total_pago_anterior);
         
         // Verificar se o valor pago é maior que o valor restante a pagar
-        if ($valor_pago > ($valor_restante + 0.01)) { // adiciona uma pequena margem de tolerância
+        // Sem margem de tolerância
+        if ($valor_pago > $valor_restante) {
             throw new Exception("O valor pago (R$ " . number_format($valor_pago, 2, ',', '.') . ") é maior que o valor restante a pagar (R$ " . number_format($valor_restante, 2, ',', '.') . ").");
         }
         
@@ -67,9 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Total pago já foi calculado anteriormente
         $total_pago = $total_pago_anterior + $valor_pago;
         
-        // Comparar valores usando uma margem de tolerância pequena (0.01)
-        // para evitar problemas de arredondamento com números decimais
-        $pagamento_total = (abs($total_pago - $valor_total) < 0.01 || $total_pago >= $valor_total);
+        // Comparar valores de forma precisa
+        // Considerar como pago total se o valor restante for zero ou menor que R$ 0,01
+        // ou se o valor pago for igual ao valor total
+        $condicao1 = ($valor_restante - $valor_pago < 0.01);
+        $condicao2 = (abs($total_pago - $valor_total) < 0.01);
+        $valor_diferenca = abs($total_pago - $valor_total);
+        
+        $mensagem_debug = "Valor total: {$valor_total}, Total pago anterior: {$total_pago_anterior}, " .
+                         "Valor pago agora: {$valor_pago}, Total pago: {$total_pago}, " .
+                         "Valor restante após pagamento: " . max(0, $valor_total - $total_pago) . ", " .
+                         "Diferença com total: {$valor_diferenca}, Condição 1: " . ($condicao1 ? 'true' : 'false') . ", " .
+                         "Condição 2: " . ($condicao2 ? 'true' : 'false');
+        
+        // Adicionar mensagem de debug no log
+        error_log($mensagem_debug);
+        
+        $pagamento_total = $condicao1 || $condicao2 || ($total_pago >= $valor_total);
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
@@ -98,7 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindParam(':valor', $valor_pago);
         $stmt->bindParam(':forma_pagamento', $forma_pagamento);
         $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
-        $observacoes = ($status_pagamento == 'pago_total') ? "Pagamento total" : "Pagamento parcial";
+        $observacoes = ($status_pagamento == 'pago_total') ? 
+            "Pagamento total - Valor pago anteriormente: R$ " . number_format($total_pago_anterior, 2, ',', '.') . 
+            ", Pagamento atual: R$ " . number_format($valor_pago, 2, ',', '.') . 
+            ", Total pago: R$ " . number_format($total_pago, 2, ',', '.') : 
+            "Pagamento parcial - Valor pago anteriormente: R$ " . number_format($total_pago_anterior, 2, ',', '.') . 
+            ", Pagamento atual: R$ " . number_format($valor_pago, 2, ',', '.') . 
+            ", Valor restante: R$ " . number_format(max(0, $valor_total - $total_pago), 2, ',', '.');
         $stmt->bindParam(':observacoes', $observacoes);
         $stmt->bindParam(':venda_id', $venda_id, PDO::PARAM_INT);
         $stmt->execute();
