@@ -73,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $db->commit();
         
         // Redirecionar com mensagem de sucesso
-        header('Location: estoque.php?mensagem=estoque_atualizado');
+        // Usamos JavaScript ao invés de header() para evitar "headers already sent"
+        echo "<script>window.location.href = 'estoque.php?mensagem=estoque_atualizado';</script>";
         exit;
     } catch (Exception $e) {
         // Reverter transação em caso de erro

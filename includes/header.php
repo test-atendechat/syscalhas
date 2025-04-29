@@ -21,7 +21,7 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($titulo) ? $titulo . ' | ' . APP_NAME : APP_NAME; ?></title>
+    <title><?php echo (isset($titulo) && !empty($titulo)) ? $titulo . ' | ' . APP_NAME : APP_NAME; ?></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
