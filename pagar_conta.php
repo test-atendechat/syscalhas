@@ -19,14 +19,16 @@ $conta = null;
 
 // Verificar se a conta existe e é válida para pagamento
 if ($id > 0) {
-    $stmt = $db->prepare("SELECT * FROM contas_pagar WHERE id = ? AND status = 'pendente'");
+    $stmt = $db->prepare("SELECT * FROM contas_pagar WHERE id = ? AND (status = 'pendente' OR status = 'pago_parcial')");
     $stmt->execute([$id]);
     $conta = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$conta) {
-        $mensagem = alerta('Conta não encontrada ou já está paga/cancelada.', 'danger');
+        $mensagem = alerta('Conta não encontrada ou já está totalmente paga/cancelada.', 'danger');
     } else {
-        $valor = $conta['valor'];
+        // Calcular o valor pendente
+        $valor_pendente = $conta['valor'] - floatval($conta['valor_pago'] ?? 0);
+        $valor = $valor_pendente; // Definir o valor padrão como o valor pendente
     }
 } else {
     header('Location: contas_pagar.php');
@@ -64,9 +66,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $conta) {
             
             $pagamento_id = $db->lastInsertId();
             
-            // 2. Atualizar o status da conta para pago
+            // 2. Verificar se o pagamento é total ou parcial
+            $valor_restante = $conta['valor'] - floatval($conta['valor_pago'] ?? 0);
+            $novo_valor_pago = floatval($conta['valor_pago'] ?? 0) + $valor;
+            
+            // Status é 'pago' se o valor total foi pago, ou 'pago_parcial' se ainda falta
+            $novo_status = ($novo_valor_pago >= $conta['valor']) ? 'pago' : 'pago_parcial';
+            
+            // Garantir que o valor pago não ultrapasse o valor total da conta
+            $valor_efetivamente_pago = min($valor, $valor_restante);
+            $novo_valor_pago = min($novo_valor_pago, $conta['valor']);
+            
+            if ($valor > $valor_restante) {
+                $mensagem = alerta("Atenção: O valor máximo para esta conta é R$ " . formataValor($valor_restante) . ". O pagamento foi ajustado para este valor.", 'warning');
+                $valor = $valor_efetivamente_pago;
+            }
+            
+            // Atualizar a conta
             $stmt = $db->prepare("UPDATE contas_pagar SET 
-                status = 'pago', 
+                status = ?, 
                 data_pagamento = ?, 
                 valor_pago = ?,
                 forma_pagamento = ?,
@@ -74,8 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $conta) {
                 WHERE id = ?");
                 
             $stmt->execute([
+                $novo_status,
                 $data_pagamento,
-                $valor,
+                $novo_valor_pago,
                 $forma_pagamento,
                 $id
             ]);

@@ -584,9 +584,9 @@ if (count($vendas) > 0) {
             <?php
             // Consulta para obter o detalhamento de clientes
             $sql_clientes = "SELECT 
-                                COALESCE(cl.nome, 'Venda sem cliente') as cliente_nome,
-                                COALESCE(cl.telefone, '-') as telefone,
-                                COALESCE(cl.email, '-') as email,
+                                COALESCE(cl.nome, COALESCE(cl_orc.nome, 'Sem Cliente')) as cliente_nome,
+                                COALESCE(cl.telefone, COALESCE(cl_orc.telefone, '-')) as telefone,
+                                COALESCE(cl.email, COALESCE(cl_orc.email, '-')) as email,
                                 COUNT(DISTINCT c.id) as total_compras,
                                 SUM(c.valor) as valor_total
                             FROM 
@@ -602,7 +602,9 @@ if (count($vendas) > 0) {
                                 (c.orcamento_id IS NOT NULL OR c.descricao LIKE '%Venda%') AND
                                 DATE(c.data_operacao) BETWEEN :data_inicio AND :data_fim
                             GROUP BY 
-                                COALESCE(cl.nome, 'Venda sem cliente'), COALESCE(cl.telefone, '-'), COALESCE(cl.email, '-')
+                                COALESCE(cl.nome, COALESCE(cl_orc.nome, 'Sem Cliente')), 
+                                COALESCE(cl.telefone, COALESCE(cl_orc.telefone, '-')), 
+                                COALESCE(cl.email, COALESCE(cl_orc.email, '-'))
                             ORDER BY 
                                 valor_total DESC
                             LIMIT 15";

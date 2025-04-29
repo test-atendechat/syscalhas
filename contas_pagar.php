@@ -270,6 +270,12 @@ require_once('includes/header.php');
                     <td>
                         <?php if ($conta['status'] == 'pendente'): ?>
                             <span class="badge bg-warning text-dark">Pendente</span>
+                        <?php elseif ($conta['status'] == 'pago_parcial'): ?>
+                            <span class="badge bg-info text-dark">Pago Parcial</span>
+                            <div class="small mt-1">
+                                <?php echo formataValor($conta['valor_pago']) . ' de ' . formataValor($conta['valor']); ?>
+                                (<?php echo number_format(($conta['valor_pago'] / $conta['valor']) * 100, 0); ?>%)
+                            </div>
                         <?php elseif ($conta['status'] == 'pago'): ?>
                             <span class="badge bg-success">Pago</span>
                         <?php elseif ($conta['status'] == 'cancelado'): ?>
@@ -284,6 +290,11 @@ require_once('includes/header.php');
                             <?php if ($conta['status'] == 'pendente'): ?>
                             <a href="pagar_conta.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-success">
                                 <i class="fas fa-money-bill-wave"></i>
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($conta['status'] == 'pago'): ?>
+                            <a href="estornar_pagamento.php?id=<?php echo $conta['id']; ?>" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-undo-alt"></i>
                             </a>
                             <?php endif; ?>
                             <?php if ($conta['status'] != 'pago'): ?>
