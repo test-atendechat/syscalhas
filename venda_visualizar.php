@@ -304,6 +304,22 @@ require_once('includes/footer.php');
 ?>
 
 <script>
+// Verificar se há uma mensagem de pagamento registrado e recarregar a página uma vez
+if (window.location.href.includes('mensagem=pagamento_registrado')) {
+    // Verificar se já recarregamos a página
+    if (!sessionStorage.getItem('recarregouPagina')) {
+        // Marcar que já recarregamos a página
+        sessionStorage.setItem('recarregouPagina', 'true');
+        // Recarregar a página após um pequeno atraso
+        setTimeout(function() {
+            window.location.reload();
+        }, 300);
+    } else {
+        // Limpar a marca após a recarga
+        sessionStorage.removeItem('recarregouPagina');
+    }
+}
+
 // Validar o campo de valor pago para que não exceda o valor restante
 document.addEventListener('DOMContentLoaded', function() {
     const formPagamento = document.querySelector('form[action="registrar_pagamento.php"]');

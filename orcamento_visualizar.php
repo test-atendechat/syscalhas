@@ -540,3 +540,21 @@ function copiarLinkCliente() {
     require_once('includes/footer.php'); 
 endif;
 ?>
+
+<script>
+// Verificar se há uma mensagem de pagamento registrado e recarregar a página uma vez
+if (window.location.href.includes('mensagem=pago')) {
+    // Verificar se já recarregamos a página
+    if (!sessionStorage.getItem('recarregouPaginaOrcamento')) {
+        // Marcar que já recarregamos a página
+        sessionStorage.setItem('recarregouPaginaOrcamento', 'true');
+        // Recarregar a página após um pequeno atraso
+        setTimeout(function() {
+            window.location.reload();
+        }, 300);
+    } else {
+        // Limpar a marca após a recarga
+        sessionStorage.removeItem('recarregouPaginaOrcamento');
+    }
+}
+</script>
