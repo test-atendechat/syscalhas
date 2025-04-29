@@ -89,9 +89,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     // Inserir
                     $stmt = $db->prepare("INSERT INTO produtos (
-                        codigo, descricao, categoria, unidade, valor_unitario, observacoes
+                        codigo, descricao, categoria_id, unidade, valor_unitario, observacoes
                     ) VALUES (
-                        :codigo, :descricao, :categoria, :unidade, :valor_unitario, :observacoes
+                        :codigo, :descricao, :categoria_id, :unidade, :valor_unitario, :observacoes
                     )");
                     $mensagem = 'cadastrado';
                 }
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Bind de parâmetros
                 $stmt->bindParam(':codigo', $produto['codigo']);
                 $stmt->bindParam(':descricao', $produto['descricao']);
-                $stmt->bindParam(':categoria', $produto['categoria']);
+                $stmt->bindParam(':categoria_id', $produto['categoria_id']);
                 $stmt->bindParam(':unidade', $produto['unidade']);
                 $stmt->bindParam(':valor_unitario', $produto['valor_unitario']);
                 $stmt->bindParam(':observacoes', $produto['observacoes']);
@@ -154,12 +154,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
+                    <label for="categoria_id" class="form-label">Categoria <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <select class="form-select" id="categoria" name="categoria" required>
+                        <select class="form-select" id="categoria_id" name="categoria_id" required>
                             <option value="">Selecione uma categoria</option>
                             <?php foreach ($categorias as $cat): ?>
-                                <option value="<?php echo $cat['nome']; ?>" <?php echo ($produto['categoria'] == $cat['nome']) ? 'selected' : ''; ?>>
+                                <option value="<?php echo $cat['id']; ?>" <?php echo ($produto['categoria_id'] == $cat['id']) ? 'selected' : ''; ?>>
                                     <?php echo $cat['nome']; ?>
                                 </option>
                             <?php endforeach; ?>
@@ -301,8 +301,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     // Adicionar ao select
-                    const select = document.getElementById('categoria');
-                    const option = new Option(novaCategoria, novaCategoria, true, true);
+                    const select = document.getElementById('categoria_id');
+                    const option = new Option(novaCategoria, data.id, true, true);
                     select.appendChild(option);
                     
                     // Fechar modal

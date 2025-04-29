@@ -5,7 +5,10 @@ require_once('includes/functions.php');
 require_once('includes/auth.php');
 
 // Verificar se o usuário está logado
-verificarLogin();
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 // Inicializar variáveis
 $id = 0;
