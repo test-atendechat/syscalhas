@@ -49,6 +49,21 @@ $stmt = $db->query("SELECT COUNT(*) as total FROM produtos WHERE estoque_atual <
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $estoque_baixo = $result['total'];
 
+// Consulta para contas a pagar vencidas
+$stmt = $db->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento < CURRENT_DATE");
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+$contas_vencidas = $result['total'];
+
+// Consulta para contas a pagar a vencer nos próximos 7 dias
+$stmt = $db->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'");
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+$contas_a_vencer = $result['total'];
+
+// Consulta para orçamentos que precisam de acompanhamento (pendentes há mais de 5 dias)
+$stmt = $db->query("SELECT COUNT(*) as total FROM orcamentos WHERE status = 'pendente' AND data_criacao < CURRENT_DATE - INTERVAL '5 days'");
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+$orcamentos_sem_retorno = $result['total'];
+
 // Obter últimos orçamentos
 $stmt = $db->query("SELECT o.*, c.nome as cliente_nome 
                      FROM orcamentos o
@@ -73,6 +88,139 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="col-12">
         <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
         <p class="text-muted">Bem-vindo ao sistema de gestão de orçamentos para calhas.</p>
+    </div>
+</div>
+
+<!-- Painel de Alertas -->
+<?php if ($contas_vencidas > 0 || $contas_a_vencer > 0 || $orcamentos_sem_retorno > 0 || $estoque_baixo > 0): ?>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Alertas Importantes</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <?php if ($contas_vencidas > 0): ?>
+                    <div class="col-md-6 mb-3">
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Contas Vencidas!</h5>
+                            <p>Você tem <strong><?php echo $contas_vencidas; ?> conta(s)</strong> vencida(s) aguardando pagamento.</p>
+                            <hr>
+                            <a href="contas_pagar.php?status=pendente&vencidas=1" class="btn btn-sm btn-danger">
+                                <i class="fas fa-money-bill-wave me-1"></i>Ver contas vencidas
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($contas_a_vencer > 0): ?>
+                    <div class="col-md-6 mb-3">
+                        <div class="alert alert-warning" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Contas a Vencer!</h5>
+                            <p>Você tem <strong><?php echo $contas_a_vencer; ?> conta(s)</strong> a vencer nos próximos 7 dias.</p>
+                            <hr>
+                            <a href="contas_pagar.php?status=pendente&a_vencer=1" class="btn btn-sm btn-warning">
+                                <i class="fas fa-money-bill-wave me-1"></i>Ver contas a vencer
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($orcamentos_sem_retorno > 0): ?>
+                    <div class="col-md-6 mb-3">
+                        <div class="alert alert-info" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamentos sem Retorno</h5>
+                            <p>Você tem <strong><?php echo $orcamentos_sem_retorno; ?> orçamento(s)</strong> pendente(s) há mais de 5 dias.</p>
+                            <hr>
+                            <a href="orcamentos.php?status=pendente&antigos=1" class="btn btn-sm btn-info text-white">
+                                <i class="fas fa-search me-1"></i>Ver orçamentos pendentes
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($estoque_baixo > 0): ?>
+                    <div class="col-md-6 mb-3">
+                        <div class="alert alert-secondary" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-boxes me-2"></i>Estoque Baixo</h5>
+                            <p>Você tem <strong><?php echo $estoque_baixo; ?> produto(s)</strong> com estoque abaixo do mínimo.</p>
+                            <hr>
+                            <a href="relatorios_estoque_baixo.php" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-search me-1"></i>Ver produtos com estoque baixo
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Painel de Acesso Rápido -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Acesso Rápido</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="orcamento_form.php" class="btn btn-primary btn-lg w-100 py-4">
+                            <i class="fas fa-file-invoice-dollar fa-2x mb-2"></i><br>
+                            Novo Orçamento
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="venda_form.php" class="btn btn-success btn-lg w-100 py-4">
+                            <i class="fas fa-shopping-cart fa-2x mb-2"></i><br>
+                            Nova Venda Direta
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="caixa_form.php" class="btn btn-info btn-lg w-100 py-4 text-white">
+                            <i class="fas fa-cash-register fa-2x mb-2"></i><br>
+                            Registrar no Caixa
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="cliente_form.php" class="btn btn-secondary btn-lg w-100 py-4">
+                            <i class="fas fa-user-plus fa-2x mb-2"></i><br>
+                            Novo Cliente
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="conta_pagar_form.php" class="btn btn-danger btn-lg w-100 py-4">
+                            <i class="fas fa-money-bill-wave fa-2x mb-2"></i><br>
+                            Nova Conta a Pagar
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="estoque_entrada.php" class="btn btn-warning btn-lg w-100 py-4 text-dark">
+                            <i class="fas fa-truck-loading fa-2x mb-2"></i><br>
+                            Entrada de Estoque
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="relatorios_vendas.php" class="btn btn-dark btn-lg w-100 py-4">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                            Relatório de Vendas
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="produto_form.php" class="btn btn-light btn-lg w-100 py-4 text-dark border">
+                            <i class="fas fa-box fa-2x mb-2"></i><br>
+                            Novo Produto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
