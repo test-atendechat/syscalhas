@@ -143,6 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 valor_total = :valor_total,
                 forma_pagamento = :forma_pagamento,
                 status = :status,
+                status_pagamento = :status_pagamento,
+                data_pagamento = :data_pagamento,
                 observacoes = :observacoes
                 WHERE id = :id");
             $stmt->bindParam(':id', $venda['id'], PDO::PARAM_INT);
@@ -150,9 +152,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             // Inserir nova venda
             $stmt = $db->prepare("INSERT INTO vendas (
-                numero, data_venda, cliente_id, valor_total, forma_pagamento, status, usuario_id, observacoes
+                numero, data_venda, cliente_id, valor_total, forma_pagamento, status, status_pagamento, 
+                data_pagamento, usuario_id, observacoes
             ) VALUES (
-                :numero, :data_venda, :cliente_id, :valor_total, :forma_pagamento, :status, :usuario_id, :observacoes
+                :numero, :data_venda, :cliente_id, :valor_total, :forma_pagamento, :status, :status_pagamento, 
+                :data_pagamento, :usuario_id, :observacoes
             ) RETURNING id");
             $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
             $mensagem = 'cadastrado';
@@ -165,6 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':valor_total', $venda['valor_total']);
         $stmt->bindParam(':forma_pagamento', $venda['forma_pagamento']);
         $stmt->bindParam(':status', $venda['status']);
+        $stmt->bindParam(':status_pagamento', $venda['status_pagamento']);
+        $stmt->bindParam(':data_pagamento', $venda['data_pagamento']);
         $stmt->bindParam(':observacoes', $venda['observacoes']);
         $stmt->execute();
         
@@ -215,22 +221,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute();
         }
         
-        // Registrar movimentação no caixa
-        $stmt = $db->prepare("INSERT INTO caixa 
-                        (data_operacao, tipo, descricao, valor, forma_pagamento, usuario_id, observacoes)
-                        VALUES 
-                        (:data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :usuario_id, :observacoes)");
-        $stmt->bindParam(':data_operacao', $venda['data_venda']);
-        $tipo = 'entrada';
-        $stmt->bindParam(':tipo', $tipo);
-        $descricao = "Venda direta #{$venda['numero']}";
-        $stmt->bindParam(':descricao', $descricao);
-        $stmt->bindParam(':valor', $venda['valor_total']);
-        $stmt->bindParam(':forma_pagamento', $venda['forma_pagamento']);
-        $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
-        $observacoes = !empty($venda['observacoes']) ? $venda['observacoes'] : "Venda direta";
-        $stmt->bindParam(':observacoes', $observacoes);
-        $stmt->execute();
+        // Registrar movimentação no caixa (apenas para vendas à vista)
+        if ($venda['status_pagamento'] == 'pago_total') {
+            $stmt = $db->prepare("INSERT INTO caixa 
+                            (data_operacao, tipo, descricao, valor, forma_pagamento, usuario_id, observacoes, venda_id)
+                            VALUES 
+                            (:data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :usuario_id, :observacoes, :venda_id)");
+            $stmt->bindParam(':data_operacao', $venda['data_venda']);
+            $tipo = 'entrada';
+            $stmt->bindParam(':tipo', $tipo);
+            $descricao = "Venda direta #{$venda['numero']}";
+            $stmt->bindParam(':descricao', $descricao);
+            $stmt->bindParam(':valor', $venda['valor_total']);
+            $stmt->bindParam(':forma_pagamento', $venda['forma_pagamento']);
+            $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
+            $observacoes = !empty($venda['observacoes']) ? $venda['observacoes'] : "Venda direta";
+            $stmt->bindParam(':observacoes', $observacoes);
+            $stmt->bindParam(':venda_id', $venda['id'], PDO::PARAM_INT);
+            $stmt->execute();
+        }
         
         // Finalizar transação
         $db->commit();
@@ -317,6 +326,23 @@ require_once('includes/header.php');
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <div class="form-text">Selecione um cliente para vendas a prazo ou crédito.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pagamento</label>
+                    <div class="form-control">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_vista" value="0" <?php echo $venda['status_pagamento'] == 'pago_total' ? 'checked' : ''; ?> onclick="toggleClienteRequired(false);">
+                            <label class="form-check-label" for="pagamento_vista">À Vista</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="1" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true);">
+                            <label class="form-check-label" for="pagamento_prazo">A Prazo</label>
+                        </div>
+                    </div>
+                    <div id="pagamento-prazo-alert" class="alert alert-warning mt-2 p-2" style="display: none;">
+                        Vendas a prazo exigem um cliente selecionado!
+                    </div>
                 </div>
             </div>
             
@@ -608,6 +634,46 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Calcular totais iniciais
     calcularTotalVenda();
+    
+    // Função para verificar e atualizar a obrigatoriedade do cliente
+    function toggleClienteRequired(required) {
+        const clienteSelect = document.getElementById('cliente_id');
+        const alertaDiv = document.getElementById('pagamento-prazo-alert');
+        
+        if (required) {
+            clienteSelect.setAttribute('required', 'required');
+            if (!clienteSelect.value) {
+                alertaDiv.style.display = 'block';
+            } else {
+                alertaDiv.style.display = 'none';
+            }
+        } else {
+            clienteSelect.removeAttribute('required');
+            alertaDiv.style.display = 'none';
+        }
+    }
+    
+    // Verificar cliente quando pagamento a prazo é selecionado
+    document.getElementById('cliente_id').addEventListener('change', function() {
+        if (document.getElementById('pagamento_prazo').checked) {
+            toggleClienteRequired(true);
+        }
+    });
+    
+    // Verificar inicial
+    if (document.getElementById('pagamento_prazo').checked) {
+        toggleClienteRequired(true);
+    }
+    
+    // Validar formulário antes de enviar
+    document.getElementById('formVenda').addEventListener('submit', function(e) {
+        if (document.getElementById('pagamento_prazo').checked && !document.getElementById('cliente_id').value) {
+            e.preventDefault();
+            alert('Para vendas a prazo, é necessário selecionar um cliente!');
+            toggleClienteRequired(true);
+            document.getElementById('cliente_id').focus();
+        }
+    });
 });
 </script>
 
