@@ -288,9 +288,18 @@ if (!$acesso_interno) {
                 <?php endif; ?>
             </tbody>
             <tfoot>
-                <?php if ($orcamento['forma_pagamento'] == 'vista'): ?>
+                <?php if ($orcamento['forma_pagamento'] == 'vista'): 
+                    // Buscar a configuração do percentual de desconto à vista
+                    $desconto_vista = 10; // Valor padrão de 10%
+                    $stmt = $db->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
+                    $stmt->execute();
+                    if ($stmt->rowCount() > 0) {
+                        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $desconto_vista = floatval($config['valor']);
+                    }
+                ?>
                 <tr>
-                    <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista = isset($configs['desconto_pagamento_vista']) ? $configs['desconto_pagamento_vista'] : 10; ?>%):</td>
+                    <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista; ?>%):</td>
                     <td class="text-end"><?php 
                       $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
                       $valor_desconto = $subtotal - $orcamento['valor_total'];

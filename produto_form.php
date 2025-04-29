@@ -17,7 +17,7 @@ $produto = [
     'codigo' => '',
     'descricao' => '',
     'categoria_id' => '',
-    'unidade' => 'UN',
+    'unidade' => 'unidade',
     'valor_unitario' => '',
     'observacoes' => ''
 ];
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'codigo' => limpaString($_POST['codigo'] ?? ''),
         'descricao' => limpaString($_POST['descricao'] ?? ''),
         'categoria_id' => intval($_POST['categoria_id'] ?? 0),
-        'unidade' => limpaString($_POST['unidade'] ?? 'UN'),
+        'unidade' => limpaString($_POST['unidade'] ?? 'unidade'),
         'valor_unitario' => str_replace(',', '.', str_replace('.', '', $_POST['valor_unitario'] ?? '0')),
         'observacoes' => limpaString($_POST['observacoes'] ?? '')
     ];
@@ -181,14 +181,14 @@ require_once('includes/header.php');
                 <div class="col-md-4">
                     <label for="unidade" class="form-label">Unidade <span class="text-danger">*</span></label>
                     <select class="form-select" id="unidade" name="unidade" required>
-                        <option value="UN" <?php echo $produto['unidade'] == 'UN' ? 'selected' : ''; ?>>Unidade (UN)</option>
-                        <option value="MT" <?php echo $produto['unidade'] == 'MT' ? 'selected' : ''; ?>>Metro (MT)</option>
-                        <option value="M2" <?php echo $produto['unidade'] == 'M2' ? 'selected' : ''; ?>>Metro Quadrado (M²)</option>
-                        <option value="KG" <?php echo $produto['unidade'] == 'KG' ? 'selected' : ''; ?>>Kilograma (KG)</option>
-                        <option value="PC" <?php echo $produto['unidade'] == 'PC' ? 'selected' : ''; ?>>Peça (PC)</option>
-                        <option value="CX" <?php echo $produto['unidade'] == 'CX' ? 'selected' : ''; ?>>Caixa (CX)</option>
-                        <option value="PR" <?php echo $produto['unidade'] == 'PR' ? 'selected' : ''; ?>>Par (PR)</option>
-                        <option value="HR" <?php echo $produto['unidade'] == 'HR' ? 'selected' : ''; ?>>Hora (HR)</option>
+                        <option value="unidade" <?php echo $produto['unidade'] == 'unidade' || $produto['unidade'] == 'UN' ? 'selected' : ''; ?>>Unidade</option>
+                        <option value="metro" <?php echo $produto['unidade'] == 'metro' || $produto['unidade'] == 'MT' ? 'selected' : ''; ?>>Metro</option>
+                        <option value="metro quadrado" <?php echo $produto['unidade'] == 'metro quadrado' || $produto['unidade'] == 'M2' ? 'selected' : ''; ?>>Metro Quadrado</option>
+                        <option value="kilograma" <?php echo $produto['unidade'] == 'kilograma' || $produto['unidade'] == 'KG' ? 'selected' : ''; ?>>Kilograma</option>
+                        <option value="peça" <?php echo $produto['unidade'] == 'peça' || $produto['unidade'] == 'PC' ? 'selected' : ''; ?>>Peça</option>
+                        <option value="caixa" <?php echo $produto['unidade'] == 'caixa' || $produto['unidade'] == 'CX' ? 'selected' : ''; ?>>Caixa</option>
+                        <option value="par" <?php echo $produto['unidade'] == 'par' || $produto['unidade'] == 'PR' ? 'selected' : ''; ?>>Par</option>
+                        <option value="hora" <?php echo $produto['unidade'] == 'hora' || $produto['unidade'] == 'HR' ? 'selected' : ''; ?>>Hora</option>
                     </select>
                 </div>
                 <div class="col-md-4">
