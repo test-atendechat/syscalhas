@@ -46,6 +46,27 @@ if ($orcamento_id > 0) {
         $movimentacao['descricao'] = "Pagamento do Orçamento #{$orcamento_id}";
         $cliente = ['id' => $orcamento['cliente_id'], 'nome' => $orcamento['cliente_nome']];
         $titulo = "Registro de Pagamento do Orçamento #{$orcamento_id}";
+        
+        // Buscar valor do orçamento e calcular valores para exibição imediata
+        $valor_orcamento = floatval($orcamento['valor_total']);
+        
+        // Verificar pagamentos já realizados
+        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                           WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_ja_pago = floatval($pagamentos['total_pago'] ?? 0);
+        
+        // Guardar valores para uso no formulário
+        $movimentacao['valor_total_orcamento'] = $valor_orcamento;
+        $movimentacao['total_ja_pago'] = $total_ja_pago;
+        $movimentacao['valor_restante'] = max(0, $valor_orcamento - $total_ja_pago);
+        
+        // Sugerir o valor exato restante como valor padrão para pagamento
+        if ($movimentacao['valor_restante'] > 0) {
+            $movimentacao['valor'] = number_format($movimentacao['valor_restante'], 2, '.', '');
+        }
     }
 }
 

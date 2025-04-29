@@ -429,7 +429,7 @@ require_once('includes/header.php');
                                         <input type="text" class="form-control" name="unidade[]" value="<?php echo $item['unidade']; ?>" required>
                                     </td>
                                     <td>
-                                        <input type="text" class="form-control quantidade-input" name="quantidade[]" value="<?php echo number_format($item['quantidade'], 2, ',', '.'); ?>" required>
+                                        <input type="text" class="form-control monetary-input quantidade-input" name="quantidade[]" value="<?php echo number_format($item['quantidade'], 2, ',', '.'); ?>" required>
                                     </td>
                                     <td>
                                         <input type="text" class="form-control monetary-input valor-unitario" name="valor_unitario[]" value="<?php echo number_format($item['valor_unitario'], 2, ',', '.'); ?>" required>
