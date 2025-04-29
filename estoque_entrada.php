@@ -7,11 +7,18 @@ require_once('includes/header.php');
 // Inicializar variáveis
 $mensagem = '';
 $produto_pre_selecionado = null;
+$produto_novo = false;
 
 // Verificar se foi especificado um produto na URL
 if (isset($_GET['produto_id']) && intval($_GET['produto_id']) > 0) {
     $produto_id = intval($_GET['produto_id']);
     $produto_pre_selecionado = buscarProduto($produto_id);
+    
+    // Verificar se é um produto recém cadastrado
+    if (isset($_GET['novo']) && $_GET['novo'] == 1 && $produto_pre_selecionado) {
+        $mensagem = alerta("O produto <strong>{$produto_pre_selecionado['descricao']}</strong> foi cadastrado com sucesso. Agora você pode adicionar estoque para este produto.", 'success');
+        $produto_novo = true;
+    }
 }
 
 // Processar o formulário
@@ -243,6 +250,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se há um produto pré-selecionado
     const produtoPreSelecionado = <?php echo $produto_pre_selecionado ? json_encode($produto_pre_selecionado) : 'null'; ?>;
+    const produtoNovo = <?php echo $produto_novo ? 'true' : 'false'; ?>;
     
     // Função para configurar eventos de uma linha de item
     function setupItemRow(row) {

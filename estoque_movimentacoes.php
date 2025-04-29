@@ -269,11 +269,13 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="col-md-3 text-center">
                             <h2 class="text-success"><?php echo formataValor($totais['valor_entradas'] ?? 0); ?></h2>
-                            <p>Valor Total de Entradas</p>
+                            <p>Valor Total Investido (custo)</p>
+                            <small class="text-muted">Baseado no preço de custo dos produtos</small>
                         </div>
                         <div class="col-md-3 text-center">
                             <h2 class="text-danger"><?php echo formataValor($totais['valor_saidas'] ?? 0); ?></h2>
-                            <p>Valor Total de Saídas</p>
+                            <p>Valor Total de Vendas</p>
+                            <small class="text-muted">Baseado no preço de venda dos produtos</small>
                         </div>
                     </div>
                 </div>
