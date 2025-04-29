@@ -89,6 +89,31 @@ function statusOrcamentoClasse($status) {
 }
 
 /**
+ * Converte o número do mês para o nome em português
+ * 
+ * @param string $mes Número do mês (01 a 12)
+ * @return string Nome do mês em português
+ */
+function mesParaPtBr($mes) {
+    $meses = [
+        '01' => 'Janeiro',
+        '02' => 'Fevereiro',
+        '03' => 'Março',
+        '04' => 'Abril',
+        '05' => 'Maio',
+        '06' => 'Junho',
+        '07' => 'Julho',
+        '08' => 'Agosto',
+        '09' => 'Setembro',
+        '10' => 'Outubro',
+        '11' => 'Novembro',
+        '12' => 'Dezembro'
+    ];
+    
+    return isset($meses[$mes]) ? $meses[$mes] : $mes;
+}
+
+/**
  * Gera um número único para orçamento no formato ANO/MÊS/SEQUENCIAL
  * 
  * @return string Número do orçamento

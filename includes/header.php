@@ -92,6 +92,8 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="relatorios_orcamentos.php"><i class="fas fa-file-invoice me-1"></i>Orçamentos</a></li>
                                     <li><a class="dropdown-item" href="relatorios_vendas.php"><i class="fas fa-chart-line me-1"></i>Vendas</a></li>
+                                    <li><a class="dropdown-item" href="relatorios_contas.php"><i class="fas fa-money-check-alt me-1"></i>Contas a Pagar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i>Estoque Baixo</a></li>
                                     <li><a class="dropdown-item" href="relatorios_produtos_vendidos.php"><i class="fas fa-trophy me-1"></i>Produtos mais Vendidos</a></li>
                                 </ul>
