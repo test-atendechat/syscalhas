@@ -172,8 +172,18 @@ require_once('includes/header.php');
         </div>
     </div>
     
-    <!-- Seção para registrar pagamento se pendente ou parcial -->
-    <?php if ((!isset($venda['status_pagamento']) || $venda['status_pagamento'] == 'pendente' || $venda['status_pagamento'] == 'pago_parcial') && !empty($venda['cliente_id'])): ?>
+    <!-- Seção para registrar pagamento se pendente ou parcial e ainda há valor a pagar -->
+    <?php
+    // Calcular valor restante a pagar
+    $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
+    $stmt->bindParam(':venda_id', $venda['id'], PDO::PARAM_INT);
+    $stmt->execute();
+    $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+    $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+    $valor_restante = max(0, $venda['valor_total'] - $total_pago);
+    
+    // Mostrar opção de pagamento apenas se houver valor restante maior que zero
+    if (($valor_restante > 0) && (!isset($venda['status_pagamento']) || $venda['status_pagamento'] == 'pendente' || $venda['status_pagamento'] == 'pago_parcial') && !empty($venda['cliente_id'])): ?>
     <div class="card mt-4 mb-4">
         <div class="card-header bg-warning text-dark">
             <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento

@@ -118,8 +118,8 @@ if (isset($_GET['id'])) {
     exit;
 }
 
-// Processar decisão do cliente (aprovar/rejeitar)
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao']) && !$acesso_interno) {
+// Processar decisão do cliente ou administrador (aprovar/rejeitar)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
     $decisao = $_POST['decisao'];
     $id = intval($_POST['id']);
 
