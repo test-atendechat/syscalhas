@@ -35,8 +35,8 @@ if ($id > 0) {
     }
 }
 
-// Obter categorias distintas para sugestão
-$categorias = $db->query("SELECT DISTINCT categoria FROM produtos ORDER BY categoria")->fetchAll(PDO::FETCH_COLUMN);
+// Obter categorias para sugestão
+$categorias = $db->query("SELECT id, nome FROM categorias ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

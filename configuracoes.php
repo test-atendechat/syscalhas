@@ -7,7 +7,7 @@ $titulo = "Configurações";
 require_once('includes/header.php');
 
 // Verificar se o usuário é administrador
-if ($_SESSION['usuario_nivel'] != 'administrador') {
+if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] != 'administrador') {
     echo '<div class="alert alert-danger">
             <i class="fas fa-exclamation-triangle me-2"></i>Acesso negado! Você não tem permissão para acessar esta página.
           </div>';

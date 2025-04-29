@@ -133,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     
                     <div class="mb-3">
-                        <label for="data_criacao" class="form-label">Data de Cadastro</label>
-                        <input type="text" class="form-control" id="data_criacao" value="<?php echo dataParaBr($usuario['data_criacao']); ?>" readonly>
+                        <label for="data_cadastro" class="form-label">Data de Cadastro</label>
+                        <input type="text" class="form-control" id="data_cadastro" value="<?php echo isset($usuario['data_cadastro']) ? dataParaBr($usuario['data_cadastro']) : 'Não disponível'; ?>" readonly>
                     </div>
                     
                     <div class="mb-3">

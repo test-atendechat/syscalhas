@@ -23,7 +23,7 @@ function verificarAutenticacao() {
 function autenticarUsuario($email, $senha) {
     global $db;
     
-    $stmt = $db->prepare("SELECT id, nome, email, senha FROM usuarios WHERE email = :email AND ativo = TRUE");
+    $stmt = $db->prepare("SELECT id, nome, email, senha, nivel, data_cadastro FROM usuarios WHERE email = :email AND ativo = TRUE");
     $stmt->bindParam(':email', $email);
     $stmt->execute();
     
@@ -50,6 +50,8 @@ function registrarLogin($usuario) {
     $_SESSION['usuario_id'] = $usuario['id'];
     $_SESSION['usuario_nome'] = $usuario['nome'];
     $_SESSION['usuario_email'] = $usuario['email'];
+    $_SESSION['usuario_nivel'] = $usuario['nivel'];
+    $_SESSION['usuario_data_cadastro'] = $usuario['data_cadastro'];
     $_SESSION['autenticado'] = true;
     $_SESSION['ultimo_acesso'] = time();
 }
