@@ -19,6 +19,7 @@ $produto = [
     'categoria_id' => '',
     'unidade' => 'unidade',
     'valor_unitario' => '',
+    'custo_unitario' => '',
     'observacoes' => ''
 ];
 $erro = '';
@@ -54,6 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'categoria_id' => intval($_POST['categoria_id'] ?? 0),
         'unidade' => limpaString($_POST['unidade'] ?? 'unidade'),
         'valor_unitario' => str_replace(',', '.', str_replace('.', '', $_POST['valor_unitario'] ?? '0')),
+        'custo_unitario' => str_replace(',', '.', str_replace('.', '', $_POST['custo_unitario'] ?? '0')),
+        'estoque_minimo' => str_replace(',', '.', str_replace('.', '', $_POST['estoque_minimo'] ?? '0')),
         'observacoes' => limpaString($_POST['observacoes'] ?? '')
     ];
     
@@ -88,6 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         categoria_id = :categoria_id,
                         unidade = :unidade,
                         valor_unitario = :valor_unitario,
+                        custo_unitario = :custo_unitario,
+                        estoque_minimo = :estoque_minimo,
                         observacoes = :observacoes
                         WHERE id = :id");
                     $stmt->bindParam(':id', $produto['id'], PDO::PARAM_INT);
@@ -95,9 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     // Inserir
                     $stmt = $db->prepare("INSERT INTO produtos (
-                        codigo, descricao, categoria_id, unidade, valor_unitario, observacoes
+                        codigo, descricao, categoria_id, unidade, valor_unitario, custo_unitario, estoque_minimo, observacoes
                     ) VALUES (
-                        :codigo, :descricao, :categoria_id, :unidade, :valor_unitario, :observacoes
+                        :codigo, :descricao, :categoria_id, :unidade, :valor_unitario, :custo_unitario, :estoque_minimo, :observacoes
                     )");
                     $mensagem = 'cadastrado';
                 }
@@ -108,6 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':categoria_id', $produto['categoria_id']);
                 $stmt->bindParam(':unidade', $produto['unidade']);
                 $stmt->bindParam(':valor_unitario', $produto['valor_unitario']);
+                $stmt->bindParam(':custo_unitario', $produto['custo_unitario']);
+                $stmt->bindParam(':estoque_minimo', $produto['estoque_minimo']);
                 $stmt->bindParam(':observacoes', $produto['observacoes']);
                 
                 $stmt->execute();
@@ -197,6 +204,33 @@ require_once('includes/header.php');
                         <span class="input-group-text">R$</span>
                         <input type="text" class="form-control" id="valor_unitario" name="valor_unitario" value="<?php echo !empty($produto['valor_unitario']) ? number_format((float)$produto['valor_unitario'], 2, ',', '.') : '0,00'; ?>" required>
                     </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="custo_unitario" class="form-label">Custo Unitário</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="text" class="form-control money-mask" id="custo_unitario" name="custo_unitario" value="<?php echo !empty($produto['custo_unitario']) ? number_format((float)$produto['custo_unitario'], 2, ',', '.') : '0,00'; ?>">
+                    </div>
+                    <small class="text-muted">Valor de custo para cálculo de lucro</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="estoque_minimo" class="form-label">Estoque Mínimo</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control number-only" id="estoque_minimo" name="estoque_minimo" value="<?php echo !empty($produto['estoque_minimo']) ? $produto['estoque_minimo'] : '0'; ?>">
+                        <span class="input-group-text"><?php echo $produto['unidade']; ?></span>
+                    </div>
+                    <small class="text-muted">Quantidade para alertas de estoque baixo</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="margem_lucro" class="form-label">Margem de Lucro</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="margem_lucro" disabled>
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <small id="lucro_valor" class="text-success">Lucro estimado: R$ 0,00</small>
                 </div>
             </div>
             

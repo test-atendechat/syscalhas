@@ -12,7 +12,7 @@ function gerarContasRecorrentes($data_atual = null) {
     }
     
     // Obter contas recorrentes ativas
-    $stmt = $db->prepare("SELECT * FROM contas_pagar WHERE recorrente = 1 AND status != 'cancelado'");
+    $stmt = $db->prepare("SELECT * FROM contas_pagar WHERE recorrente = true AND status != 'cancelado'");
     $stmt->execute();
     $contas_recorrentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
