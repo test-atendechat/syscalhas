@@ -24,11 +24,13 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
 
 // Obter movimentações de caixa com base nos filtros
 $sql = "SELECT c.*, u.nome as usuario_nome, o.numero as orcamento_numero, 
+        v.numero as venda_numero, v.id as venda_id,
         COALESCE(cl.nome, cl_orc.nome) as cliente_nome, 
         COALESCE(c.cliente_id, o.cliente_id) as cliente_id 
         FROM caixa c 
         LEFT JOIN usuarios u ON c.usuario_id = u.id 
         LEFT JOIN orcamentos o ON c.orcamento_id = o.id 
+        LEFT JOIN vendas v ON c.venda_id = v.id 
         LEFT JOIN clientes cl ON c.cliente_id = cl.id 
         LEFT JOIN clientes cl_orc ON o.cliente_id = cl_orc.id";
 
@@ -81,13 +83,38 @@ $saldo = $total_entradas - $total_saidas;
 require_once('includes/header.php');
 ?>
 
+<?php
+// Verificar se o caixa está aberto hoje
+$data_hoje = date('Y-m-d');
+$stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
+$stmt->bindParam(':data_hoje', $data_hoje);
+$stmt->execute();
+$caixa_aberto = $stmt->rowCount() > 0;
+$caixa_atual = $caixa_aberto ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+?>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-cash-register me-2"></i>Controle de Caixa</h1>
     <div>
-        <a href="caixa_form.php" class="btn btn-success">
+        <?php if ($caixa_aberto): ?>
+            <div class="alert alert-success d-inline-block me-2 mb-0 py-2">
+                <i class="fas fa-check-circle me-1"></i>Caixa aberto em <?php echo date('d/m/Y H:i', strtotime($caixa_atual['hora_abertura'])); ?>
+            </div>
+            <a href="caixa_fechar.php" class="btn btn-danger">
+                <i class="fas fa-lock me-2"></i>Fechar Caixa
+            </a>
+        <?php else: ?>
+            <div class="alert alert-warning d-inline-block me-2 mb-0 py-2">
+                <i class="fas fa-exclamation-triangle me-1"></i>Caixa fechado
+            </div>
+            <a href="caixa_abrir.php" class="btn btn-success">
+                <i class="fas fa-lock-open me-2"></i>Abrir Caixa
+            </a>
+        <?php endif; ?>
+        <a href="caixa_form.php" class="btn btn-primary ms-2">
             <i class="fas fa-plus-circle me-2"></i>Nova Movimentação
         </a>
-        <a href="vendas.php" class="btn btn-primary ms-2">
+        <a href="vendas.php" class="btn btn-info ms-2">
             <i class="fas fa-shopping-cart me-2"></i>Registrar Venda
         </a>
     </div>
@@ -98,6 +125,14 @@ require_once('includes/header.php');
         <div class="alert alert-success">Movimentação registrada com sucesso!</div>
     <?php elseif ($_GET['mensagem'] == 'excluido'): ?>
         <div class="alert alert-warning">Movimentação excluída com sucesso.</div>
+    <?php elseif ($_GET['mensagem'] == 'aberto'): ?>
+        <div class="alert alert-success">Caixa aberto com sucesso!</div>
+    <?php elseif ($_GET['mensagem'] == 'fechado'): ?>
+        <div class="alert alert-success">Caixa fechado com sucesso!</div>
+    <?php elseif ($_GET['mensagem'] == 'ja_aberto'): ?>
+        <div class="alert alert-warning">O caixa já está aberto hoje.</div>
+    <?php elseif ($_GET['mensagem'] == 'nao_aberto'): ?>
+        <div class="alert alert-danger">O caixa não está aberto. Abra o caixa primeiro.</div>
     <?php endif; ?>
 <?php endif; ?>
 
@@ -187,7 +222,15 @@ require_once('includes/header.php');
                         <?php foreach ($movimentacoes as $mov): ?>
                             <tr>
                                 <td><?php echo dataParaBr($mov['data_operacao']); ?></td>
-                                <td><?php echo $mov['descricao']; ?></td>
+                                <td>
+                                    <?php if (strpos($mov['descricao'], 'Pagamento da venda') !== false && isset($mov['venda_id'])): ?>
+                                        <a href="venda_visualizar.php?id=<?php echo $mov['venda_id']; ?>" class="text-decoration-none">
+                                            <?php echo $mov['descricao']; ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?php echo $mov['descricao']; ?>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if ($mov['tipo'] == 'entrada'): ?>
                                         <span class="badge bg-success">Entrada</span>

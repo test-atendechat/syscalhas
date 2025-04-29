@@ -286,30 +286,22 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         $lucro_total = ($totais['valor_saidas'] ?? 0) - ($totais['valor_entradas'] ?? 0);
                         $classe_lucro = $lucro_total >= 0 ? 'text-success' : 'text-danger';
                         ?>
-                        <div class="col-md-3 text-center">
-                            <h2 class="text-success"><?php echo number_format($totais['total_entradas'] ?? 0, 2, ',', '.'); ?></h2>
-                            <p>Total de Entradas (qtd)</p>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <h2 class="text-danger"><?php echo number_format($totais['total_saidas'] ?? 0, 2, ',', '.'); ?></h2>
-                            <p>Total de Saídas (qtd)</p>
-                        </div>
-                        <div class="col-md-3 text-center">
+                        <div class="col-md-6 text-center">
                             <h2 class="text-success"><?php echo formataValor($totais['valor_entradas'] ?? 0); ?></h2>
                             <p>Valor Total Investido (custo)</p>
                             <small class="text-muted">Baseado no preço de custo dos produtos</small>
                         </div>
-                        <div class="col-md-3 text-center">
+                        <div class="col-md-6 text-center">
                             <h2 class="text-danger"><?php echo formataValor($totais['valor_saidas'] ?? 0); ?></h2>
                             <p>Valor Total de Vendas</p>
                             <small class="text-muted">Baseado no preço de venda dos produtos</small>
                         </div>
                         
-                        <!-- Mostrar lucro calculado -->
+                        <!-- Mostrar diferença entre vendas e investimento -->
                         <div class="col-12 mt-3 text-center">
-                            <h4 class="<?php echo $classe_lucro; ?>">
+                            <h4 class="<?php echo $lucro_total >= 0 ? 'text-success' : 'text-primary'; ?>">
                                 <?php echo formataValor(abs($lucro_total)); ?>
-                                <?php echo $lucro_total >= 0 ? 'de Lucro' : 'de Prejuízo'; ?>
+                                <?php echo $lucro_total >= 0 ? 'de Lucro' : 'de Valor Investido no Estoque'; ?>
                             </h4>
                             <small class="text-muted">Diferença entre valor de vendas e valor investido</small>
                         </div>
@@ -331,7 +323,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <th class="text-center">Saídas (qtd)</th>
                                                 <th class="text-center">Investimento (R$)</th>
                                                 <th class="text-center">Vendas (R$)</th>
-                                                <th class="text-center">Lucro/Prejuízo (R$)</th>
+                                                <th class="text-center">Lucro/Estoque (R$)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -345,9 +337,9 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <td class="text-center text-danger"><?php echo number_format($unidade['total_saidas'] ?? 0, 2, ',', '.'); ?></td>
                                                     <td class="text-center text-success"><?php echo formataValor($unidade['valor_entradas'] ?? 0); ?></td>
                                                     <td class="text-center text-danger"><?php echo formataValor($unidade['valor_saidas'] ?? 0); ?></td>
-                                                    <td class="text-center <?php echo $classe_lucro_unidade; ?>">
+                                                    <td class="text-center <?php echo $lucro_unidade >= 0 ? 'text-success' : 'text-primary'; ?>">
                                                         <?php echo formataValor(abs($lucro_unidade)); ?>
-                                                        <?php echo $lucro_unidade >= 0 ? '(Lucro)' : '(Prejuízo)'; ?>
+                                                        <?php echo $lucro_unidade >= 0 ? '(Lucro)' : '(Estoque)'; ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
