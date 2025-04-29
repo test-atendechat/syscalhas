@@ -2,7 +2,13 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
-require_once('includes/header.php');
+require_once('includes/auth.php');
+
+// Verificar se o usuário está logado
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 // Inicializar variáveis
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -116,6 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
+
+// Agora podemos incluir o header, depois de qualquer possível redirecionamento
+require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -259,32 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Formatação de valor unitário
-    const valorUnitario = document.getElementById('valor_unitario');
-    const form = document.getElementById('formProduto');
-    
-    valorUnitario.addEventListener('input', function(e) {
-        let valor = e.target.value.replace(/\D/g, '');
-        
-        if (valor.length === 0) {
-            e.target.value = '';
-            return;
-        }
-        
-        // Converter para formato de moeda
-        valor = (parseInt(valor) / 100).toFixed(2);
-        e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    });
-
-    // Validação do formulário
-    form.addEventListener('submit', function(e) {
-        if (!form.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    });
-
     // Adicionar nova categoria
     document.getElementById('btnSalvarCategoria').addEventListener('click', function() {
         const novaCategoria = document.getElementById('nova_categoria').value.trim();
