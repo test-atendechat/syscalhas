@@ -2,7 +2,10 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
-require_once('includes/header.php');
+require_once('includes/auth.php');
+
+// Verificar se o usuário está logado
+verificarLogin();
 
 // Inicializar variáveis
 $id = 0;
@@ -233,6 +236,9 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Consultar produtos para o select
 $stmt = $db->query("SELECT id, codigo, descricao, unidade, valor_unitario FROM produtos ORDER BY descricao");
 $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Agora podemos incluir o header, depois de qualquer possível redirecionamento
+require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
