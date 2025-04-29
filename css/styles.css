@@ -1,113 +1,40 @@
-/* Estilos personalizados para o Sistema de Orçamentos de Calhas */
+/* Estilos gerais */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
 
-/* Estilos para o dashboard */
+.required-field::after {
+    content: "*";
+    color: red;
+    margin-left: 2px;
+}
+
+/* Estilos do Dashboard */
 .dashboard-card {
-    transition: transform 0.3s;
+    transition: all 0.3s;
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .dashboard-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-icon {
-    font-size: 3rem;
-    color: #0d6efd;
+    font-size: 2rem;
+    color: #007bff;
 }
 
-/* Destaque para produtos com estoque baixo */
-.estoque-baixo {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-.estoque-critico {
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Destaque para status de orçamentos */
-.orcamento-pendente {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-.orcamento-aprovado {
-    background-color: rgba(25, 135, 84, 0.1);
-}
-
-.orcamento-rejeitado {
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Estilos para os formulários */
-.required-field::after {
-    content: "*";
-    color: #dc3545;
-    margin-left: 4px;
-}
-
-/* Estilos para botões de ação nas tabelas */
-.btn-action {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-/* Estilos para o visualizador de orçamento */
-.orcamento-header {
-    border-bottom: 2px solid #dee2e6;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-}
-
-.orcamento-info {
-    font-size: 0.9rem;
-}
-
-.table-orcamento th {
-    background-color: #f8f9fa;
-}
-
-.orcamento-total {
-    border-top: 2px solid #dee2e6;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    font-weight: bold;
-}
-
-/* Estilos para impressão */
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    .container {
-        width: 100%;
-        max-width: 100%;
-    }
-    
-    body {
-        font-size: 12pt;
-    }
-    
-    .orcamento-header {
-        border-bottom: 1px solid #000;
-    }
-    
-    .table-orcamento th, 
-    .table-orcamento td {
-        padding: 4pt;
-    }
-    
-    .table-orcamento th {
-        background-color: #eee !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-}
-
-/* Classe para caixa de status */
+/* Status dos orçamentos */
 .status-box {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
     font-weight: bold;
     text-align: center;
 }
@@ -127,7 +54,103 @@
     color: #721c24;
 }
 
-.status-cancelado {
-    background-color: #e2e3e5;
-    color: #383d41;
+/* Estoque */
+.estoque-baixo {
+    background-color: #fff3cd !important;
+}
+
+.estoque-critico {
+    background-color: #f8d7da !important;
+}
+
+/* Tabelas */
+.table-orcamento th {
+    background-color: #f5f5f5;
+}
+
+/* Formulários */
+.form-label {
+    font-weight: 500;
+}
+
+/* Header e navegação */
+.navbar-brand img {
+    height: 40px;
+    margin-right: 10px;
+}
+
+.sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    min-height: 100vh;
+    background: #343a40;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+.sidebar.active {
+    margin-left: -250px;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 2px 10px;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Rodapé */
+footer {
+    border-top: 1px solid #e9ecef;
+}
+
+/* Impressão de orçamentos */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .orcamento-container {
+        padding: 20px;
+        font-size: 12pt;
+    }
+    
+    .table-orcamento {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table-orcamento th,
+    .table-orcamento td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    
+    .orcamento-header,
+    .orcamento-footer {
+        margin-bottom: 20px;
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: -250px;
+    }
+    
+    .sidebar.active {
+        margin-left: 0;
+    }
 }

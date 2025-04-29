@@ -2,10 +2,10 @@
 require_once('includes/config.php');
 require_once('includes/auth.php');
 
-// Faz o logout do usuário
+// Fazer logout
 fazerLogout();
 
-// Redireciona para a página de login com mensagem
-header('Location: login.php?mensagem=logout');
+// Redirecionar para a página de login
+header('Location: login.php');
 exit;
 ?>
