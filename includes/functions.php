@@ -24,15 +24,20 @@ function verificarPermissao($permissao) {
         return true;
     }
     
-    // Verifica na tabela de permissões
-    $sql = "SELECT $permissao FROM permissoes WHERE usuario_id = :usuario_id";
-    $stmt = $db->prepare($sql);
-    $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    if ($stmt->rowCount() > 0) {
-        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (isset($resultado[$permissao]) && $resultado[$permissao]);
+    try {
+        // Verifica na tabela de permissões
+        $sql = "SELECT $permissao FROM permissoes WHERE usuario_id = :usuario_id";
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (isset($resultado[$permissao]) && $resultado[$permissao]);
+        }
+    } catch (Exception $e) {
+        // Log do erro (em ambiente de produção)
+        error_log("Erro ao verificar permissão: " . $e->getMessage());
     }
     
     return false;

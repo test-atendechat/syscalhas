@@ -7,7 +7,7 @@ require_once('db.php');
  * Redireciona para a página de login caso não esteja
  */
 function verificarAutenticacao() {
-    if (!isset($_SESSION['usuario_id'])) {
+    if (!isset($_SESSION['usuario']) || !isset($_SESSION['usuario']['id'])) {
         if (!headers_sent()) {
             header('Location: login.php');
         } else {
@@ -51,11 +51,22 @@ function autenticarUsuario($email, $senha) {
  * @param array $usuario Dados do usuário
  */
 function registrarLogin($usuario) {
+    // Armazena os dados do usuário em um array na sessão
+    $_SESSION['usuario'] = [
+        'id' => $usuario['id'],
+        'nome' => $usuario['nome'],
+        'email' => $usuario['email'],
+        'nivel' => $usuario['nivel'],
+        'data_cadastro' => $usuario['data_cadastro']
+    ];
+    
+    // Mantém para compatibilidade (temporário)
     $_SESSION['usuario_id'] = $usuario['id'];
     $_SESSION['usuario_nome'] = $usuario['nome'];
     $_SESSION['usuario_email'] = $usuario['email'];
     $_SESSION['usuario_nivel'] = $usuario['nivel'];
     $_SESSION['usuario_data_cadastro'] = $usuario['data_cadastro'];
+    
     $_SESSION['autenticado'] = true;
     $_SESSION['ultimo_acesso'] = time();
 }

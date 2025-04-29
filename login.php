@@ -4,7 +4,12 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/auth.php');
 
-// Verificar se o usuário já está autenticado
+// Forçar desconexão para evitar loops de redirecionamento
+session_unset();
+session_destroy();
+session_start();
+
+// Verificar se o usuário já está autenticado após a nova sessão
 if (isset($_SESSION['autenticado']) && $_SESSION['autenticado'] === true) {
     header('Location: dashboard.php');
     exit;
