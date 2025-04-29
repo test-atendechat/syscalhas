@@ -135,10 +135,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Se estiver vinculado a um orçamento e for uma entrada, atualizar status do pagamento
             if ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
+                // Buscar valor do orçamento
+                $stmt = $db->prepare("SELECT valor_total FROM orcamentos WHERE id = :orcamento_id");
+                $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $orcamento_valor = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Verificar pagamentos já realizados
+                $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                                      WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+                $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+                $total_pago = floatval($pagamentos['total_pago'] ?? 0) + floatval($movimentacao['valor']);
+                
+                // Determinar automaticamente se é pagamento total ou parcial
+                $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
+                $diferenca = abs($total_pago - $valor_orcamento);
+                $pagamento_total = ($diferenca <= 0.01); // Tolerar pequenas diferenças por arredondamento
+                
+                // Configurar status de pagamento como total ou parcial
+                $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
+                
                 $stmt = $db->prepare("UPDATE orcamentos SET 
-                    status_pagamento = 'pago', 
+                    status_pagamento = :status_pagamento, 
                     data_pagamento = :data_pagamento 
                     WHERE id = :orcamento_id");
+                $stmt->bindParam(':status_pagamento', $status_pagamento);
                 $stmt->bindParam(':data_pagamento', $movimentacao['data_operacao']);
                 $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
                 $stmt->execute();
@@ -249,13 +272,31 @@ require_once('includes/header.php');
                 <select class="form-select" id="orcamento_id" name="orcamento_id">
                     <option value="">Nenhum (Movimentação avulsa)</option>
                     <?php foreach ($orcamentos_pendentes as $orc): ?>
-                        <option value="<?php echo $orc['id']; ?>" <?php echo ($movimentacao['orcamento_id'] == $orc['id']) ? 'selected' : ''; ?>>
+                        <option value="<?php echo $orc['id']; ?>" <?php echo ($movimentacao['orcamento_id'] == $orc['id']) ? 'selected' : ''; ?>
+                                data-valor="<?php echo $orc['valor_total']; ?>">
                             #<?php echo $orc['numero']; ?> - <?php echo $orc['cliente_nome']; ?> - <?php echo formataValor($orc['valor_total']); ?> - <?php echo dataParaBr($orc['data_criacao']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <div class="form-text text-muted">
-                    Ao vincular um orçamento, esta movimentação marcará o orçamento como PAGO automaticamente (se for uma entrada).
+                    Ao vincular um orçamento, esta movimentação marcará o orçamento como pago automaticamente (se for uma entrada).
+                </div>
+            </div>
+            
+            <div class="mb-3" id="opcoes-pagamento" style="display:none;">
+                <label class="form-label">Tipo de Pagamento</label>
+                <div class="form-control">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="pagamento_total" id="pagamento_total_sim" value="1" checked>
+                        <label class="form-check-label" for="pagamento_total_sim">Pagamento Total</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="pagamento_total" id="pagamento_total_nao" value="0">
+                        <label class="form-check-label" for="pagamento_total_nao">Pagamento Parcial</label>
+                    </div>
+                </div>
+                <div class="form-text text-muted" id="texto-pagamento-parcial" style="display:none;">
+                    O orçamento será marcado como parcialmente pago. Você poderá registrar o restante do pagamento posteriormente.
                 </div>
             </div>
             
@@ -278,6 +319,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Formatação de valores monetários
     const valorInput = document.getElementById('valor');
     const form = document.getElementById('formCaixa');
+    const orcamentoSelect = document.getElementById('orcamento_id');
+    const opcoesPagamento = document.getElementById('opcoes-pagamento');
+    const pagamentoTotalNao = document.getElementById('pagamento_total_nao');
+    const textoPagamentoParcial = document.getElementById('texto-pagamento-parcial');
+    
+    // Função para mostrar/esconder opções de pagamento
+    function verificarOrcamento() {
+        const orcamentoId = orcamentoSelect.value;
+        if (orcamentoId && orcamentoSelect.options[orcamentoSelect.selectedIndex].text.includes('pendente')) {
+            opcoesPagamento.style.display = 'block';
+            
+            // Se for selecionado um orçamento, preencher o valor automaticamente
+            if (valorInput.value === '' && orcamentoSelect.selectedOptions[0].dataset.valor) {
+                const valorOrcamento = parseFloat(orcamentoSelect.selectedOptions[0].dataset.valor);
+                valorInput.value = valorOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        } else {
+            opcoesPagamento.style.display = 'none';
+        }
+    }
+    
+    // Verificar quando o orçamento é selecionado
+    orcamentoSelect.addEventListener('change', verificarOrcamento);
+    
+    // Mostrar/esconder texto de pagamento parcial
+    pagamentoTotalNao.addEventListener('change', function() {
+        textoPagamentoParcial.style.display = this.checked ? 'block' : 'none';
+    });
+    
+    document.getElementById('pagamento_total_sim').addEventListener('change', function() {
+        textoPagamentoParcial.style.display = this.checked ? 'none' : 'block';
+    });
+    
+    // Verificar no carregamento da página
+    verificarOrcamento();
     
     valorInput.addEventListener('input', function(e) {
         let valor = e.target.value.replace(/\D/g, '');
