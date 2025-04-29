@@ -139,7 +139,7 @@ $stmt = $db->prepare("
         p.custo_unitario,
         SUM(i.quantidade) as quantidade_vendida,
         SUM(i.valor_total) as valor_total_vendido
-    FROM itens_venda i
+    FROM vendas_itens i
     JOIN produtos p ON i.produto_id = p.id
     JOIN vendas v ON i.venda_id = v.id
     WHERE v.data_venda BETWEEN :data_inicio AND :data_fim
