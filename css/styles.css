@@ -40,28 +40,28 @@ body {
 }
 
 .status-pendente {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: #ffc107;
+    color: #ffffff;
 }
 
 .status-aprovado {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #198754;
+    color: #ffffff;
 }
 
 .status-rejeitado {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: #dc3545;
+    color: #ffffff;
 }
 
 .status-pago {
-    background-color: #0dcaf0;
-    color: #055160;
+    background-color: #198754; /* Verde */
+    color: #ffffff;
     font-weight: bold;
 }
 
 .status-pago-parcial {
-    background-color: #6c757d;
+    background-color: #fd7e14; /* Laranja */
     color: #ffffff;
     font-weight: bold;
 }

@@ -15,6 +15,7 @@ $venda = [
     'data_venda' => date('Y-m-d'),
     'cliente_id' => null,
     'valor_total' => 0,
+    'valor_desconto' => 0,
     'forma_pagamento' => 'dinheiro',
     'status' => 'finalizada',
     'status_pagamento' => 'pendente',
@@ -179,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':data_venda', $venda['data_venda']);
         $stmt->bindParam(':cliente_id', $venda['cliente_id'], PDO::PARAM_INT);
         $stmt->bindParam(':valor_total', $venda['valor_total']);
+        $stmt->bindParam(':valor_desconto', $venda['valor_desconto']);
         $stmt->bindParam(':forma_pagamento', $venda['forma_pagamento']);
         $stmt->bindParam(':status', $venda['status']);
         $stmt->bindParam(':status_pagamento', $venda['status_pagamento']);
@@ -626,14 +628,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para mostrar/esconder informações de desconto
     function toggleDesconto(mostrar) {
         const descontoInfo = document.getElementById('desconto-info');
-        const prazoAlert = document.getElementById('pagamento-prazo-alert');
         
         if (mostrar) {
             descontoInfo.style.display = 'block';
-            prazoAlert.style.display = 'none';
         } else {
             descontoInfo.style.display = 'none';
-            prazoAlert.style.display = 'block';
         }
         
         // Recalcular total com ou sem desconto
