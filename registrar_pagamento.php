@@ -69,22 +69,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total_pago = $total_pago_anterior + $valor_pago;
         
         // Comparar valores de forma precisa
-        // Considerar como pago total se o valor restante for zero ou menor que R$ 0,01
-        // ou se o valor pago for igual ao valor total
-        $condicao1 = ($valor_restante - $valor_pago < 0.01);
-        $condicao2 = (abs($total_pago - $valor_total) < 0.01);
+        // Considerar como pago total se o total pago for maior ou igual ao valor total
+        // ou a diferença for menor que R$ 0,01 (tolerância para evitar problemas com arredondamento)
         $valor_diferenca = abs($total_pago - $valor_total);
+        $pago_total_ou_acima = $total_pago >= $valor_total;
+        $diferenca_minima = $valor_diferenca < 0.01;
         
         $mensagem_debug = "Valor total: {$valor_total}, Total pago anterior: {$total_pago_anterior}, " .
                          "Valor pago agora: {$valor_pago}, Total pago: {$total_pago}, " .
                          "Valor restante após pagamento: " . max(0, $valor_total - $total_pago) . ", " .
-                         "Diferença com total: {$valor_diferenca}, Condição 1: " . ($condicao1 ? 'true' : 'false') . ", " .
-                         "Condição 2: " . ($condicao2 ? 'true' : 'false');
+                         "Diferença com total: {$valor_diferenca}, Pago total ou acima: " . ($pago_total_ou_acima ? 'true' : 'false') . ", " .
+                         "Diferença mínima: " . ($diferenca_minima ? 'true' : 'false');
         
         // Adicionar mensagem de debug no log
         error_log($mensagem_debug);
         
-        $pagamento_total = $condicao1 || $condicao2 || ($total_pago >= $valor_total);
+        // Marcar como pago total se o total pago for igual ou maior que o valor total
+        // ou se a diferença for mínima (menor que 1 centavo)
+        $pagamento_total = $pago_total_ou_acima || $diferenca_minima;
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
