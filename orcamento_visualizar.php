@@ -10,6 +10,17 @@ $itens = [];
 $cliente = null;
 $mensagem = '';
 
+// Verificar se existem mensagens vindas via GET
+if (isset($_GET['mensagem'])) {
+    if ($_GET['mensagem'] == 'pago') {
+        $mensagem = alerta('Pagamento total registrado com sucesso!', 'success');
+    } elseif ($_GET['mensagem'] == 'pagamento_parcial') {
+        $mensagem = alerta('Pagamento parcial registrado com sucesso!', 'success');
+    } elseif ($_GET['mensagem'] == 'cadastrado') {
+        $mensagem = alerta('Orçamento cadastrado com sucesso!', 'success');
+    }
+}
+
 // Processar ações como marcar como finalizado ou reabrir orçamento
 if (isset($_GET['id']) && isset($_GET['acao'])) {
     // Verificar autenticação primeiro
@@ -543,7 +554,7 @@ endif;
 
 <script>
 // Verificar se há uma mensagem de pagamento registrado e recarregar a página uma vez
-if (window.location.href.includes('mensagem=pago')) {
+if (window.location.href.includes('mensagem=pago') || window.location.href.includes('mensagem=pagamento_parcial')) {
     // Verificar se já recarregamos a página
     if (!sessionStorage.getItem('recarregouPaginaOrcamento')) {
         // Marcar que já recarregamos a página
