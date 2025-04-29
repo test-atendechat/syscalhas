@@ -427,14 +427,22 @@ if (!$acesso_interno) {
     <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
         <h5 class="alert-heading">
             <?php if ($orcamento['status'] == 'aprovado'): ?>
-                <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    <i class="fas fa-check-double me-2"></i>Orçamento Finalizado!
+                <?php else: ?>
+                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
+                <?php endif; ?>
             <?php else: ?>
                 <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
             <?php endif; ?>
         </h5>
         <p class="mb-0">
             <?php if ($orcamento['status'] == 'aprovado'): ?>
-                Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
+                <?php else: ?>
+                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
+                <?php endif; ?>
             <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
             <?php endif; ?>
