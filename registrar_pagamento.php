@@ -68,25 +68,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Total pago já foi calculado anteriormente
         $total_pago = $total_pago_anterior + $valor_pago;
         
-        // Comparar valores de forma precisa
-        // Considerar como pago total se o total pago for maior ou igual ao valor total
-        // ou a diferença for menor que R$ 0,01 (tolerância para evitar problemas com arredondamento)
+        // Calcular a diferença entre o total pago e o valor total
         $valor_diferenca = abs($total_pago - $valor_total);
-        $pago_total_ou_acima = $total_pago >= $valor_total;
-        $diferenca_minima = $valor_diferenca < 0.01;
         
-        $mensagem_debug = "Valor total: {$valor_total}, Total pago anterior: {$total_pago_anterior}, " .
-                         "Valor pago agora: {$valor_pago}, Total pago: {$total_pago}, " .
-                         "Valor restante após pagamento: " . max(0, $valor_total - $total_pago) . ", " .
-                         "Diferença com total: {$valor_diferenca}, Pago total ou acima: " . ($pago_total_ou_acima ? 'true' : 'false') . ", " .
-                         "Diferença mínima: " . ($diferenca_minima ? 'true' : 'false');
+        // Verificar se o pagamento é total ou tem uma diferença mínima (tolerância para arredondamento)
+        $diferenca_minima = $valor_diferenca < 0.01;
+        $pago_total_ou_acima = $total_pago >= $valor_total;
+        
+        // Verificar se o pagamento é exatamente igual ao valor total (com tolerância)
+        $pagamento_completo = $diferenca_minima || $total_pago == $valor_total;
         
         // Adicionar mensagem de debug no log
+        $mensagem_debug = "Valor total da venda: {$valor_total}, " .
+                         "Total pago antes: {$total_pago_anterior}, " .
+                         "Valor do pagamento atual: {$valor_pago}, " .
+                         "Total pago agora: {$total_pago}, " .
+                         "Diferença: {$valor_diferenca}, " .
+                         "Pagamento completo: " . ($pagamento_completo ? 'SIM' : 'NÃO');
+        
         error_log($mensagem_debug);
         
-        // Marcar como pago total se o total pago for igual ou maior que o valor total
-        // ou se a diferença for mínima (menor que 1 centavo)
-        $pagamento_total = $pago_total_ou_acima || $diferenca_minima;
+        // Determinar se é pagamento total baseado na soma
+        // Considerar como pago_total se:
+        // 1. O valor pago é maior ou igual ao valor total
+        // 2. Ou a diferença é menor que 1 centavo
+        // 3. Ou 100% do valor está pago (considerando possíveis arredondamentos)
+        $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($total_pago >= $valor_total * 0.999);
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';

@@ -89,6 +89,76 @@ if ($id > 0) {
     }
 }
 
+// Verificar se é um fechamento de caixa
+if (isset($_GET['fechamento']) && $_GET['fechamento'] == '1') {
+    $titulo = 'Fechamento de Caixa Diário';
+    $movimentacao['is_fechamento'] = true;
+    $movimentacao['tipo'] = 'saida';
+    
+    // Obter totais do dia atual para cada forma de pagamento
+    $sql_totais = "SELECT 
+                    forma_pagamento,
+                    SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) as total_entradas,
+                    SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) as total_saidas
+                  FROM caixa 
+                  WHERE DATE(data_operacao) = CURRENT_DATE
+                  GROUP BY forma_pagamento";
+    $stmt = $db->prepare($sql_totais);
+    $stmt->execute();
+    $totais_por_forma = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calcular saldo total do dia
+    $total_entradas = 0;
+    $total_saidas = 0;
+    $saldo_dinheiro = 0;
+    $saldo_cartao_credito = 0;
+    $saldo_cartao_debito = 0;
+    $saldo_pix = 0;
+    $saldo_outros = 0;
+    
+    foreach ($totais_por_forma as $total) {
+        $forma = $total['forma_pagamento'];
+        $entradas = floatval($total['total_entradas']);
+        $saidas = floatval($total['total_saidas']);
+        $saldo = $entradas - $saidas;
+        
+        $total_entradas += $entradas;
+        $total_saidas += $saidas;
+        
+        switch ($forma) {
+            case 'dinheiro':
+                $saldo_dinheiro = $saldo;
+                break;
+            case 'cartao_credito':
+                $saldo_cartao_credito = $saldo;
+                break;
+            case 'cartao_debito':
+                $saldo_cartao_debito = $saldo;
+                break;
+            case 'pix':
+                $saldo_pix = $saldo;
+                break;
+            case 'outros':
+                $saldo_outros = $saldo;
+                break;
+        }
+    }
+    
+    $saldo_total = $total_entradas - $total_saidas;
+    
+    // Preencher valores iniciais para o fechamento
+    $movimentacao['descricao'] = 'Fechamento de Caixa - ' . date('d/m/Y');
+    $movimentacao['valor'] = $saldo_dinheiro > 0 ? $saldo_dinheiro : 0;
+    $movimentacao['forma_pagamento'] = 'dinheiro';
+    $movimentacao['observacoes'] = "Fechamento do caixa:\n";
+    $movimentacao['observacoes'] .= "- Dinheiro: R$ " . number_format($saldo_dinheiro, 2, ',', '.') . "\n";
+    $movimentacao['observacoes'] .= "- Cartão de Crédito: R$ " . number_format($saldo_cartao_credito, 2, ',', '.') . "\n";
+    $movimentacao['observacoes'] .= "- Cartão de Débito: R$ " . number_format($saldo_cartao_debito, 2, ',', '.') . "\n";
+    $movimentacao['observacoes'] .= "- PIX: R$ " . number_format($saldo_pix, 2, ',', '.') . "\n";
+    $movimentacao['observacoes'] .= "- Outros: R$ " . number_format($saldo_outros, 2, ',', '.') . "\n";
+    $movimentacao['observacoes'] .= "\nTotal do dia: R$ " . number_format($saldo_total, 2, ',', '.');
+}
+
 // Processar formulário
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Capturar dados do formulário
