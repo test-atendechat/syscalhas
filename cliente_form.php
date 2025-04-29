@@ -3,7 +3,6 @@ require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/auth.php');
-require_once('includes/header.php');
 
 verificarAutenticacao();
 
@@ -118,6 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $mensagem = alerta("Erros encontrados:<br>" . implode("<br>", $erros), 'danger');
     }
 }
+
+// Incluir o header apenas após processar o formulário (para evitar headers already sent)
+require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">

@@ -1,22 +1,21 @@
-        <?php
+<?php
+// Verificar autenticação
+require_once('auth.php');
+verificarAutenticacao();
 
-        // Verificar autenticação
-        require_once('auth.php');
-        verificarAutenticacao();
+// Verificar se a sessão expirou
+if (verificarSessaoExpirada()) {
+    // Fazer logout
+    fazerLogout();
 
-        // Verificar se a sessão expirou
-        if (verificarSessaoExpirada()) {
-            // Fazer logout
-            fazerLogout();
+    // Redirecionar para a página de login com mensagem
+    header('Location: login.php?sessao=expirada');
+    exit;
+}
 
-            // Redirecionar para a página de login com mensagem
-            header('Location: login.php?sessao=expirada');
-            exit;
-        }
-
-        // Identificar página atual
-        $pagina_atual = basename($_SERVER['PHP_SELF']);
-        ?>
+// Identificar página atual
+$pagina_atual = basename($_SERVER['PHP_SELF']);
+?>
         <!DOCTYPE html>
         <html lang="pt-BR">
         <head>
