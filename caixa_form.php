@@ -253,7 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Verificar se devemos redirecionar de volta para o orçamento
             if (isset($_POST['orcamento_id_get']) && !empty($_POST['orcamento_id_get'])) {
                 $orcamento_id_redirect = intval($_POST['orcamento_id_get']);
-                header("Location: caixa_form.php?orcamento_id={$orcamento_id_redirect}&mensagem={$mensagem}");
+                // Forçar recarregamento completo para atualizar todos os valores calculados
+                header("Location: caixa_form.php?orcamento_id={$orcamento_id_redirect}&mensagem={$mensagem}&ts=".time());
             } else {
                 // Redirecionar para a listagem de movimentações
                 header("Location: caixa.php?mensagem={$mensagem}");

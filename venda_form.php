@@ -635,6 +635,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (mostrar) {
             descontoInfo.style.display = 'block';
+            // Mostrar o valor atual do desconto
+            const descontoPercent = parseFloat(document.getElementById('desconto_vista').value);
+            if (!isNaN(descontoPercent)) {
+                descontoInfo.innerHTML = `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado no pagamento à vista!`;
+            }
         } else {
             descontoInfo.style.display = 'none';
         }
