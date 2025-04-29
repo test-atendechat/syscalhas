@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'valor_total' => 0, // Será calculado com base nos itens
             'forma_pagamento' => $_POST['forma_pagamento'] ?? 'dinheiro',
             'status' => 'finalizada',
-            'status_pagamento' => 'pago_total', // Sempre considerar como pago total (cartão ou dinheiro)
+            'status_pagamento' => isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '2' ? 'pendente' : 'pago_total', // A prazo (2) fica como pendente, cartão (1) e dinheiro (0) ficam como pago_total
             'data_pagamento' => $_POST['data_venda'],
             'observacoes' => limpaString($_POST['observacoes'] ?? '')
         ];
@@ -350,8 +350,12 @@ require_once('includes/header.php');
                             <label class="form-check-label" for="pagamento_vista">À Vista</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="1" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true); toggleDesconto(false);">
-                            <label class="form-check-label" for="pagamento_prazo">A Prazo (Até 12x Sem Juros)</label>
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_cartao" value="1" <?php echo $venda['status_pagamento'] == 'pago_total' && $venda['forma_pagamento'] == 'cartao' ? 'checked' : ''; ?> onclick="toggleClienteRequired(false); toggleDesconto(false);">
+                            <label class="form-check-label" for="pagamento_cartao">Cartão (Até 12x Sem Juros)</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="2" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true); toggleDesconto(false);">
+                            <label class="form-check-label" for="pagamento_prazo">A Prazo</label>
                         </div>
                     </div>
                     <?php
@@ -742,6 +746,11 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleClienteRequired(true);
             document.getElementById('cliente_id').focus();
         }
+    });
+    
+    // Identificar o tipo de pagamento corretamente
+    document.querySelector('input[name="pagamento_prazo"]:checked').addEventListener('change', function() {
+        console.log('Mudou forma de pagamento para: ' + this.value);
     });
 });
 </script>

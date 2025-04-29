@@ -464,6 +464,13 @@ require_once('includes/header.php');
                             </td>
                             <td></td>
                         </tr>
+                        <tr id="linha_desconto" style="display:none; color: green;">
+                            <td colspan="5" class="text-end fw-bold">Desconto à vista (<?php echo formataValor($desconto_vista); ?>%):</td>
+                            <td>
+                                <input type="text" class="form-control" id="total_desconto" value="R$ 0,00" readonly style="color: green;">
+                            </td>
+                            <td></td>
+                        </tr>
                         <tr>
                             <td colspan="5" class="text-end fw-bold">Valor Total:</td>
                             <td>
@@ -553,12 +560,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const taxaMaoObra = parseFloat(document.getElementById('taxa_mao_obra').value.replace('.', '').replace(',', '.')) || 0;
         let valorMaoObra = totalProdutos * (taxaMaoObra / 100);
-        let valorTotal = totalProdutos + valorMaoObra;
+        let subtotal = totalProdutos + valorMaoObra;
+        let valorTotal = subtotal;
+        let valorDesconto = 0;
 
         const formaPagamento = document.getElementById('forma_pagamento').value;
+        const linhaDesconto = document.getElementById('linha_desconto');
+        
         if (formaPagamento === 'vista') {
             const descontoVista = parseFloat(<?php echo json_encode($desconto_vista); ?>); // Fetch discount from PHP
-            valorTotal -= (valorTotal * (descontoVista / 100));
+            valorDesconto = subtotal * (descontoVista / 100);
+            valorTotal = subtotal - valorDesconto;
+            
+            // Mostrar linha de desconto
+            linhaDesconto.style.display = 'table-row';
+            document.getElementById('total_desconto').value = '- R$ ' + valorDesconto.toFixed(2).replace('.', ',');
+        } else {
+            // Esconder linha de desconto
+            linhaDesconto.style.display = 'none';
         }
 
         // Atualizar texto da mão de obra para refletir a porcentagem atual
@@ -573,10 +592,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('input', function(e) {
         if (e.target.classList.contains('quantidade-input') || 
             e.target.classList.contains('valor-unitario') ||
-            e.target.id === 'taxa_mao_obra' ||
-            e.target.id === 'forma_pagamento') {
+            e.target.id === 'taxa_mao_obra') {
             recalcularTotais();
         }
+    });
+    
+    // Evento para forma de pagamento
+    document.getElementById('forma_pagamento').addEventListener('change', function() {
+        recalcularTotais();
     });
 
     // Evento para seleção de produto
