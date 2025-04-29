@@ -9,17 +9,28 @@ verificarAutenticacao();
 
 // Verificar se o caixa está aberto
 $data_hoje = date('Y-m-d');
-$stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
-$stmt->bindParam(':data_hoje', $data_hoje);
-$stmt->execute();
+$caixa_aberto = false;
+$caixa_atual = null;
 
-// Se o caixa não estiver aberto, redirecionar para o caixa
-if ($stmt->rowCount() == 0) {
+try {
+    $stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
+    $stmt->bindParam(':data_hoje', $data_hoje);
+    $stmt->execute();
+    $caixa_aberto = $stmt->rowCount() > 0;
+    
+    // Se o caixa não estiver aberto, redirecionar para o caixa
+    if ($caixa_aberto == false) {
+        header('Location: caixa.php?mensagem=nao_aberto');
+        exit;
+    }
+    
+    $caixa_atual = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Se a tabela não existir, redirecionar para o caixa com mensagem de erro
     header('Location: caixa.php?mensagem=nao_aberto');
     exit;
 }
 
-$caixa_atual = $stmt->fetch(PDO::FETCH_ASSOC);
 $caixa_id = $caixa_atual['id'];
 
 // Buscar todas as movimentações do caixa atual
