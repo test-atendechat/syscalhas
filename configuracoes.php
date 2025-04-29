@@ -7,7 +7,7 @@ $titulo = "Configurações";
 require_once('includes/header.php');
 
 // Verificar se o usuário é administrador
-if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] != 'administrador') {
+if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] != 'admin') {
     echo '<div class="alert alert-danger">
             <i class="fas fa-exclamation-triangle me-2"></i>Acesso negado! Você não tem permissão para acessar esta página.
           </div>';
@@ -23,9 +23,9 @@ $configuracoes = [
     'empresa_email' => '',
     'empresa_endereco' => '',
     'empresa_cnpj' => '',
-    'taxa_padrao_mao_obra' => 15, // Valor padrão para a taxa de mão de obra (em %)
-    'estoque_alerta_minimo' => 5, // Valor padrão para alerta de estoque mínimo
-    'dias_validade_orcamento' => 15, // Validade padrão dos orçamentos em dias
+    'taxa_padrao_mao_obra' => 100, // Valor padrão para a taxa de mão de obra (em %)
+    'estoque_alerta_minimo' => 50, // Valor padrão para alerta de estoque mínimo
+    'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
 ];
 
 // Buscar configurações atuais do banco de dados

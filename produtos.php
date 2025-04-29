@@ -28,15 +28,19 @@ if (!empty($busca)) {
 // Filtro de categoria
 $categoria = isset($_GET['categoria']) ? limpaString($_GET['categoria']) : '';
 if (!empty($categoria)) {
-    $where .= " AND categoria = :categoria";
+    $where .= " AND c.nome = :categoria";
     $params[':categoria'] = $categoria;
 }
 
 // Obter categorias distintas para o filtro
-$categorias = $db->query("SELECT DISTINCT categoria FROM produtos ORDER BY categoria")->fetchAll(PDO::FETCH_COLUMN);
+$categorias = $db->query("SELECT DISTINCT c.nome FROM produtos p 
+                         JOIN categorias c ON p.categoria_id = c.id 
+                         ORDER BY c.nome")->fetchAll(PDO::FETCH_COLUMN);
 
 // Obter total de registros
-$stmt = $db->prepare("SELECT COUNT(*) as total FROM produtos WHERE {$where}");
+$stmt = $db->prepare("SELECT COUNT(*) as total FROM produtos p 
+                     JOIN categorias c ON p.categoria_id = c.id 
+                     WHERE {$where}");
 foreach ($params as $key => $value) {
     $stmt->bindValue($key, $value);
 }
@@ -47,9 +51,14 @@ $total_registros = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
 // Obter produtos
-$stmt = $db->prepare("SELECT * FROM produtos WHERE {$where} ORDER BY descricao LIMIT :offset, :limit");
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt = $db->prepare("SELECT p.*, c.nome as categoria_nome 
+                      FROM produtos p 
+                      JOIN categorias c ON p.categoria_id = c.id 
+                      WHERE {$where} 
+                      ORDER BY p.descricao 
+                      LIMIT :limit OFFSET :offset");
 $stmt->bindValue(':limit', $por_pagina, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 foreach ($params as $key => $value) {
     $stmt->bindValue($key, $value);
 }
@@ -78,13 +87,13 @@ if (isset($_GET['mensagem'])) {
 // Excluir produto
 if (isset($_POST['excluir']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
-    
+
     // Verificar se produto está vinculado a orçamentos
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM orcamento_itens WHERE produto_id = :id");
     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     $vinculado = $stmt->fetch(PDO::FETCH_ASSOC)['total'] > 0;
-    
+
     if ($vinculado) {
         $mensagem = alerta('Este produto não pode ser excluído pois está vinculado a orçamentos.', 'danger');
     } else {
@@ -92,7 +101,7 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
             $stmt = $db->prepare("DELETE FROM produtos WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
-            
+
             // Redirecionar para atualizar a lista
             header('Location: produtos.php?mensagem=excluido');
             exit;
@@ -163,7 +172,7 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                             <tr>
                                 <td><?php echo $produto['codigo']; ?></td>
                                 <td><?php echo $produto['descricao']; ?></td>
-                                <td><?php echo $produto['categoria']; ?></td>
+                                <td><?php echo $produto['categoria_nome']; ?></td>
                                 <td><?php echo $produto['unidade']; ?></td>
                                 <td><?php echo formataValor($produto['valor_unitario']); ?></td>
                                 <td>
@@ -180,7 +189,7 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                     </tbody>
                 </table>
             </div>
-            
+
             <!-- Paginação -->
             <?php if ($total_paginas > 1): ?>
                 <nav aria-label="Navegação de página" class="mt-4">
@@ -188,20 +197,20 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                         <li class="page-item <?php echo ($pagina <= 1) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="?pagina=<?php echo $pagina-1; ?>&busca=<?php echo $busca; ?>&categoria=<?php echo $categoria; ?>">Anterior</a>
                         </li>
-                        
+
                         <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
                             <li class="page-item <?php echo ($pagina == $i) ? 'active' : ''; ?>">
                                 <a class="page-link" href="?pagina=<?php echo $i; ?>&busca=<?php echo $busca; ?>&categoria=<?php echo $categoria; ?>"><?php echo $i; ?></a>
                             </li>
                         <?php endfor; ?>
-                        
+
                         <li class="page-item <?php echo ($pagina >= $total_paginas) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="?pagina=<?php echo $pagina+1; ?>&busca=<?php echo $busca; ?>&categoria=<?php echo $categoria; ?>">Próxima</a>
                         </li>
                     </ul>
                 </nav>
             <?php endif; ?>
-            
+
         <?php else: ?>
             <p class="text-center">Nenhum produto encontrado.</p>
         <?php endif; ?>
@@ -235,7 +244,7 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
 function confirmarExclusao(id, nome) {
     document.getElementById('idExcluir').value = id;
     document.getElementById('nomeProduto').innerText = nome;
-    
+
     var modal = new bootstrap.Modal(document.getElementById('modalExcluir'));
     modal.show();
 }

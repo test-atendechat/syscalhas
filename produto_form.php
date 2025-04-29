@@ -155,12 +155,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="categoria" name="categoria" list="lista-categorias" value="<?php echo $produto['categoria']; ?>" required>
-                    <datalist id="lista-categorias">
+                    <select class="form-select" id="categoria" name="categoria" required>
+                        <option value="">Selecione uma categoria</option>
                         <?php foreach ($categorias as $cat): ?>
-                            <option value="<?php echo $cat; ?>">
+                            <option value="<?php echo $cat['nome']; ?>" <?php echo ($produto['categoria'] == $cat['nome']) ? 'selected' : ''; ?>>
+                                <?php echo $cat['nome']; ?>
+                            </option>
                         <?php endforeach; ?>
-                    </datalist>
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label for="unidade" class="form-label">Unidade <span class="text-danger">*</span></label>
@@ -202,6 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 document.addEventListener('DOMContentLoaded', function() {
     // Formatação de valor unitário
     const valorUnitario = document.getElementById('valor_unitario');
+    const form = document.getElementById('formProduto');
     
     valorUnitario.addEventListener('input', function(e) {
         let valor = e.target.value.replace(/\D/g, '');
@@ -214,6 +217,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Converter para formato de moeda
         valor = (parseInt(valor) / 100).toFixed(2);
         e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    });
+
+    // Validação do formulário
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
     });
 });
 </script>
