@@ -158,12 +158,13 @@ $stmt->bindValue(':data_fim', $data_fim_mysql);
 $stmt->execute();
 $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Cálculos de lucratividade
+// Cálculos de lucratividade de vendas diretas
 $valor_entradas = $totais_movimentacoes['valor_entradas'] ?? 0;
 $valor_saidas = $totais_movimentacoes['valor_saidas'] ?? 0;
 $custo_produtos_vendidos = $totais_movimentacoes['custo_produtos_vendidos'] ?? 0;
-$lucro_operacional = $valor_saidas - $custo_produtos_vendidos;
-$margem_lucro = $valor_saidas > 0 ? ($lucro_operacional / $valor_saidas) * 100 : 0;
+
+// Lucro das vendas diretas (produtos vendidos diretamente no caixa)
+$lucro_vendas = $valor_saidas - $custo_produtos_vendidos;
 
 // Cálculos de lucratividade dos orçamentos
 $valor_total_produtos = $totais_orcamentos['valor_total_produtos'] ?? 0;
@@ -172,28 +173,26 @@ $valor_produtos_aprovados = $totais_orcamentos['valor_produtos_aprovados'] ?? 0;
 $valor_mao_obra_aprovados = $totais_orcamentos['valor_mao_obra_aprovados'] ?? 0;
 $valor_orcamentos_aprovados = $totais_orcamentos['valor_orcamentos_aprovados'] ?? 0;
 
-// Obter o custo real dos produtos de orçamentos a partir das entradas de estoque
-// Como estamos usando estoque_movimentacoes para calcular entradas, vamos usar o mesmo método
-// para ter consistência nos cálculos - não vamos mais usar a estimativa de 50%
-
 // Assumimos que o custo real dos produtos é aproximadamente metade do valor de venda
 // Esta é uma estimativa baseada nos dados disponíveis
 $custo_medio_produtos_percentual = 0.5; // Estimativa: 50% do valor de venda é o custo
 $custo_produtos = $valor_produtos_aprovados * $custo_medio_produtos_percentual;
 
-// Calculamos o lucro bruto em produtos (valor total - custo)
-$lucro_produtos = $valor_produtos_aprovados - $custo_produtos;
+// Cálculo do lucro dos orçamentos
+$lucro_produtos = $valor_produtos_aprovados - $custo_produtos; // Lucro bruto em produtos
+$lucro_mao_obra = $valor_mao_obra_aprovados; // Mão de obra é considerada totalmente como lucro
+$lucro_orcamentos = $valor_orcamentos_aprovados - $custo_produtos;
 
-// Lucro total dos orçamentos (produtos + mão de obra)
-// A mão de obra é considerada totalmente como lucro (menos os custos operacionais gerais)
-$lucro_total_orcamentos = $valor_orcamentos_aprovados - $custo_produtos;
+// Lucro operacional total: vendas diretas + orçamentos aprovados
+$lucro_operacional = $lucro_vendas + $lucro_orcamentos;
 
-// Mão de obra é calculada como valor total menos valor dos produtos
-$lucro_mao_obra = $valor_mao_obra_aprovados;
+// Valor total para cálculo da margem (vendas + orçamentos)
+$valor_total_operacional = $valor_saidas + $valor_orcamentos_aprovados;
+$margem_lucro = $valor_total_operacional > 0 ? ($lucro_operacional / $valor_total_operacional) * 100 : 0;
 
-// Margem de lucro dos orçamentos
+// Margem de lucro específica dos orçamentos
 $margem_lucro_orcamentos = $valor_orcamentos_aprovados > 0 ? 
-    ($lucro_total_orcamentos / $valor_orcamentos_aprovados) * 100 : 0;
+    ($lucro_orcamentos / $valor_orcamentos_aprovados) * 100 : 0;
 
 // Consultar movimentações do caixa para calcular o fluxo de caixa real
 $stmt = $db->prepare("
