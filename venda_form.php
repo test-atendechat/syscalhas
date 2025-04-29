@@ -332,15 +332,29 @@ require_once('includes/header.php');
                     <label class="form-label">Pagamento</label>
                     <div class="form-control">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_vista" value="0" <?php echo $venda['status_pagamento'] == 'pago_total' ? 'checked' : ''; ?> onclick="toggleClienteRequired(false);">
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_vista" value="0" <?php echo $venda['status_pagamento'] == 'pago_total' ? 'checked' : ''; ?> onclick="toggleClienteRequired(false); toggleDesconto(true);">
                             <label class="form-check-label" for="pagamento_vista">À Vista</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="1" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true);">
-                            <label class="form-check-label" for="pagamento_prazo">A Prazo</label>
+                            <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="1" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true); toggleDesconto(false);">
+                            <label class="form-check-label" for="pagamento_prazo">A Prazo (Cartão)</label>
                         </div>
                     </div>
-                    <div id="pagamento-prazo-alert" class="alert alert-warning mt-2 p-2" style="display: none;">
+                    <?php
+                    // Buscar desconto de pagamento à vista das configurações
+                    $desconto_pagamento_vista = 10; // Valor padrão
+                    $stmt_config = $db->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
+                    $stmt_config->execute();
+                    $config_desconto = $stmt_config->fetch(PDO::FETCH_ASSOC);
+                    if ($config_desconto) {
+                        $desconto_pagamento_vista = floatval($config_desconto['valor']);
+                    }
+                    ?>
+                    <div id="desconto-info" class="alert alert-success mt-2 p-2" style="display: <?php echo $venda['status_pagamento'] == 'pago_total' ? 'block' : 'none'; ?>">
+                        Desconto de <?php echo number_format($desconto_pagamento_vista, 2, ',', '.'); ?>% aplicado no pagamento à vista!
+                        <input type="hidden" name="desconto_vista" id="desconto_vista" value="<?php echo $desconto_pagamento_vista; ?>">
+                    </div>
+                    <div id="pagamento-prazo-alert" class="alert alert-warning mt-2 p-2" style="display: <?php echo $venda['status_pagamento'] == 'pendente' ? 'block' : 'none'; ?>">
                         Vendas a prazo exigem um cliente selecionado!
                     </div>
                 </div>

@@ -65,23 +65,7 @@ $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $orcamentos_sem_retorno = $result['total'];
 
 // Consulta para resumo financeiro
-// Total de vendas do mês atual
-$stmt = $db->query("SELECT SUM(valor_total) as total FROM vendas WHERE EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE)");
-$result = $stmt->fetch(PDO::FETCH_ASSOC);
-$vendas_mes_atual = $result['total'] ?: 0;
-
-// Total de vendas do mês anterior
-$stmt = $db->query("SELECT SUM(valor_total) as total FROM vendas WHERE EXTRACT(MONTH FROM data_venda) = EXTRACT(MONTH FROM CURRENT_DATE - INTERVAL '1 month') AND EXTRACT(YEAR FROM data_venda) = EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month')");
-$result = $stmt->fetch(PDO::FETCH_ASSOC);
-$vendas_mes_anterior = $result['total'] ?: 0;
-
-// Total de contas a pagar do mês atual
-$stmt = $db->query("SELECT SUM(valor) as total FROM contas_pagar WHERE EXTRACT(MONTH FROM data_vencimento) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM data_vencimento) = EXTRACT(YEAR FROM CURRENT_DATE)");
-$result = $stmt->fetch(PDO::FETCH_ASSOC);
-$contas_mes_atual = $result['total'] ?: 0;
-
-// Calcular o lucro estimado (vendas - contas a pagar)
-$lucro_estimado = $vendas_mes_atual - $contas_mes_atual;
+// Código para resumo financeiro removido conforme solicitado
 
 // Obter últimos orçamentos
 $stmt = $db->query("SELECT o.*, c.nome as cliente_nome 
@@ -302,66 +286,7 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
-<!-- Painel Financeiro -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumo Financeiro</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 bg-light">
-                            <div class="card-body text-center">
-                                <h6 class="card-title text-primary">Vendas do Mês</h6>
-                                <h3 class="text-success"><?php echo formataValor($vendas_mes_atual); ?></h3>
-                                <p class="card-text small"><?php echo date('F Y'); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 bg-light">
-                            <div class="card-body text-center">
-                                <h6 class="card-title text-primary">Vendas Mês Anterior</h6>
-                                <h3 class="text-primary"><?php echo formataValor($vendas_mes_anterior); ?></h3>
-                                <p class="card-text small"><?php echo date('F Y', strtotime('-1 month')); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 bg-light">
-                            <div class="card-body text-center">
-                                <h6 class="card-title text-primary">Contas a Pagar</h6>
-                                <h3 class="text-danger"><?php echo formataValor($contas_mes_atual); ?></h3>
-                                <p class="card-text small"><?php echo date('F Y'); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 bg-light">
-                            <div class="card-body text-center">
-                                <h6 class="card-title text-primary">Balanço Mensal</h6>
-                                <h3 class="<?php echo $lucro_estimado >= 0 ? 'text-success' : 'text-danger'; ?>">
-                                    <?php echo formataValor($lucro_estimado); ?>
-                                </h3>
-                                <p class="card-text small">Lucro estimado</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3 text-center">
-                    <a href="relatorios_vendas.php" class="btn btn-outline-success me-2">
-                        <i class="fas fa-chart-line me-1"></i>Relatório de Vendas
-                    </a>
-                    <a href="relatorios_contas.php" class="btn btn-outline-danger">
-                        <i class="fas fa-file-invoice-dollar me-1"></i>Relatório de Contas
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Resumo Financeiro removido conforme solicitado pelo cliente -->
 
 <div class="row">
     <div class="col-md-6 mb-4">
