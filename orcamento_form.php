@@ -13,7 +13,7 @@ if (!isset($_SESSION['usuario_id'])) {
 // Inicializar variáveis
 $id = 0;
 $numero = '';
-$cliente_id = 0;
+$cliente_id = 1; // Cliente 'Sem Identificação' como padrão
 $data_criacao = date('Y-m-d');
 $data_validade = date('Y-m-d', strtotime('+30 days'));
 $status = 'pendente';
@@ -332,6 +332,7 @@ require_once('includes/header.php');
                     <label for="cliente_id" class="form-label required-field">Cliente</label>
                     <select class="form-select" id="cliente_id" name="cliente_id" required>
                         <option value="">Selecione um cliente</option>
+                        <!-- Cliente "Sem Identificação" já vem selecionado como padrão -->
                         <?php foreach ($clientes as $cliente): ?>
                             <option value="<?php echo $cliente['id']; ?>" <?php echo ($cliente_id == $cliente['id']) ? 'selected' : ''; ?>>
                                 <?php echo $cliente['nome']; ?> <?php echo $cliente['cpf_cnpj'] ? " - " . $cliente['cpf_cnpj'] : ''; ?>
