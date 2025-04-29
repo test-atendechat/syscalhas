@@ -152,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 data_venda = :data_venda,
                 cliente_id = :cliente_id,
                 valor_total = :valor_total,
+                valor_desconto = :valor_desconto,
                 forma_pagamento = :forma_pagamento,
                 status = :status,
                 status_pagamento = :status_pagamento,
@@ -163,10 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             // Inserir nova venda
             $stmt = $db->prepare("INSERT INTO vendas (
-                numero, data_venda, cliente_id, valor_total, forma_pagamento, status, status_pagamento, 
+                numero, data_venda, cliente_id, valor_total, valor_desconto, forma_pagamento, status, status_pagamento, 
                 data_pagamento, usuario_id, observacoes
             ) VALUES (
-                :numero, :data_venda, :cliente_id, :valor_total, :forma_pagamento, :status, :status_pagamento, 
+                :numero, :data_venda, :cliente_id, :valor_total, :valor_desconto, :forma_pagamento, :status, :status_pagamento, 
                 :data_pagamento, :usuario_id, :observacoes
             ) RETURNING id");
             $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
@@ -365,9 +366,7 @@ require_once('includes/header.php');
                         Desconto de <?php echo number_format($desconto_pagamento_vista, 2, ',', '.'); ?>% aplicado no pagamento à vista!
                         <input type="hidden" name="desconto_vista" id="desconto_vista" value="<?php echo $desconto_pagamento_vista; ?>">
                     </div>
-                    <div id="pagamento-prazo-alert" class="alert alert-warning mt-2 p-2" style="display: <?php echo $venda['status_pagamento'] == 'pendente' ? 'block' : 'none'; ?>">
-                        Vendas a prazo exigem um cliente selecionado!
-                    </div>
+
                 </div>
             </div>
             
@@ -716,18 +715,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para verificar e atualizar a obrigatoriedade do cliente
     function toggleClienteRequired(required) {
         const clienteSelect = document.getElementById('cliente_id');
-        const alertaDiv = document.getElementById('pagamento-prazo-alert');
         
         if (required) {
             clienteSelect.setAttribute('required', 'required');
-            if (!clienteSelect.value) {
-                alertaDiv.style.display = 'block';
-            } else {
-                alertaDiv.style.display = 'none';
-            }
         } else {
             clienteSelect.removeAttribute('required');
-            alertaDiv.style.display = 'none';
         }
     }
     
