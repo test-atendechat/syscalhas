@@ -87,11 +87,11 @@ require_once('includes/header.php');
                     <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">Finalizada</span></p>
                     <p class="mb-1"><strong>Pagamento:</strong> 
                         <?php if (isset($venda['status_pagamento']) && $venda['status_pagamento'] == 'pago_total'): ?>
-                            <span class="badge bg-success">Pago Total</span>
+                            <span class="status-box status-pago">Pago Total</span>
                         <?php elseif (isset($venda['status_pagamento']) && $venda['status_pagamento'] == 'pago_parcial'): ?>
-                            <span class="badge bg-info">Pago Parcial</span>
+                            <span class="status-box status-pago-parcial">Pago Parcial</span>
                         <?php else: ?>
-                            <span class="badge bg-warning text-dark">Pendente</span>
+                            <span class="status-box status-pendente">Pendente</span>
                         <?php endif; ?>
                     </p>
                     <p class="mb-1"><strong>Vendedor:</strong> <?php echo $venda['usuario_nome']; ?></p>
@@ -116,6 +116,21 @@ require_once('includes/header.php');
                 <div class="col-md-4 text-md-end">
                     <h5>Resumo Financeiro</h5>
                     <p class="mb-1"><strong>Valor Total:</strong> <span class="fs-4 text-success"><?php echo formataValor($venda['valor_total']); ?></span></p>
+                    
+                    <?php
+                    // Calcular valor pago e restante
+                    $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
+                    $stmt->bindParam(':venda_id', $venda['id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                    $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+                    $valor_restante = max(0, $venda['valor_total'] - $total_pago);
+                    
+                    if ($venda['status_pagamento'] == 'pago_parcial'):
+                    ?>
+                        <p class="mb-1"><strong>Valor Pago:</strong> <span class="text-primary"><?php echo formataValor($total_pago); ?></span></p>
+                        <p class="mb-1"><strong>Valor Restante:</strong> <span class="text-danger"><?php echo formataValor($valor_restante); ?></span></p>
+                    <?php endif; ?>
                 </div>
             </div>
             

@@ -88,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'valor_total' => 0, // Será calculado com base nos itens
             'forma_pagamento' => $_POST['forma_pagamento'] ?? 'dinheiro',
             'status' => 'finalizada',
-            'status_pagamento' => isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '1' ? 'pendente' : 'pago_total',
-            'data_pagamento' => isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '1' ? null : $_POST['data_venda'],
+            'status_pagamento' => 'pago_total', // Sempre considerar como pago total (cartão ou dinheiro)
+            'data_pagamento' => $_POST['data_venda'],
             'observacoes' => limpaString($_POST['observacoes'] ?? '')
         ];
         
