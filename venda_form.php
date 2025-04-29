@@ -613,15 +613,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 total = subtotal - valorDesconto;
                 
                 // Mostrar o desconto aplicado na linha de info
-                document.getElementById('desconto-info').innerText = 
-                    `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado no pagamento à vista`;
+                document.getElementById('desconto-info').style.display = 'block';
+                document.getElementById('desconto-info').innerHTML = 
+                    `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado no pagamento à vista!`;
                 
                 // Mostrar o desconto no resumo da venda
                 document.getElementById('linha-desconto').style.display = 'flex';
                 document.getElementById('desconto-venda').textContent = '- R$ ' + formatarMoeda(valorDesconto);
             }
         } else {
-            // Esconder a linha de desconto no resumo da venda
+            // Se não for pagamento à vista, esconder informações de desconto
+            document.getElementById('desconto-info').style.display = 'none';
             document.getElementById('linha-desconto').style.display = 'none';
         }
         
