@@ -35,6 +35,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Forma de pagamento não informada.");
         }
         
+        // Verificar pagamentos já realizados para a venda
+        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
+        $stmt->bindParam(':venda_id', $venda_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_pago_anterior = floatval($pagamentos['total_pago'] ?? 0);
+        
+        // Calcular o valor restante a pagar
+        $valor_restante = max(0, $valor_total - $total_pago_anterior);
+        
+        // Verificar se o valor pago é maior que o valor restante a pagar
+        if ($valor_pago > ($valor_restante + 0.01)) { // adiciona uma pequena margem de tolerância
+            throw new Exception("O valor pago (R$ " . number_format($valor_pago, 2, ',', '.') . ") é maior que o valor restante a pagar (R$ " . number_format($valor_restante, 2, ',', '.') . ").");
+        }
+        
         // Iniciar transação
         $db->beginTransaction();
         
@@ -49,12 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $venda = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Verificar pagamentos já realizados para a venda
-        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
-        $stmt->bindParam(':venda_id', $venda_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total_pago_anterior = floatval($pagamentos['total_pago'] ?? 0);
+        // Total pago já foi calculado anteriormente
         $total_pago = $total_pago_anterior + $valor_pago;
         
         // Comparar valores usando uma margem de tolerância pequena (0.01)
