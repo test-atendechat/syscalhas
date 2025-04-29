@@ -323,7 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
-}
+} // Fecha o if do REQUEST_METHOD
 
 // Buscar orçamentos pendentes de pagamento para vincular
 $orcamentos_pendentes = [];
