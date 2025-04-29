@@ -44,6 +44,8 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $observacoes = $conta['observacoes'];
         $documento = $conta['documento'];
         $categoria = $conta['categoria'];
+        $recorrente = $conta['recorrente'] ?? false;
+        $intervalo_dias = $conta['intervalo_dias'] ?? 30;
     } else {
         header('Location: contas_pagar.php');
         exit;
@@ -61,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $observacoes = trim($_POST['observacoes']);
     $documento = trim($_POST['documento']);
     $categoria = trim($_POST['categoria']);
+    $recorrente = isset($_POST['recorrente']) ? 1 : 0;
+    $intervalo_dias = 30; // Padrão é mensal (30 dias)
     
     // Validar campos obrigatórios
     if (empty($descricao) || empty($data_vencimento) || $valor <= 0) {
@@ -73,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Inserir nova conta
                 $stmt = $db->prepare("INSERT INTO contas_pagar 
                     (descricao, fornecedor, data_emissao, data_vencimento, valor, status, 
-                    observacoes, documento, categoria, usuario_id) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    observacoes, documento, categoria, usuario_id, recorrente, intervalo_dias) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
                 $stmt->execute([
                     $descricao, 
@@ -86,11 +90,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $observacoes, 
                     $documento, 
                     $categoria,
-                    $_SESSION['usuario_id']
+                    $_SESSION['usuario_id'],
+                    $recorrente,
+                    $intervalo_dias
                 ]);
                 
                 $id = $db->lastInsertId();
                 $mensagem = alerta('Conta cadastrada com sucesso!', 'success');
+                
+                // Se for recorrente, definir essa conta como pai/referência para próximas
+                if ($recorrente) {
+                    $stmt = $db->prepare("UPDATE contas_pagar SET conta_pai_id = :id WHERE id = :id");
+                    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
             } else {
                 // Atualizar conta existente
                 $stmt = $db->prepare("UPDATE contas_pagar SET 
@@ -103,6 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     observacoes = ?, 
                     documento = ?, 
                     categoria = ?,
+                    recorrente = ?,
+                    intervalo_dias = ?,
                     updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?");
                 
@@ -116,6 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $observacoes, 
                     $documento, 
                     $categoria,
+                    $recorrente,
+                    $intervalo_dias,
                     $id
                 ]);
                 

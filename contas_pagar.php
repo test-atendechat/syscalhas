@@ -7,6 +7,12 @@ require_once('includes/auth.php');
 // Verificar se o usuário está logado
 verificarAutenticacao();
 
+// Incluir o script para contas recorrentes
+require_once('includes/gerar_contas_recorrentes.php');
+
+// Verificar e gerar contas recorrentes
+gerarContasRecorrentes();
+
 // Processar exclusão de conta
 if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
     $id = intval($_GET['excluir']);
