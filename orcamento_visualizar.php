@@ -206,7 +206,7 @@ if (!$acesso_interno) {
                 <ul class="dropdown-menu dropdown-menu-end">
                     <!-- Opções de status -->
                     <?php if ($orcamento['status'] == 'aprovado'): ?>
-                        <?php if ($orcamento['status_pagamento'] == 'pendente'): ?>
+                        <?php if ($orcamento['status_pagamento'] == 'pendente' || $orcamento['status_pagamento'] == 'pago_parcial'): ?>
                             <li>
                                 <a class="dropdown-item" href="caixa_form.php?orcamento_id=<?php echo $orcamento['id']; ?>">
                                     <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento

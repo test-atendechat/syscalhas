@@ -120,7 +120,7 @@ $sql_base .= " UNION ALL
                 m.quantidade,
                 m.id as transacao_id,
                 'Estoque' as origem,
-                CONCAT(p.descricao, ' (', m.quantidade, ' ', p.unidade_medida, ')') as descricao,
+                CONCAT(p.descricao, ' (', m.quantidade, ' ', p.unidade, ')') as descricao,
                 o.forma_pagamento,
                 c.nome as cliente_nome,
                 o.cliente_id,
