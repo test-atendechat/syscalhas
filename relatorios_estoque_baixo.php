@@ -34,7 +34,7 @@ $sql = "SELECT
         LEFT JOIN 
             categorias c ON p.categoria_id = c.id
         WHERE 
-            p.estoque_atual < p.estoque_minimo AND p.estoque_minimo > 0
+            p.estoque_atual <= p.estoque_minimo AND p.estoque_minimo > 0
         ORDER BY 
             (p.estoque_atual / p.estoque_minimo) ASC,
             p.descricao ASC";
