@@ -109,8 +109,8 @@ switch ($agrupar_por) {
         break;
     case 'semana':
         // PostgreSQL usa EXTRACT(WEEK FROM date) e EXTRACT(YEAR FROM date)
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao)";
+        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(WEEK FROM m.data_criacao) 
+                             ORDER BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(WEEK FROM m.data_criacao)";
         $rotulo_data = "Semana";
         // Modificar a consulta para incluir as informações de semana/ano
         $sql_base = "SELECT 
@@ -127,25 +127,25 @@ switch ($agrupar_por) {
                         orcamentos o ON m.orcamento_id = o.id
                     WHERE 
                         (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
-                        AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
+                        AND DATE(m.data_criacao) BETWEEN :data_inicio AND :data_fim";
         
         if ($categoria_id > 0) {
             $sql_base .= " AND p.categoria_id = :categoria_id";
         }
         
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao)";
+        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(WEEK FROM m.data_criacao) 
+                             ORDER BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(WEEK FROM m.data_criacao)";
         break;
     case 'mes':
         // PostgreSQL usa EXTRACT(MONTH FROM date) e EXTRACT(YEAR FROM date)
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao)";
+        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(MONTH FROM m.data_criacao) 
+                             ORDER BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(MONTH FROM m.data_criacao)";
         $rotulo_data = "Mês";
         // Modificar a consulta para incluir as informações de mês/ano
         $sql_base = "SELECT 
-                        EXTRACT(YEAR FROM m.data_movimentacao) as ano,
-                        EXTRACT(MONTH FROM m.data_movimentacao) as mes,
-                        MIN(DATE(m.data_movimentacao)) as data,
+                        EXTRACT(YEAR FROM m.data_criacao) as ano,
+                        EXTRACT(MONTH FROM m.data_criacao) as mes,
+                        MIN(DATE(m.data_criacao)) as data,
                         SUM(m.valor_total) as valor_total,
                         SUM(m.quantidade) as quantidade
                     FROM 
@@ -156,14 +156,14 @@ switch ($agrupar_por) {
                         orcamentos o ON m.orcamento_id = o.id
                     WHERE 
                         (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
-                        AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
+                        AND DATE(m.data_criacao) BETWEEN :data_inicio AND :data_fim";
         
         if ($categoria_id > 0) {
             $sql_base .= " AND p.categoria_id = :categoria_id";
         }
         
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao)";
+        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(MONTH FROM m.data_criacao) 
+                             ORDER BY EXTRACT(YEAR FROM m.data_criacao), EXTRACT(MONTH FROM m.data_criacao)";
         break;
 }
 
