@@ -77,8 +77,15 @@ if ($periodo != 'personalizado') {
 }
 
 // Buscar categorias para o filtro
-$stmt = $db->query("SELECT id, nome FROM categorias ORDER BY nome");
-$categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $db->query("SELECT id, nome FROM categorias ORDER BY nome");
+    $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Se houver erro, inicializar como array vazio
+    $categorias = [];
+    // Se necessário, reconectar ao banco de dados
+    require_once('includes/db.php');
+}
 
 // Construir consulta SQL para vendas
 // Vamos usar UNION para combinar dados de orçamentos pagos e vendas diretas do caixa
