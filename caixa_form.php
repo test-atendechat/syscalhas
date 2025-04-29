@@ -250,8 +250,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Finalizar transação
             $db->commit();
             
-            // Redirecionar para a listagem de movimentações
-            header("Location: caixa.php?mensagem={$mensagem}");
+            // Verificar se devemos redirecionar de volta para o orçamento
+            if (isset($_POST['orcamento_id_get']) && !empty($_POST['orcamento_id_get'])) {
+                $orcamento_id_redirect = intval($_POST['orcamento_id_get']);
+                header("Location: caixa_form.php?orcamento_id={$orcamento_id_redirect}&mensagem={$mensagem}");
+            } else {
+                // Redirecionar para a listagem de movimentações
+                header("Location: caixa.php?mensagem={$mensagem}");
+            }
             exit;
             
         } catch (Exception $e) {
@@ -310,6 +316,9 @@ require_once('includes/header.php');
     <div class="card-body">
         <form method="post" action="caixa_form.php" id="formCaixa">
             <input type="hidden" name="id" value="<?php echo $movimentacao['id']; ?>">
+            <?php if ($orcamento_id > 0): ?>
+            <input type="hidden" name="orcamento_id_get" value="<?php echo $orcamento_id; ?>">
+            <?php endif; ?>
             
             <?php if (isset($movimentacao['orcamento_id']) && $movimentacao['orcamento_id'] > 0 && isset($movimentacao['valor_total_orcamento'])): ?>
             <div class="alert alert-info mb-4">
