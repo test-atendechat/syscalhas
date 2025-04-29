@@ -151,7 +151,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
                 $stmt->execute();
                 $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
-                $total_pago = floatval($pagamentos['total_pago'] ?? 0) + floatval($movimentacao['valor']);
+                // Calcular o total considerando o valor atual sendo registrado
+                $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+                // Garantir que não estamos contando duas vezes o mesmo pagamento em caso de edição
+                if ($movimentacao['id'] > 0) {
+                    // Se for edição, descontar o valor anterior
+                    $stmt = $db->prepare("SELECT valor FROM caixa WHERE id = :id");
+                    $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                    $movimento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($movimento_atual) {
+                        $total_pago -= floatval($movimento_atual['valor']);
+                    }
+                }
+                // Adicionar o valor atual sendo registrado
+                $total_pago += floatval($movimentacao['valor']);
                 
                 // Determinar automaticamente se é pagamento total ou parcial
                 $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
@@ -189,9 +203,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 $orcamentos_pendentes = [];
 if ($movimentacao['id'] == 0 || $movimentacao['orcamento_id'] != null) {
     $sql = "SELECT id, numero, status, forma_pagamento, valor_total, data_criacao, 
-           (SELECT nome FROM clientes WHERE id = orcamentos.cliente_id) as cliente_nome
+           (SELECT nome FROM clientes WHERE id = orcamentos.cliente_id) as cliente_nome,
+           status_pagamento
            FROM orcamentos 
-           WHERE status = 'aprovado' AND status_pagamento = 'pendente'
+           WHERE status = 'aprovado' AND (status_pagamento = 'pendente' OR status_pagamento = 'pago_parcial')
            OR id = :orcamento_id 
            ORDER BY data_criacao DESC";
     $stmt = $db->prepare($sql);

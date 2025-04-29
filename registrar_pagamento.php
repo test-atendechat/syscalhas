@@ -49,8 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $venda = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Determinar status de pagamento
-        $status_pagamento = ($valor_pago >= $valor_total) ? 'pago_total' : 'pago_parcial';
+        // Verificar pagamentos já realizados para a venda
+        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa WHERE venda_id = :venda_id AND tipo = 'entrada'");
+        $stmt->bindParam(':venda_id', $venda_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_pago_anterior = floatval($pagamentos['total_pago'] ?? 0);
+        $total_pago = $total_pago_anterior + $valor_pago;
+        
+        // Determinar se o valor total foi atingido (com tolerância para arredondamentos)
+        $diferenca = abs($total_pago - $valor_total);
+        $pagamento_total = ($diferenca <= 0.01);
+        
+        // Definir status de pagamento
+        $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
         $data_pagamento = date('Y-m-d');
         
         // Atualizar status de pagamento da venda
