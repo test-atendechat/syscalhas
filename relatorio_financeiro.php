@@ -92,7 +92,11 @@ $stmt = $db->prepare("
         COUNT(CASE WHEN status = 'rejeitado' THEN 1 END) as orcamentos_rejeitados,
         COUNT(CASE WHEN status = 'pendente' THEN 1 END) as orcamentos_pendentes,
         SUM(valor_total) as valor_total_orcamentos,
-        SUM(CASE WHEN status = 'aprovado' THEN valor_total ELSE 0 END) as valor_orcamentos_aprovados
+        SUM(valor_produtos) as valor_total_produtos,
+        SUM(valor_mao_obra) as valor_total_mao_obra,
+        SUM(CASE WHEN status = 'aprovado' THEN valor_total ELSE 0 END) as valor_orcamentos_aprovados,
+        SUM(CASE WHEN status = 'aprovado' THEN valor_produtos ELSE 0 END) as valor_produtos_aprovados,
+        SUM(CASE WHEN status = 'aprovado' THEN valor_mao_obra ELSE 0 END) as valor_mao_obra_aprovados
     FROM orcamentos
     WHERE data_criacao BETWEEN :data_inicio AND :data_fim
 ");
@@ -158,6 +162,23 @@ $valor_entradas = $totais_movimentacoes['valor_entradas'] ?? 0;
 $valor_saidas = $totais_movimentacoes['valor_saidas'] ?? 0;
 $lucro_operacional = $valor_saidas - $valor_entradas;
 $margem_lucro = $valor_saidas > 0 ? ($lucro_operacional / $valor_saidas) * 100 : 0;
+
+// Cálculos de lucratividade dos orçamentos
+$valor_total_produtos = $totais_orcamentos['valor_total_produtos'] ?? 0;
+$valor_total_mao_obra = $totais_orcamentos['valor_total_mao_obra'] ?? 0;
+$valor_produtos_aprovados = $totais_orcamentos['valor_produtos_aprovados'] ?? 0;
+$valor_mao_obra_aprovados = $totais_orcamentos['valor_mao_obra_aprovados'] ?? 0;
+
+// Calcular custo dos produtos vendidos (aproximadamente 50% do valor - usando média de custo)
+$custo_medio_produtos = 0.5; // 50% do valor de venda é o custo médio
+$custo_produtos = $valor_produtos_aprovados * $custo_medio_produtos;
+$lucro_produtos = $valor_produtos_aprovados - $custo_produtos;
+
+// Mão de obra é 100% lucro 
+$lucro_mao_obra = $valor_mao_obra_aprovados;
+$lucro_total_orcamentos = $lucro_produtos + $lucro_mao_obra;
+$margem_lucro_orcamentos = ($valor_produtos_aprovados + $valor_mao_obra_aprovados) > 0 ? 
+    ($lucro_total_orcamentos / ($valor_produtos_aprovados + $valor_mao_obra_aprovados)) * 100 : 0;
 
 // Calcular o fluxo de caixa do período
 $valor_recebido = $totais_vendas['valor_pago_vendas'] ?? 0;
@@ -300,6 +321,139 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumo de lucratividade -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-success text-white">
+        <h6 class="m-0 font-weight-bold">Resumo de Lucratividade</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold text-primary">Lucro de Orçamentos</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Valor Total de Produtos</td>
+                                        <td class="text-end"><?php echo formataValor($valor_produtos_aprovados); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Custo dos Produtos</td>
+                                        <td class="text-end"><?php echo formataValor($custo_produtos); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lucro em Produtos</td>
+                                        <td class="text-end"><?php echo formataValor($lucro_produtos); ?></td>
+                                    </tr>
+                                    <tr class="table-light">
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Valor de Mão de Obra</td>
+                                        <td class="text-end"><?php echo formataValor($valor_mao_obra_aprovados); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lucro em Mão de Obra (100%)</td>
+                                        <td class="text-end"><?php echo formataValor($lucro_mao_obra); ?></td>
+                                    </tr>
+                                    <tr class="table-light">
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>Lucro Total em Orçamentos</strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor($lucro_total_orcamentos); ?></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Margem de Lucro</td>
+                                        <td class="text-end"><?php echo number_format($margem_lucro_orcamentos, 2, ',', '.'); ?>%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold text-primary">Lucro Consolidado</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Faturamento Bruto (Vendas)</td>
+                                        <td class="text-end"><?php echo formataValor($valor_saidas); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Faturamento Bruto (Orçamentos)</td>
+                                        <td class="text-end"><?php echo formataValor($valor_orcamentos_aprovados); ?></td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>Faturamento Total</strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor($valor_saidas + $valor_orcamentos_aprovados); ?></strong></td>
+                                    </tr>
+                                    <tr class="table-light">
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Custo dos Materiais (Vendas)</td>
+                                        <td class="text-end"><?php echo formataValor($valor_entradas); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Custo dos Materiais (Orçamentos)</td>
+                                        <td class="text-end"><?php echo formataValor($custo_produtos); ?></td>
+                                    </tr>
+                                    <tr class="table-warning">
+                                        <td><strong>Custo Total</strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor($valor_entradas + $custo_produtos); ?></strong></td>
+                                    </tr>
+                                    <tr class="table-light">
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr class="table-success">
+                                        <td><strong>Lucro Líquido</strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas + $valor_orcamentos_aprovados) - ($valor_entradas + $custo_produtos)); ?></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Margem de Lucro Líquido</td>
+                                        <td class="text-end">
+                                            <?php 
+                                            $faturamento_total = $valor_saidas + $valor_orcamentos_aprovados;
+                                            $lucro_liquido = $faturamento_total - ($valor_entradas + $custo_produtos);
+                                            $margem_liquida = $faturamento_total > 0 ? ($lucro_liquido / $faturamento_total) * 100 : 0;
+                                            echo number_format($margem_liquida, 2, ',', '.') . '%';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
