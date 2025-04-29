@@ -17,6 +17,8 @@ $venda = [
     'valor_total' => 0,
     'forma_pagamento' => 'dinheiro',
     'status' => 'finalizada',
+    'status_pagamento' => 'pendente',
+    'data_pagamento' => null,
     'observacoes' => ''
 ];
 $itens = [];
@@ -85,6 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'valor_total' => 0, // Será calculado com base nos itens
             'forma_pagamento' => $_POST['forma_pagamento'] ?? 'dinheiro',
             'status' => 'finalizada',
+            'status_pagamento' => isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '1' ? 'pendente' : 'pago_total',
+            'data_pagamento' => isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '1' ? null : $_POST['data_venda'],
             'observacoes' => limpaString($_POST['observacoes'] ?? '')
         ];
         
