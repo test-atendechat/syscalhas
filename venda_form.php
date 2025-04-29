@@ -251,7 +251,7 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Buscar produtos para o select
 $produtos = [];
-$stmt = $db->prepare("SELECT id, descricao, unidade, preco_venda, estoque_atual FROM produtos WHERE ativo = true ORDER BY descricao");
+$stmt = $db->prepare("SELECT id, descricao, unidade, valor_unitario, estoque_atual FROM produtos ORDER BY descricao");
 $stmt->execute();
 $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -350,7 +350,7 @@ require_once('includes/header.php');
                                             <?php foreach ($produtos as $produto): ?>
                                                 <option value="<?php echo $produto['id']; ?>" 
                                                         data-unidade="<?php echo $produto['unidade']; ?>"
-                                                        data-preco="<?php echo number_format($produto['preco_venda'], 2, ',', '.'); ?>"
+                                                        data-preco="<?php echo number_format($produto['valor_unitario'], 2, ',', '.'); ?>"
                                                         data-estoque="<?php echo $produto['estoque_atual']; ?>"
                                                         <?php echo ($item['produto_id'] == $produto['id']) ? 'selected' : ''; ?>>
                                                     <?php echo $produto['descricao']; ?> (Estoque: <?php echo $produto['estoque_atual']; ?>)
@@ -391,7 +391,7 @@ require_once('includes/header.php');
                                         <?php foreach ($produtos as $produto): ?>
                                             <option value="<?php echo $produto['id']; ?>" 
                                                     data-unidade="<?php echo $produto['unidade']; ?>"
-                                                    data-preco="<?php echo number_format($produto['preco_venda'], 2, ',', '.'); ?>"
+                                                    data-preco="<?php echo number_format($produto['valor_unitario'], 2, ',', '.'); ?>"
                                                     data-estoque="<?php echo $produto['estoque_atual']; ?>">
                                                 <?php echo $produto['descricao']; ?> (Estoque: <?php echo $produto['estoque_atual']; ?>)
                                             </option>
@@ -467,7 +467,7 @@ require_once('includes/header.php');
                 <?php foreach ($produtos as $produto): ?>
                     <option value="<?php echo $produto['id']; ?>" 
                             data-unidade="<?php echo $produto['unidade']; ?>"
-                            data-preco="<?php echo number_format($produto['preco_venda'], 2, ',', '.'); ?>"
+                            data-preco="<?php echo number_format($produto['valor_unitario'], 2, ',', '.'); ?>"
                             data-estoque="<?php echo $produto['estoque_atual']; ?>">
                         <?php echo $produto['descricao']; ?> (Estoque: <?php echo $produto['estoque_atual']; ?>)
                     </option>

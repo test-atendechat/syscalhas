@@ -60,6 +60,12 @@ body {
     font-weight: bold;
 }
 
+.status-pago-parcial {
+    background-color: #6c757d;
+    color: #ffffff;
+    font-weight: bold;
+}
+
 .status-finalizado {
     background-color: #6610f2;
     color: #ffffff;
