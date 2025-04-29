@@ -10,7 +10,7 @@ $produto = [
     'id' => 0,
     'codigo' => '',
     'descricao' => '',
-    'categoria' => '',
+    'categoria_id' => '',
     'unidade' => 'UN',
     'valor_unitario' => '',
     'observacoes' => ''
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'id' => isset($_POST['id']) ? intval($_POST['id']) : 0,
         'codigo' => limpaString($_POST['codigo'] ?? ''),
         'descricao' => limpaString($_POST['descricao'] ?? ''),
-        'categoria' => limpaString($_POST['categoria'] ?? ''),
+        'categoria_id' => intval($_POST['categoria_id'] ?? 0),
         'unidade' => limpaString($_POST['unidade'] ?? 'UN'),
         'valor_unitario' => str_replace(',', '.', str_replace('.', '', $_POST['valor_unitario'] ?? '0')),
         'observacoes' => limpaString($_POST['observacoes'] ?? '')
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Validações
     if (empty($produto['descricao'])) {
         $erro = 'A descrição do produto é obrigatória.';
-    } elseif (empty($produto['categoria'])) {
+    } elseif (empty($produto['categoria_id'])) {
         $erro = 'A categoria é obrigatória.';
     } elseif (empty($produto['valor_unitario']) || !is_numeric($produto['valor_unitario'])) {
         $erro = 'O valor unitário é obrigatório e deve ser um número válido.';
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt = $db->prepare("UPDATE produtos SET 
                         codigo = :codigo,
                         descricao = :descricao,
-                        categoria = :categoria,
+                        categoria_id = :categoria_id,
                         unidade = :unidade,
                         valor_unitario = :valor_unitario,
                         observacoes = :observacoes
