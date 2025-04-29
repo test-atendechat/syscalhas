@@ -3,13 +3,14 @@ require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 
-// Verificar se está sendo acessado com ID interno ou com código de acesso externo
+// Inicialização de variáveis
 $acesso_interno = true;
 $orcamento = null;
 $itens = [];
 $cliente = null;
 $mensagem = '';
 
+// Verificando tipo de acesso
 if (isset($_GET['id'])) {
     // Acesso interno (painel administrativo)
     require_once('includes/auth.php');
@@ -97,27 +98,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao']) && !$acesso
                 $itens = buscarItensOrcamento($id);
                 
                 foreach ($itens as $item) {
-                    // Registrar movimentação no estoque
-                    $stmt = $db->prepare("INSERT INTO estoque_movimentacoes 
-                                          (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id)
-                                          VALUES 
-                                          (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id)");
-                    $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
-                    $stmt->bindParam(':quantidade', $item['quantidade']);
-                    $stmt->bindParam(':valor_unitario', $item['valor_unitario']);
-                    $stmt->bindParam(':valor_total', $item['valor_total']);
-                    $observacao = "Saída automática do orçamento #{$orcamento['numero']}";
-                    $stmt->bindParam(':observacao', $observacao);
-                    $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
-                    $stmt->execute();
-                    
-                    // Atualizar estoque do produto
-                    $stmt = $db->prepare("UPDATE produtos 
-                                          SET estoque_atual = estoque_atual - :quantidade 
-                                          WHERE id = :produto_id");
-                    $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
-                    $stmt->bindParam(':quantidade', $item['quantidade']);
-                    $stmt->execute();
+                    if ($item['produto_id'] > 0) {
+                        // Registrar movimentação no estoque
+                        $stmt = $db->prepare("INSERT INTO estoque_movimentacoes 
+                                        (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id)
+                                        VALUES 
+                                        (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id)");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->bindParam(':valor_unitario', $item['valor_unitario']);
+                        $stmt->bindParam(':valor_total', $item['valor_total']);
+                        $observacao = "Saída automática do orçamento #{$orcamento['numero']}";
+                        $stmt->bindParam(':observacao', $observacao);
+                        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+                        
+                        // Atualizar estoque do produto
+                        $stmt = $db->prepare("UPDATE produtos 
+                                        SET estoque_atual = estoque_atual - :quantidade 
+                                        WHERE id = :produto_id");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->execute();
+                    }
                 }
                 
                 $db->commit();
@@ -135,8 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao']) && !$acesso
     }
 }
 
-// Se acessado externamente, mostrar um template simplificado
+// Se for acesso externo (cliente)
 if (!$acesso_interno) {
+    // Início do HTML para cliente
     ?>
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -156,7 +160,10 @@ if (!$acesso_interno) {
                 </div>
                 <div class="card-body">
                     <?php echo $mensagem; ?>
-<?php } else { ?>
+    <?php
+} else {
+    // Cabeçalho para uso interno
+    ?>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?php echo $orcamento['numero']; ?></h1>
         <div>
@@ -198,160 +205,166 @@ if (!$acesso_interno) {
     </div>
     
     <?php echo $mensagem; ?>
-<?php } ?>
+    <?php
+}
+?>
 
-                    <div class="orcamento-container" id="orcamento-imprimir">
-                        <div class="orcamento-header">
-                            <div class="row align-items-center mb-4">
-                                <div class="col-md-6">
-                                    <h2 class="mb-0"><?php echo APP_NAME; ?></h2>
-                                    <p class="text-muted mb-0">Orçamento de Calhas e Rufos</p>
-                                </div>
-                                <div class="col-md-6 text-md-end">
-                                    <span class="status-box status-<?php echo $orcamento['status']; ?>">
-                                        <?php echo ucfirst($orcamento['status']); ?>
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <h5>Dados do Cliente</h5>
-                                    <p class="mb-0"><strong>Nome:</strong> <?php echo $cliente['nome']; ?></p>
-                                    <?php if (!empty($cliente['cpf_cnpj'])): ?>
-                                        <p class="mb-0"><strong>CPF/CNPJ:</strong> <?php echo $cliente['cpf_cnpj']; ?></p>
-                                    <?php endif; ?>
-                                    <?php if (!empty($cliente['telefone'])): ?>
-                                        <p class="mb-0"><strong>Telefone:</strong> <?php echo $cliente['telefone']; ?></p>
-                                    <?php endif; ?>
-                                    <?php if (!empty($cliente['email'])): ?>
-                                        <p class="mb-0"><strong>Email:</strong> <?php echo $cliente['email']; ?></p>
-                                    <?php endif; ?>
-                                    <?php if (!empty($cliente['endereco'])): ?>
-                                        <p class="mb-0"><strong>Endereço:</strong> <?php echo $cliente['endereco']; ?></p>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="col-md-6 text-md-end">
-                                    <h5>Dados do Orçamento</h5>
-                                    <p class="mb-0"><strong>Número:</strong> <?php echo $orcamento['numero']; ?></p>
-                                    <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
-                                    <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
-                                    <p class="mb-0"><strong>Taxa de Mão de Obra:</strong> <?php echo number_format($orcamento['taxa_mao_obra'], 2, ',', '.'); ?>%</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <h5 class="mb-3">Itens do Orçamento</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-bordered table-orcamento">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Descrição</th>
-                                        <th>Unidade</th>
-                                        <th class="text-center">Quantidade</th>
-                                        <th class="text-end">Valor Unitário</th>
-                                        <th class="text-end">Valor Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (count($itens) > 0): ?>
-                                        <?php foreach ($itens as $index => $item): ?>
-                                            <tr>
-                                                <td><?php echo $index + 1; ?></td>
-                                                <td><?php echo $item['descricao']; ?></td>
-                                                <td><?php echo $item['unidade']; ?></td>
-                                                <td class="text-center"><?php echo number_format($item['quantidade'], 2, ',', '.'); ?></td>
-                                                <td class="text-end"><?php echo formataValor($item['valor_unitario']); ?></td>
-                                                <td class="text-end"><?php echo formataValor($item['valor_total']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center">Nenhum item encontrado para este orçamento.</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="5" class="text-end"><strong>Total de Produtos:</strong></td>
-                                        <td class="text-end"><?php echo formataValor($orcamento['valor_produtos']); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="5" class="text-end"><strong>Mão de Obra (<?php echo number_format($orcamento['taxa_mao_obra'], 2, ',', '.'); ?>%):</strong></td>
-                                        <td class="text-end"><?php echo formataValor($orcamento['valor_mao_obra']); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="5" class="text-end"><strong>Valor Total:</strong></td>
-                                        <td class="text-end"><strong><?php echo formataValor($orcamento['valor_total']); ?></strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        
-                        <?php if (!empty($orcamento['observacoes'])): ?>
-                            <div class="mt-4">
-                                <h5>Observações</h5>
-                                <div class="card">
-                                    <div class="card-body bg-light">
-                                        <?php echo nl2br($orcamento['observacoes']); ?>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <div class="orcamento-footer mt-5">
-                            <div class="row">
-                                <div class="col-md-12 text-center">
-                                    <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <?php if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
-                        <div class="card mt-4">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0">Avaliação do Orçamento</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>Prezado(a) <?php echo $cliente['nome']; ?>, avalie o orçamento acima e informe sua decisão:</p>
-                                
-                                <form method="post" class="mt-3">
-                                    <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
-                                    
-                                    <div class="d-flex justify-content-center">
-                                        <button type="submit" name="decisao" value="aprovar" class="btn btn-success btn-lg mx-2">
-                                            <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
-                                        </button>
-                                        
-                                        <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger btn-lg mx-2">
-                                            <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    <?php elseif (!$acesso_interno && $orcamento['status'] != 'pendente'): ?>
-                        <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
-                            <h5 class="alert-heading">
-                                <?php if ($orcamento['status'] == 'aprovado'): ?>
-                                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
-                                <?php else: ?>
-                                    <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
-                                <?php endif; ?>
-                            </h5>
-                            <p class="mb-0">
-                                <?php if ($orcamento['status'] == 'aprovado'): ?>
-                                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
-                                <?php else: ?>
-                                    Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                    <?php endif; ?>
+<!-- CONTEÚDO COMUM PARA AMBOS OS TIPOS DE ACESSO -->
+<div class="orcamento-container" id="orcamento-imprimir">
+    <div class="orcamento-header">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <h2 class="mb-0"><?php echo APP_NAME; ?></h2>
+                <p class="text-muted mb-0">Orçamento de Calhas e Rufos</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <span class="status-box status-<?php echo $orcamento['status']; ?>">
+                    <?php echo ucfirst($orcamento['status']); ?>
+                </span>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Dados do Cliente</h5>
+                <p class="mb-0"><strong>Nome:</strong> <?php echo $cliente['nome']; ?></p>
+                <?php if (!empty($cliente['cpf_cnpj'])): ?>
+                    <p class="mb-0"><strong>CPF/CNPJ:</strong> <?php echo $cliente['cpf_cnpj']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['telefone'])): ?>
+                    <p class="mb-0"><strong>Telefone:</strong> <?php echo $cliente['telefone']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['email'])): ?>
+                    <p class="mb-0"><strong>Email:</strong> <?php echo $cliente['email']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['endereco'])): ?>
+                    <p class="mb-0"><strong>Endereço:</strong> <?php echo $cliente['endereco']; ?></p>
+                <?php endif; ?>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <h5>Dados do Orçamento</h5>
+                <p class="mb-0"><strong>Número:</strong> <?php echo $orcamento['numero']; ?></p>
+                <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
+                <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                <p class="mb-0"><strong>Taxa de Mão de Obra:</strong> <?php echo number_format($orcamento['taxa_mao_obra'], 2, ',', '.'); ?>%</p>
+            </div>
+        </div>
+    </div>
+    
+    <h5 class="mb-3">Itens do Orçamento</h5>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-orcamento">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Unidade</th>
+                    <th class="text-center">Quantidade</th>
+                    <th class="text-end">Valor Unitário</th>
+                    <th class="text-end">Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($itens) > 0): ?>
+                    <?php foreach ($itens as $index => $item): ?>
+                        <tr>
+                            <td><?php echo $index + 1; ?></td>
+                            <td><?php echo $item['descricao']; ?></td>
+                            <td><?php echo $item['unidade']; ?></td>
+                            <td class="text-center"><?php echo number_format($item['quantidade'], 2, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo formataValor($item['valor_unitario']); ?></td>
+                            <td class="text-end"><?php echo formataValor($item['valor_total']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum item encontrado para este orçamento.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-end"><strong>Total de Produtos:</strong></td>
+                    <td class="text-end"><?php echo formataValor($orcamento['valor_produtos']); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-end"><strong>Mão de Obra (<?php echo number_format($orcamento['taxa_mao_obra'], 2, ',', '.'); ?>%):</strong></td>
+                    <td class="text-end"><?php echo formataValor($orcamento['valor_mao_obra']); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-end"><strong>Valor Total:</strong></td>
+                    <td class="text-end"><strong><?php echo formataValor($orcamento['valor_total']); ?></strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <?php if (!empty($orcamento['observacoes'])): ?>
+        <div class="mt-4">
+            <h5>Observações</h5>
+            <div class="card">
+                <div class="card-body bg-light">
+                    <?php echo nl2br($orcamento['observacoes']); ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+    
+    <div class="orcamento-footer mt-5">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Avaliação do Orçamento</h5>
+        </div>
+        <div class="card-body">
+            <p>Prezado(a) <?php echo $cliente['nome']; ?>, avalie o orçamento acima e informe sua decisão:</p>
+            
+            <form method="post" class="mt-3">
+                <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
                 
-                <?php if (!$acesso_interno): ?>
+                <div class="d-flex justify-content-center">
+                    <button type="submit" name="decisao" value="aprovar" class="btn btn-success btn-lg mx-2">
+                        <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                    </button>
+                    
+                    <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger btn-lg mx-2">
+                        <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+<?php elseif (!$acesso_interno && $orcamento['status'] != 'pendente'): ?>
+    <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
+        <h5 class="alert-heading">
+            <?php if ($orcamento['status'] == 'aprovado'): ?>
+                <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
+            <?php else: ?>
+                <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
+            <?php endif; ?>
+        </h5>
+        <p class="mb-0">
+            <?php if ($orcamento['status'] == 'aprovado'): ?>
+                Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
+            <?php else: ?>
+                Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
+            <?php endif; ?>
+        </p>
+    </div>
+<?php endif; ?>
+
+<?php 
+// Finalizando HTML para acesso externo
+if (!$acesso_interno): 
+?>
                 </div>
             </div>
             
@@ -364,9 +377,8 @@ if (!$acesso_interno) {
     </body>
     </html>
 <?php 
-    // Encerrar script para acesso externo
-    exit;
-} 
+    exit; // Encerrar script para acesso externo
+else: 
 ?>
 
 <script>
@@ -391,4 +403,7 @@ function copiarLinkCliente() {
 }
 </script>
 
-<?php require_once('includes/footer.php'); ?>
+<?php 
+    require_once('includes/footer.php'); 
+endif;
+?>
