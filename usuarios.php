@@ -7,7 +7,7 @@ $titulo = "Gerenciar Usuários";
 require_once('includes/header.php');
 
 // Verificar se o usuário é administrador
-if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] != 'administrador') {
+if (!isset($_SESSION['usuario']['nivel']) || $_SESSION['usuario']['nivel'] != 'admin') {
     echo '<div class="alert alert-danger">
             <i class="fas fa-exclamation-triangle me-2"></i>Acesso negado! Você não tem permissão para acessar esta página.
           </div>';
@@ -175,8 +175,8 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td><?php echo $u['nome']; ?></td>
                                 <td><?php echo $u['email']; ?></td>
                                 <td>
-                                    <span class="badge bg-<?php echo $u['nivel'] == 'administrador' ? 'danger' : 'primary'; ?>">
-                                        <?php echo ucfirst($u['nivel']); ?>
+                                    <span class="badge bg-<?php echo $u['nivel'] == 'admin' ? 'danger' : 'primary'; ?>">
+                                        <?php echo ucfirst($u['nivel'] == 'admin' ? 'Administrador' : 'Usuário'); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -190,6 +190,9 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <div class="btn-group">
                                         <a href="?editar=<?php echo $u['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="usuario_permissoes.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-info text-white" title="Permissões">
+                                            <i class="fas fa-user-shield"></i>
                                         </a>
                                         <?php if ($u['id'] != $_SESSION['usuario_id']): ?>
                                             <button type="button" class="btn btn-sm btn-danger" 

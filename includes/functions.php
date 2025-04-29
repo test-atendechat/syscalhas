@@ -3,6 +3,41 @@
  * Arquivo com funções utilitárias para o sistema
  */
 
+/**
+ * Verifica se um usuário tem uma determinada permissão
+ * 
+ * @param string $permissao Nome da permissão a verificar
+ * @return boolean True se tem permissão ou é administrador, False caso contrário
+ */
+function verificarPermissao($permissao) {
+    global $db;
+    
+    // Se não há usuário logado, não tem permissão
+    if (!isset($_SESSION['usuario']) || !isset($_SESSION['usuario']['id'])) {
+        return false;
+    }
+    
+    $usuario_id = $_SESSION['usuario']['id'];
+    
+    // Administradores têm todas as permissões automaticamente
+    if (isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin') {
+        return true;
+    }
+    
+    // Verifica na tabela de permissões
+    $sql = "SELECT $permissao FROM permissoes WHERE usuario_id = :usuario_id";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':usuario_id', $usuario_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (isset($resultado[$permissao]) && $resultado[$permissao]);
+    }
+    
+    return false;
+}
+
 // Esta função foi movida para a versão abaixo
 
 /**
