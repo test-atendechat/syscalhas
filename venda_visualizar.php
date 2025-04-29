@@ -114,8 +114,6 @@ require_once('includes/header.php');
                 <?php endif; ?>
                 
                 <div class="col-md-4 text-md-end">
-                    <h5>Resumo Financeiro</h5>
-                    <p class="mb-1"><strong>Valor Total:</strong> <span class="fs-4 text-success"><?php echo formataValor($venda['valor_total']); ?></span></p>
                     
                     <?php
                     // Calcular valor pago e restante
