@@ -37,39 +37,31 @@ body {
     font-size: 0.85rem;
     font-weight: bold;
     text-align: center;
+    color: #ffffff !important; /* Forçar texto branco em todos os status */
 }
 
 .status-pendente {
     background-color: #ffc107;
-    color: #ffffff;
 }
 
 .status-aprovado {
     background-color: #198754;
-    color: #ffffff;
 }
 
 .status-rejeitado {
     background-color: #dc3545;
-    color: #ffffff;
 }
 
 .status-pago {
     background-color: #198754; /* Verde */
-    color: #ffffff;
-    font-weight: bold;
 }
 
 .status-pago-parcial {
     background-color: #fd7e14; /* Laranja */
-    color: #ffffff;
-    font-weight: bold;
 }
 
 .status-finalizado {
     background-color: #6610f2;
-    color: #ffffff;
-    font-weight: bold;
 }
 
 /* Estoque */
