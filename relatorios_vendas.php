@@ -463,7 +463,7 @@ if (count($vendas) > 0) {
             // Consulta para obter o detalhamento de todos os produtos vendidos no período
             $sql_produtos = "SELECT 
                                 p.descricao as produto_nome,
-                                p.unidade_medida,
+                                p.unidade,
                                 c.nome as categoria_nome,
                                 SUM(m.quantidade) as total_quantidade,
                                 SUM(m.valor_total) as valor_total
@@ -479,7 +479,7 @@ if (count($vendas) > 0) {
                                 (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
                                 AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim
                             GROUP BY 
-                                p.descricao, p.unidade_medida, c.nome
+                                p.descricao, p.unidade, c.nome
                             ORDER BY 
                                 valor_total DESC";
             
@@ -508,7 +508,7 @@ if (count($vendas) > 0) {
                                     <td><?php echo $produto['produto_nome']; ?></td>
                                     <td><?php echo $produto['categoria_nome']; ?></td>
                                     <td class="text-center">
-                                        <?php echo number_format($produto['total_quantidade'], 2, ',', '.') . ' ' . $produto['unidade_medida']; ?>
+                                        <?php echo number_format($produto['total_quantidade'], 2, ',', '.') . ' ' . $produto['unidade']; ?>
                                     </td>
                                     <td class="text-end"><?php echo formataValor($produto['valor_total']); ?></td>
                                     <td class="text-end">
