@@ -45,7 +45,7 @@ $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $produtos_total = $result['total'];
 
 // Consulta para produtos com estoque baixo
-$stmt = $db->query("SELECT COUNT(*) as total FROM produtos WHERE estoque_atual <= estoque_minimo AND estoque_minimo > 0");
+$stmt = $db->query("SELECT COUNT(*) as total FROM produtos WHERE estoque_atual < estoque_minimo AND estoque_minimo > 0");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $estoque_baixo = $result['total'];
 

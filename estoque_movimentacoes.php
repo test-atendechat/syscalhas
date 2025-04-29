@@ -241,15 +241,18 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumo</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2">Resumo Geral</h5>
+                        </div>
                         <?php
-                        // Calcular totais
+                        // Calcular totais gerais
                         $stmt = $db->prepare("
                             SELECT 
-                                SUM(CASE WHEN tipo = 'entrada' THEN quantidade ELSE 0 END) as total_entradas,
-                                SUM(CASE WHEN tipo = 'saida' THEN quantidade ELSE 0 END) as total_saidas,
-                                SUM(CASE WHEN tipo = 'entrada' THEN valor_total ELSE 0 END) as valor_entradas,
-                                SUM(CASE WHEN tipo = 'saida' THEN valor_total ELSE 0 END) as valor_saidas
+                                SUM(CASE WHEN m.tipo = 'entrada' THEN m.quantidade ELSE 0 END) as total_entradas,
+                                SUM(CASE WHEN m.tipo = 'saida' THEN m.quantidade ELSE 0 END) as total_saidas,
+                                SUM(CASE WHEN m.tipo = 'entrada' THEN m.valor_total ELSE 0 END) as valor_entradas,
+                                SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) as valor_saidas
                             FROM estoque_movimentacoes m
                             WHERE {$where}
                         ");
@@ -258,6 +261,30 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         }
                         $stmt->execute();
                         $totais = $stmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        // Calcular totais por unidade de medida
+                        $stmt = $db->prepare("
+                            SELECT 
+                                p.unidade,
+                                SUM(CASE WHEN m.tipo = 'entrada' THEN m.quantidade ELSE 0 END) as total_entradas,
+                                SUM(CASE WHEN m.tipo = 'saida' THEN m.quantidade ELSE 0 END) as total_saidas,
+                                SUM(CASE WHEN m.tipo = 'entrada' THEN m.valor_total ELSE 0 END) as valor_entradas,
+                                SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) as valor_saidas
+                            FROM estoque_movimentacoes m
+                            JOIN produtos p ON m.produto_id = p.id
+                            WHERE {$where}
+                            GROUP BY p.unidade
+                            ORDER BY p.unidade
+                        ");
+                        foreach ($params as $key => $value) {
+                            $stmt->bindValue($key, $value);
+                        }
+                        $stmt->execute();
+                        $totais_por_unidade = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        // Calcular o lucro total (valor de vendas - valor de investimento)
+                        $lucro_total = ($totais['valor_saidas'] ?? 0) - ($totais['valor_entradas'] ?? 0);
+                        $classe_lucro = $lucro_total >= 0 ? 'text-success' : 'text-danger';
                         ?>
                         <div class="col-md-3 text-center">
                             <h2 class="text-success"><?php echo number_format($totais['total_entradas'] ?? 0, 2, ',', '.'); ?></h2>
@@ -277,6 +304,62 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <p>Valor Total de Vendas</p>
                             <small class="text-muted">Baseado no preço de venda dos produtos</small>
                         </div>
+                        
+                        <!-- Mostrar lucro calculado -->
+                        <div class="col-12 mt-3 text-center">
+                            <h4 class="<?php echo $classe_lucro; ?>">
+                                <?php echo formataValor(abs($lucro_total)); ?>
+                                <?php echo $lucro_total >= 0 ? 'de Lucro' : 'de Prejuízo'; ?>
+                            </h4>
+                            <small class="text-muted">Diferença entre valor de vendas e valor investido</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumo por Unidade de Medida -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2">Resumo por Unidade de Medida</h5>
+                        </div>
+                        <?php if (count($totais_por_unidade) > 0): ?>
+                            <div class="col-12 mt-3">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Unidade</th>
+                                                <th class="text-center">Entradas (qtd)</th>
+                                                <th class="text-center">Saídas (qtd)</th>
+                                                <th class="text-center">Investimento (R$)</th>
+                                                <th class="text-center">Vendas (R$)</th>
+                                                <th class="text-center">Lucro/Prejuízo (R$)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($totais_por_unidade as $unidade): 
+                                                $lucro_unidade = ($unidade['valor_saidas'] ?? 0) - ($unidade['valor_entradas'] ?? 0);
+                                                $classe_lucro_unidade = $lucro_unidade >= 0 ? 'text-success' : 'text-danger';
+                                            ?>
+                                                <tr>
+                                                    <td><strong><?php echo htmlspecialchars($unidade['unidade']); ?></strong></td>
+                                                    <td class="text-center text-success"><?php echo number_format($unidade['total_entradas'] ?? 0, 2, ',', '.'); ?></td>
+                                                    <td class="text-center text-danger"><?php echo number_format($unidade['total_saidas'] ?? 0, 2, ',', '.'); ?></td>
+                                                    <td class="text-center text-success"><?php echo formataValor($unidade['valor_entradas'] ?? 0); ?></td>
+                                                    <td class="text-center text-danger"><?php echo formataValor($unidade['valor_saidas'] ?? 0); ?></td>
+                                                    <td class="text-center <?php echo $classe_lucro_unidade; ?>">
+                                                        <?php echo formataValor(abs($lucro_unidade)); ?>
+                                                        <?php echo $lucro_unidade >= 0 ? '(Lucro)' : '(Prejuízo)'; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-info">Nenhum dado disponível por unidade de medida.</div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
