@@ -179,44 +179,154 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $erro = 'A descrição é obrigatória.';
     } elseif (empty($movimentacao['valor']) || !is_numeric($movimentacao['valor']) || $movimentacao['valor'] <= 0) {
         $erro = 'O valor é obrigatório e deve ser um número válido maior que zero.';
-    } elseif ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
-        // Verificar se o pagamento ultrapassa o valor total do orçamento
-        
-        // Buscar valor do orçamento
-        $stmt = $db->prepare("SELECT valor_total FROM orcamentos WHERE id = :orcamento_id");
-        $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $orcamento_valor = $stmt->fetch(PDO::FETCH_ASSOC);
-        $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
-        
-        // Verificar pagamentos já realizados
-        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
-                               WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
-        $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total_ja_pago = floatval($pagamentos['total_pago'] ?? 0);
-        
-        // Garantir que não estamos contando duas vezes o mesmo pagamento em caso de edição
-        if ($movimentacao['id'] > 0) {
-            // Se for edição, descontar o valor anterior
-            $stmt = $db->prepare("SELECT valor FROM caixa WHERE id = :id");
-            $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+    } else {
+        // Primeira parte de validação para orçamentos
+        if ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
+            // Verificar se o pagamento ultrapassa o valor total do orçamento
+            
+            // Buscar valor do orçamento
+            $stmt = $db->prepare("SELECT valor_total FROM orcamentos WHERE id = :orcamento_id");
+            $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
             $stmt->execute();
-            $movimento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($movimento_atual) {
-                $total_ja_pago -= floatval($movimento_atual['valor']);
+            $orcamento_valor = $stmt->fetch(PDO::FETCH_ASSOC);
+            $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
+            
+            // Verificar pagamentos já realizados
+            $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                               WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+            $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+            $stmt->execute();
+            $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+            $total_ja_pago = floatval($pagamentos['total_pago'] ?? 0);
+            
+            // Garantir que não estamos contando duas vezes o mesmo pagamento em caso de edição
+            if ($movimentacao['id'] > 0) {
+                // Se for edição, descontar o valor anterior
+                $stmt = $db->prepare("SELECT valor FROM caixa WHERE id = :id");
+                $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $movimento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($movimento_atual) {
+                    $total_ja_pago -= floatval($movimento_atual['valor']);
+                }
+            }
+            
+            // Verificar se o valor atual + já pago ultrapassa o valor total do orçamento
+            $valor_atual = floatval($movimentacao['valor']);
+            $valor_total_apos_pagamento = $total_ja_pago + $valor_atual;
+            
+            if ($valor_total_apos_pagamento > $valor_orcamento) {
+                $valor_maximo_permitido = $valor_orcamento - $total_ja_pago;
+                if ($valor_maximo_permitido < 0) $valor_maximo_permitido = 0;
+                $erro = "O valor de R$ " . number_format($valor_atual, 2, ',', '.') . " ultrapassa o valor restante do orçamento. O valor máximo permitido é R$ " . number_format($valor_maximo_permitido, 2, ',', '.');
+            }
+            
+            // Guardar informações do orçamento para uso posterior
+            if (empty($erro)) {
+                $movimentacao['valor_total_orcamento'] = $valor_orcamento;
+                $movimentacao['total_ja_pago'] = $total_ja_pago;
             }
         }
         
-        // Verificar se o valor atual + já pago ultrapassa o valor total do orçamento
-        $valor_atual = floatval($movimentacao['valor']);
-        $valor_total_apos_pagamento = $total_ja_pago + $valor_atual;
-        
-        if ($valor_total_apos_pagamento > $valor_orcamento) {
-            $valor_maximo_permitido = $valor_orcamento - $total_ja_pago;
-            if ($valor_maximo_permitido < 0) $valor_maximo_permitido = 0;
-            $erro = "O valor de R$ " . number_format($valor_atual, 2, ',', '.') . " ultrapassa o valor restante do orçamento. O valor máximo permitido é R$ " . number_format($valor_maximo_permitido, 2, ',', '.');
+        // Verificar erros e processar
+        if (empty($erro)) {
+            try {
+                // Iniciar transação para garantir integridade
+                $db->beginTransaction();
+                
+                // Inserir ou atualizar movimentação
+                if ($movimentacao['id'] > 0) {
+                    // Atualizar
+                    $stmt = $db->prepare("UPDATE caixa SET 
+                        data_operacao = :data_operacao,
+                        tipo = :tipo,
+                        descricao = :descricao,
+                        valor = :valor,
+                        forma_pagamento = :forma_pagamento,
+                        orcamento_id = :orcamento_id,
+                        cliente_id = :cliente_id,
+                        observacoes = :observacoes
+                        WHERE id = :id");
+                    $stmt->bindParam(':id', $movimentacao['id'], PDO::PARAM_INT);
+                    $mensagem = 'atualizado';
+                } else {
+                    // Inserir
+                    $stmt = $db->prepare("INSERT INTO caixa (
+                        data_operacao, tipo, descricao, valor, forma_pagamento, orcamento_id, cliente_id, usuario_id, observacoes
+                    ) VALUES (
+                        :data_operacao, :tipo, :descricao, :valor, :forma_pagamento, :orcamento_id, :cliente_id, :usuario_id, :observacoes
+                    )");
+                    $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
+                    $mensagem = 'cadastrado';
+                }
+                
+                // Bind de parâmetros
+                $stmt->bindParam(':data_operacao', $movimentacao['data_operacao']);
+                $stmt->bindParam(':tipo', $movimentacao['tipo']);
+                $stmt->bindParam(':descricao', $movimentacao['descricao']);
+                $stmt->bindParam(':valor', $movimentacao['valor']);
+                $stmt->bindParam(':forma_pagamento', $movimentacao['forma_pagamento']);
+                $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                $stmt->bindParam(':cliente_id', $movimentacao['cliente_id'], PDO::PARAM_INT);
+                $stmt->bindParam(':observacoes', $movimentacao['observacoes']);
+                
+                $stmt->execute();
+                
+                // Se estiver vinculado a um orçamento e for uma entrada, atualizar status do pagamento
+                if ($movimentacao['orcamento_id'] && $movimentacao['tipo'] == 'entrada') {
+                    // Buscar valor do orçamento
+                    $stmt = $db->prepare("SELECT valor_total FROM orcamentos WHERE id = :orcamento_id");
+                    $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                    $orcamento_valor = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    // Verificar pagamentos já realizados
+                    $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                                          WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+                    $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                    $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+                    // Calcular o total considerando o valor atual sendo registrado
+                    $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+                
+                    // Determinar automaticamente se é pagamento total ou parcial
+                    $valor_orcamento = floatval($orcamento_valor['valor_total'] ?? 0);
+                    $diferenca = abs($total_pago - $valor_orcamento);
+                    
+                    // Verificar se o pagamento é total ou parcial
+                    $diferenca_minima = $diferenca < 0.01; // Tolerância de 1 centavo
+                    $pago_total_ou_acima = $total_pago >= $valor_orcamento;
+                    
+                    // Verificar valores para debug
+                    $debug_info = "Orcamento ID: {$movimentacao['orcamento_id']}, Valor Total: {$valor_orcamento}, Total Pago: {$total_pago}, Diferença: {$diferenca}";
+                    error_log($debug_info);
+                    
+                    // Determinar se é pagamento total baseado na soma
+                    // Considerar como pago_total se:
+                    // 1. O valor pago é maior ou igual ao valor total
+                    // 2. Ou a diferença é menor que 1 centavo
+                    // 3. Ou 99.9% do valor está pago (considerando possíveis arredondamentos)
+                    $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($total_pago >= $valor_orcamento * 0.999);
+                    
+                    // Configurar status de pagamento como total ou parcial
+                    $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
+                    
+                    $stmt = $db->prepare("UPDATE orcamentos SET 
+                        status_pagamento = :status_pagamento, 
+                        data_pagamento = :data_pagamento 
+                        WHERE id = :orcamento_id");
+                    $stmt->bindParam(':status_pagamento', $status_pagamento);
+                    $stmt->bindParam(':data_pagamento', $movimentacao['data_operacao']);
+                    $stmt->bindParam(':orcamento_id', $movimentacao['orcamento_id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+                
+                // Finalizar transação
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollback();
+                $erro = 'Erro ao salvar movimentação: ' . $e->getMessage();
+            }
         }
     } else {
         try {

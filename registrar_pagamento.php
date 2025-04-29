@@ -91,9 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Determinar se é pagamento total baseado na soma
         // Considerar como pago_total se:
         // 1. O valor pago é maior ou igual ao valor total
-        // 2. Ou a diferença é menor que 1 centavo
-        // 3. Ou 100% do valor está pago (considerando possíveis arredondamentos)
-        $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($total_pago >= $valor_total * 0.999);
+        // 2. Ou a diferença é menor que 10 centavos
+        // 3. Ou 98% do valor está pago (considerando possíveis arredondamentos)
+        // Calcular a porcentagem paga em relação ao valor total
+        $percentual_pago = ($valor_total > 0) ? ($total_pago / $valor_total) * 100 : 0;
+        $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($percentual_pago >= 98);
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
