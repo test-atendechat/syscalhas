@@ -168,6 +168,20 @@ require_once('includes/header.php');
                 </div>
             </div>
             
+            <div class="row mb-3" id="forma-pagamento-container" style="display:<?php echo $registrar_caixa ? 'flex' : 'none'; ?>">
+                <div class="col-md-6">
+                    <label for="forma_pagamento" class="form-label">Forma de Pagamento do Estorno <span class="text-danger">*</span></label>
+                    <select class="form-select" id="forma_pagamento" name="forma_pagamento" <?php echo $registrar_caixa ? 'required' : ''; ?>>
+                        <option value="">Selecione</option>
+                        <option value="dinheiro" <?php echo ($forma_pagamento == 'dinheiro') ? 'selected' : ''; ?>>Dinheiro</option>
+                        <option value="pix" <?php echo ($forma_pagamento == 'pix') ? 'selected' : ''; ?>>PIX</option>
+                        <option value="transferencia" <?php echo ($forma_pagamento == 'transferencia') ? 'selected' : ''; ?>>Transferência</option>
+                        <option value="cartao" <?php echo ($forma_pagamento == 'cartao') ? 'selected' : ''; ?>>Cartão</option>
+                        <option value="cheque" <?php echo ($forma_pagamento == 'cheque') ? 'selected' : ''; ?>>Cheque</option>
+                    </select>
+                </div>
+            </div>
+            
             <div class="mb-3">
                 <label for="observacoes" class="form-label">Motivo do Estorno / Observações</label>
                 <textarea class="form-control" id="observacoes" name="observacoes" rows="3"><?php echo $observacoes; ?></textarea>
@@ -183,5 +197,24 @@ require_once('includes/header.php');
     </div>
 </div>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const registrarCaixaCheckbox = document.getElementById('registrar_caixa');
+    const formaPagamentoContainer = document.getElementById('forma-pagamento-container');
+    const formaPagamentoSelect = document.getElementById('forma_pagamento');
+    
+    // Atualizar o required e a exibição quando o checkbox mudar
+    registrarCaixaCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            formaPagamentoContainer.style.display = 'flex';
+            formaPagamentoSelect.required = true;
+        } else {
+            formaPagamentoContainer.style.display = 'none';
+            formaPagamentoSelect.required = false;
+        }
+    });
+});
+</script>
 
 <?php require_once('includes/footer.php'); ?>
