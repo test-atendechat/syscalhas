@@ -22,7 +22,8 @@ $movimentacao = [
     'forma_pagamento' => 'dinheiro',
     'orcamento_id' => null,
     'cliente_id' => null,
-    'observacoes' => ''
+    'observacoes' => '',
+    'is_fechamento' => false
 ];
 $erro = '';
 $sucesso = '';
