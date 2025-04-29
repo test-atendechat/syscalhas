@@ -22,7 +22,7 @@ $acao = 'cadastrar';
 $titulo = 'Novo Orçamento';
 $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
-$desconto_vista = 0; // Default discount for cash payment
+$desconto_vista = 10; // Default discount for cash payment
 
 // Fetch discount configuration from database
 $stmt = $db->query("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");

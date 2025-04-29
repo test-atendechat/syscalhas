@@ -25,6 +25,7 @@ $configuracoes = [
     'empresa_cnpj' => '',
     'taxa_padrao_mao_obra' => 100, // Valor padrão para a taxa de mão de obra (em %)
     'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
+    'max_parcelas' => 12, // Número máximo de parcelas permitidas
     'estoque_alerta_minimo' => 50, // Valor padrão para alerta de estoque mínimo
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
 ];
