@@ -2,7 +2,9 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
-require_once('includes/header.php');
+require_once('includes/auth.php');
+
+verificarAutenticacao();
 
 // Definir quantidade de registros por página
 $por_pagina = 10;
@@ -89,6 +91,9 @@ if (isset($_GET['mensagem'])) {
             break;
     }
 }
+
+// Incluir o header apenas após processar o formulário (para evitar headers already sent)
+require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">

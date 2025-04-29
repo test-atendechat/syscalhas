@@ -119,8 +119,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 $stmt->execute();
                 
-                // Redirecionar para a listagem de produtos
-                header("Location: produtos.php?mensagem={$mensagem}");
+                if ($produto['id'] == 0) {
+                    // Se for um novo produto, pegar o ID gerado
+                    $produto_id = $db->lastInsertId();
+                    
+                    // Redirecionar para a página de entrada de estoque com o produto já selecionado
+                    header("Location: estoque_entrada.php?produto_id={$produto_id}&novo=1");
+                } else {
+                    // Se for edição, redirecionar para a listagem de produtos
+                    header("Location: produtos.php?mensagem={$mensagem}");
+                }
                 exit;
                 
             } catch (Exception $e) {
