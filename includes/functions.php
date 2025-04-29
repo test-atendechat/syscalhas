@@ -31,6 +31,76 @@ function limpaString($str) {
 }
 
 /**
+ * Converte uma cor no formato hexadecimal (#rrggbb) para RGB
+ * 
+ * @param string $hex_color Cor em formato hexadecimal (com ou sem #)
+ * @return array Array com componentes R, G e B
+ */
+function hexToRgb($hex_color) {
+    // Remover o # se existir
+    $hex = str_replace('#', '', $hex_color);
+    
+    // Verificar se é um formato de 3 ou 6 dígitos
+    if (strlen($hex) == 3) {
+        $r = hexdec(substr($hex, 0, 1) . substr($hex, 0, 1));
+        $g = hexdec(substr($hex, 1, 1) . substr($hex, 1, 1));
+        $b = hexdec(substr($hex, 2, 1) . substr($hex, 2, 1));
+    } else {
+        $r = hexdec(substr($hex, 0, 2));
+        $g = hexdec(substr($hex, 2, 2));
+        $b = hexdec(substr($hex, 4, 2));
+    }
+    
+    return array($r, $g, $b);
+}
+
+/**
+ * Converte valores RGB para hexadecimal
+ * 
+ * @param int $r Componente vermelho (0-255)
+ * @param int $g Componente verde (0-255)
+ * @param int $b Componente azul (0-255)
+ * @return string Cor em formato hexadecimal com #
+ */
+function rgbToHex($r, $g, $b) {
+    return sprintf("#%02x%02x%02x", $r, $g, $b);
+}
+
+/**
+ * Ajusta o brilho de uma cor em formato hexadecimal
+ * 
+ * @param string $hex_color Cor em formato hexadecimal (com ou sem #)
+ * @param int $percent Percentual de ajuste (-100 a 100)
+ * @return string Cor ajustada em formato hexadecimal com #
+ */
+function adjustBrightness($hex_color, $percent) {
+    // Converter para RGB
+    list($r, $g, $b) = hexToRgb($hex_color);
+    
+    // Ajustar cada componente
+    if ($percent > 0) {
+        // Clarear a cor
+        $r = $r + (255 - $r) * $percent / 100;
+        $g = $g + (255 - $g) * $percent / 100;
+        $b = $b + (255 - $b) * $percent / 100;
+    } else {
+        // Escurecer a cor
+        $percent = -$percent;
+        $r = $r * (100 - $percent) / 100;
+        $g = $g * (100 - $percent) / 100;
+        $b = $b * (100 - $percent) / 100;
+    }
+    
+    // Garantir que os valores estão no intervalo 0-255
+    $r = max(0, min(255, $r));
+    $g = max(0, min(255, $g));
+    $b = max(0, min(255, $b));
+    
+    // Converter de volta para hexadecimal
+    return rgbToHex($r, $g, $b);
+}
+
+/**
  * Formata um valor para exibição como moeda
  * 
  * @param float $valor Valor a ser formatado

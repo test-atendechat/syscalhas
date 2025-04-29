@@ -32,6 +32,81 @@
             <script src="https://unpkg.com/imask@7.1.3/dist/imask.js"></script>
             <!-- Estilo personalizado -->
             <link href="css/styles.css" rel="stylesheet">
+            
+            <?php
+            // Carregar cor principal personalizada do banco de dados
+            $cor_principal = '#0d6efd'; // Cor padrão (Bootstrap primary)
+            try {
+                $stmt = $db->prepare("SELECT valor FROM configuracoes WHERE chave = 'cor_principal'");
+                $stmt->execute();
+                $cor_db = $stmt->fetchColumn();
+                if ($cor_db) {
+                    $cor_principal = $cor_db;
+                }
+            } catch (Exception $e) {
+                // Silenciar erro e usar cor padrão
+            }
+            ?>
+            
+            <!-- Estilos personalizados dinâmicos baseados na configuração -->
+            <style>
+                :root {
+                    --cor-principal: <?php echo $cor_principal; ?>;
+                    --cor-principal-hover: <?php echo adjustBrightness($cor_principal, -15); ?>;
+                    --cor-principal-active: <?php echo adjustBrightness($cor_principal, -20); ?>;
+                }
+                
+                .bg-primary, .btn-primary, .page-item.active .page-link {
+                    background-color: var(--cor-principal) !important;
+                    border-color: var(--cor-principal) !important;
+                }
+                
+                .btn-primary:hover, .btn-primary:focus {
+                    background-color: var(--cor-principal-hover) !important;
+                    border-color: var(--cor-principal-hover) !important;
+                }
+                
+                .btn-primary:active {
+                    background-color: var(--cor-principal-active) !important;
+                    border-color: var(--cor-principal-active) !important;
+                }
+                
+                .btn-outline-primary {
+                    color: var(--cor-principal) !important;
+                    border-color: var(--cor-principal) !important;
+                }
+                
+                .btn-outline-primary:hover, .btn-outline-primary:focus {
+                    background-color: var(--cor-principal) !important;
+                    color: white !important;
+                }
+                
+                .text-primary, .dashboard-icon {
+                    color: var(--cor-principal) !important;
+                }
+                
+                .table-primary {
+                    background-color: rgba(var(--cor-principal-rgb), 0.1) !important;
+                }
+                
+                .form-check-input:checked {
+                    background-color: var(--cor-principal) !important;
+                    border-color: var(--cor-principal) !important;
+                }
+                
+                .form-control:focus, .form-select:focus {
+                    border-color: var(--cor-principal) !important;
+                    box-shadow: 0 0 0 0.25rem rgba(var(--cor-principal-rgb), 0.25) !important;
+                }
+                
+                .nav-pills .nav-link.active {
+                    background-color: var(--cor-principal) !important;
+                }
+                
+                .status-aprovado, .status-pago, .status-ativo {
+                    background-color: var(--cor-principal) !important;
+                }
+            </style>
         </head>
         <body>
             <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
