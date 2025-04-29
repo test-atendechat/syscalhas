@@ -285,6 +285,15 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         // Calcular o lucro total (valor de vendas - valor de investimento)
                         $lucro_total = ($totais['valor_saidas'] ?? 0) - ($totais['valor_entradas'] ?? 0);
                         $classe_lucro = $lucro_total >= 0 ? 'text-success' : 'text-danger';
+                        
+                        // Calcular o valor estimado de vendas futuras com base no estoque atual
+                        $stmt_estoque = $db->query("SELECT SUM(estoque_atual * valor_unitario) as valor_venda_estimado, 
+                                                       SUM(estoque_atual * custo_unitario) as valor_custo_estimado 
+                                                       FROM produtos WHERE estoque_atual > 0");
+                        $valores_estimados = $stmt_estoque->fetch(PDO::FETCH_ASSOC);
+                        $valor_venda_estimado = $valores_estimados['valor_venda_estimado'] ?? 0;
+                        $valor_custo_estimado = $valores_estimados['valor_custo_estimado'] ?? 0;
+                        $lucro_estimado = $valor_venda_estimado - $valor_custo_estimado;
                         ?>
                         <div class="col-md-6 text-center">
                             <h2 class="text-success"><?php echo formataValor($totais['valor_entradas'] ?? 0); ?></h2>
@@ -295,6 +304,10 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <h2 class="text-danger"><?php echo formataValor($totais['valor_saidas'] ?? 0); ?></h2>
                             <p>Valor Total de Vendas</p>
                             <small class="text-muted">Baseado no preço de venda dos produtos</small>
+                            <div class="mt-2">
+                                <span class="badge bg-info fs-6 p-2">Valor Estimado Final: <?php echo formataValor(($totais['valor_saidas'] ?? 0) + $valor_venda_estimado); ?></span>
+                                <br><small class="text-muted">Vendas + Estoque atual valorado a preço de venda</small>
+                            </div>
                         </div>
                         
                         <!-- Mostrar diferença entre vendas e investimento -->
@@ -304,6 +317,15 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php echo $lucro_total >= 0 ? 'de Lucro' : 'de Valor Investido no Estoque'; ?>
                             </h4>
                             <small class="text-muted">Diferença entre valor de vendas e valor investido</small>
+                            
+                            <?php if ($lucro_total < 0): // Mostrar o lucro estimado quando há investimento no estoque ?>
+                            <div class="mt-3">
+                                <h5 class="text-success">
+                                    Lucro Estimado Total: <?php echo formataValor($lucro_total + $lucro_estimado); ?>
+                                </h5>
+                                <small class="text-muted">Lucro após venda de todo o estoque atual</small>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
