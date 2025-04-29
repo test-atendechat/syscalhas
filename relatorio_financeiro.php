@@ -184,6 +184,7 @@ $lucro_mao_obra = $valor_mao_obra_aprovados; // Mão de obra é considerada tota
 $lucro_orcamentos = $valor_orcamentos_aprovados - $custo_produtos;
 
 // Lucro operacional total: vendas diretas + orçamentos aprovados
+// Isso representa quanto a empresa ganhou operacionalmente após subtrair os custos dos materiais
 $lucro_operacional = $lucro_vendas + $lucro_orcamentos;
 
 // Valor total para cálculo da margem (vendas + orçamentos)
@@ -208,6 +209,7 @@ $stmt->execute();
 $fluxo_caixa_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Calcular o fluxo de caixa real do período
+// Fluxo de caixa é a soma de todas as entradas (vendas, orçamentos) menos todas as saídas (pagamentos, contas)
 $total_entradas_caixa = $fluxo_caixa_data['total_entradas'] ?? 0;
 $total_saidas_caixa = $fluxo_caixa_data['total_saidas'] ?? 0;
 $fluxo_caixa = $total_entradas_caixa - $total_saidas_caixa;
