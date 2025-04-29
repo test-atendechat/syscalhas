@@ -267,6 +267,9 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se há um produto pré-selecionado
+    const produtoPreSelecionado = <?php echo $produto_pre_selecionado ? json_encode($produto_pre_selecionado) : 'null'; ?>;
+    
     // Função para configurar eventos de uma linha de item
     function setupItemRow(row) {
         const produtoSelect = row.querySelector('.produto-select');
@@ -343,6 +346,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar eventos para a primeira linha
     const primeiraLinha = document.querySelector('.linha-item');
     setupItemRow(primeiraLinha);
+    
+    // Se houver um produto pré-selecionado, configurá-lo na primeira linha
+    if (produtoPreSelecionado) {
+        const produtoSelect = primeiraLinha.querySelector('.produto-select');
+        
+        // Selecionar o produto no dropdown
+        for (let i = 0; i < produtoSelect.options.length; i++) {
+            if (produtoSelect.options[i].value == produtoPreSelecionado.id) {
+                produtoSelect.selectedIndex = i;
+                
+                // Simular o evento change para atualizar os campos relacionados
+                const changeEvent = new Event('change');
+                produtoSelect.dispatchEvent(changeEvent);
+                
+                // Foco no campo de quantidade
+                const quantidadeInput = primeiraLinha.querySelector('.quantidade-input');
+                quantidadeInput.focus();
+                
+                break;
+            }
+        }
+    }
     
     // Botão para adicionar nova linha
     document.getElementById('btn-adicionar-item').addEventListener('click', function() {
