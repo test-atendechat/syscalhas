@@ -62,12 +62,14 @@
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'caixa') !== false || strpos($pagina_atual, 'vendas') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cash-register me-1"></i>Caixa e Vendas
+                                <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'caixa') !== false || strpos($pagina_atual, 'vendas') !== false || strpos($pagina_atual, 'conta') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cash-register me-1"></i>Finanças
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="caixa.php"><i class="fas fa-money-bill-wave me-1"></i>Caixa</a></li>
                                     <li><a class="dropdown-item" href="vendas.php"><i class="fas fa-shopping-cart me-1"></i>Histórico de Vendas</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="contas_pagar.php"><i class="fas fa-file-invoice me-1"></i>Contas a Pagar</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
