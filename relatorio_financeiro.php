@@ -195,10 +195,23 @@ $lucro_mao_obra = $valor_mao_obra_aprovados;
 $margem_lucro_orcamentos = $valor_orcamentos_aprovados > 0 ? 
     ($lucro_total_orcamentos / $valor_orcamentos_aprovados) * 100 : 0;
 
-// Calcular o fluxo de caixa do período
-$valor_recebido = $totais_vendas['valor_pago_vendas'] ?? 0;
-$valor_pago = $totais_contas['contas_pagas'] ?? 0;
-$fluxo_caixa = $valor_recebido - $valor_pago;
+// Consultar movimentações do caixa para calcular o fluxo de caixa real
+$stmt = $db->prepare("
+    SELECT 
+        SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) as total_entradas,
+        SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) as total_saidas
+    FROM caixa
+    WHERE data_operacao BETWEEN :data_inicio AND :data_fim
+");
+$stmt->bindValue(':data_inicio', date('Y-m-d', strtotime($data_inicio_mysql)));
+$stmt->bindValue(':data_fim', date('Y-m-d', strtotime($data_fim_mysql)));
+$stmt->execute();
+$fluxo_caixa_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Calcular o fluxo de caixa real do período
+$total_entradas_caixa = $fluxo_caixa_data['total_entradas'] ?? 0;
+$total_saidas_caixa = $fluxo_caixa_data['total_saidas'] ?? 0;
+$fluxo_caixa = $total_entradas_caixa - $total_saidas_caixa;
 
 // Estimativa de vendas futuras com base no estoque atual
 $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_venda_estimado;
