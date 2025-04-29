@@ -174,6 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Calcular a porcentagem paga em relação ao valor total (para evitar problemas com pequenos valores)
                 $percentual_pago = ($valor_orcamento > 0) ? ($total_pago / $valor_orcamento) * 100 : 0;
                 
+                // Verificar valores para debug
+                $debug_info = "Orcamento ID: {$movimentacao['orcamento_id']}, Valor Total: {$valor_orcamento}, Total Pago: {$total_pago}, Percentual: {$percentual_pago}%";
+                error_log($debug_info);
+                
                 // Considerar como pago total apenas se o percentual for de pelo menos 99.5%
                 $pagamento_total = ($percentual_pago >= 99.5);
                 
