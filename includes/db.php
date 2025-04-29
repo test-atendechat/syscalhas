@@ -5,10 +5,12 @@ require_once('config.php');
  * Classe de conexão com o banco de dados usando PDO
  */
 class Database {
+    private $type = DB_TYPE;
     private $host = DB_HOST;
     private $user = DB_USER;
     private $pass = DB_PASS;
     private $dbname = DB_NAME;
+    private $port = DB_PORT;
     
     private $conn;
     private $error;
@@ -17,14 +19,25 @@ class Database {
      * Construtor - estabelece a conexão com o banco de dados
      */
     public function __construct() {
-        // DSN
-        $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->dbname;
-        // Opções do PDO
-        $options = array(
-            PDO::ATTR_PERSISTENT => true,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
-        );
+        // DSN - Baseado no tipo de banco de dados
+        if ($this->type == 'mysql') {
+            $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->dbname;
+            // Opções do PDO para MySQL
+            $options = array(
+                PDO::ATTR_PERSISTENT => true,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
+            );
+        } else if ($this->type == 'pgsql') {
+            $dsn = 'pgsql:host=' . $this->host . ';port=' . $this->port . ';dbname=' . $this->dbname;
+            // Opções do PDO para PostgreSQL
+            $options = array(
+                PDO::ATTR_PERSISTENT => true,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            );
+        } else {
+            die('Tipo de banco de dados não suportado');
+        }
         
         // Criar instância do PDO
         try {
@@ -55,10 +68,11 @@ class Database {
     
     /**
      * Método para obter o último ID inserido
+     * @param string $sequence Nome da sequência (apenas para PostgreSQL)
      * @return string
      */
-    public function lastInsertId() {
-        return $this->conn->lastInsertId();
+    public function lastInsertId($sequence = null) {
+        return $this->conn->lastInsertId($sequence);
     }
     
     /**
@@ -80,6 +94,14 @@ class Database {
      */
     public function rollback() {
         return $this->conn->rollback();
+    }
+    
+    /**
+     * Método para retornar o tipo de banco de dados
+     * @return string
+     */
+    public function getDbType() {
+        return $this->type;
     }
 }
 

@@ -43,11 +43,29 @@ if (verificarSessaoExpirada()) {
                     <li class="nav-item">
                         <a class="nav-link" href="produtos.php"><i class="fas fa-boxes me-1"></i> Produtos</a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="estoqueDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-warehouse me-1"></i> Estoque
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="estoque.php"><i class="fas fa-boxes me-1"></i> Visualizar Estoque</a></li>
+                            <li><a class="dropdown-item" href="estoque_entrada.php"><i class="fas fa-arrow-alt-circle-down me-1"></i> Entrada de Estoque</a></li>
+                            <li><a class="dropdown-item" href="estoque_saida.php"><i class="fas fa-arrow-alt-circle-up me-1"></i> Saída de Estoque</a></li>
+                            <li><a class="dropdown-item" href="estoque_movimentacoes.php"><i class="fas fa-exchange-alt me-1"></i> Movimentações</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="orcamentos.php"><i class="fas fa-file-invoice-dollar me-1"></i> Orçamentos</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="relatorios.php"><i class="fas fa-chart-bar me-1"></i> Relatórios</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="relatoriosDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-bar me-1"></i> Relatórios
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="relatorios_produtos_vendidos.php"><i class="fas fa-chart-line me-1"></i> Produtos Mais Vendidos</a></li>
+                            <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i> Estoque Baixo</a></li>
+                            <li><a class="dropdown-item" href="relatorios_vendas.php"><i class="fas fa-cash-register me-1"></i> Vendas por Período</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">

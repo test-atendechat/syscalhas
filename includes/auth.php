@@ -23,7 +23,7 @@ function verificarAutenticacao() {
 function autenticarUsuario($email, $senha) {
     global $db;
     
-    $stmt = $db->prepare("SELECT id, nome, email, senha FROM usuarios WHERE email = :email AND ativo = 1");
+    $stmt = $db->prepare("SELECT id, nome, email, senha FROM usuarios WHERE email = :email AND ativo = TRUE");
     $stmt->bindParam(':email', $email);
     $stmt->execute();
     
