@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Itens da venda
         $itens = [];
-        $total_venda = 0;
+        $subtotal_venda = 0;
         
         if (isset($_POST['produto_id']) && is_array($_POST['produto_id'])) {
             for ($i = 0; $i < count($_POST['produto_id']); $i++) {
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $quantidade = floatval(str_replace(',', '.', $_POST['quantidade'][$i]));
                 $valor_unitario = floatval(str_replace(',', '.', str_replace('.', '', $_POST['valor_unitario'][$i])));
                 $valor_total = $quantidade * $valor_unitario;
-                $total_venda += $valor_total;
+                $subtotal_venda += $valor_total;
                 
                 // Buscar informações do produto
                 $stmt = $db->prepare("SELECT descricao, unidade FROM produtos WHERE id = :id");
@@ -123,7 +123,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
+        // Aplicar desconto se for pagamento à vista
+        $total_venda = $subtotal_venda;
+        if (isset($_POST['pagamento_prazo']) && $_POST['pagamento_prazo'] == '0' && isset($_POST['desconto_vista'])) {
+            $desconto_percentual = floatval($_POST['desconto_vista']);
+            if ($desconto_percentual > 0) {
+                $valor_desconto = $subtotal_venda * ($desconto_percentual / 100);
+                $total_venda = $subtotal_venda - $valor_desconto;
+            }
+        }
+        
         $venda['valor_total'] = $total_venda;
+        $venda['valor_desconto'] = isset($valor_desconto) ? $valor_desconto : 0;
         
         // Validar se há pelo menos um item
         if (count($itens) == 0) {
@@ -337,7 +348,7 @@ require_once('includes/header.php');
                         </div>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="pagamento_prazo" id="pagamento_prazo" value="1" <?php echo $venda['status_pagamento'] == 'pendente' ? 'checked' : ''; ?> onclick="toggleClienteRequired(true); toggleDesconto(false);">
-                            <label class="form-check-label" for="pagamento_prazo">A Prazo (Cartão)</label>
+                            <label class="form-check-label" for="pagamento_prazo">A Prazo (Até 12x Sem Juros)</label>
                         </div>
                     </div>
                     <?php
@@ -484,8 +495,16 @@ require_once('includes/header.php');
                 <div class="border p-3 bg-light rounded" style="width: 300px;">
                     <h5 class="mb-3">Resumo da Venda</h5>
                     <div class="d-flex justify-content-between mb-2">
+                        <strong>Subtotal:</strong>
+                        <span id="subtotal-venda"><?php echo formataValor($venda['valor_total']); ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="linha-desconto" style="display: <?php echo $venda['status_pagamento'] == 'pago_total' ? 'flex' : 'none'; ?>; color: green;">
+                        <strong>Desconto:</strong>
+                        <span id="desconto-venda">- R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 pt-2 border-top">
                         <strong>Total:</strong>
-                        <span id="total-venda"><?php echo formataValor($venda['valor_total']); ?></span>
+                        <span id="total-venda" class="fw-bold"><?php echo formataValor($venda['valor_total']); ?></span>
                     </div>
                 </div>
             </div>
@@ -569,23 +588,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para calcular o total da venda
     function calcularTotalVenda() {
-        let total = 0;
+        let subtotal = 0;
         document.querySelectorAll('#tabela-itens tbody tr').forEach(linha => {
-            total += calcularTotalItem(linha);
+            subtotal += calcularTotalItem(linha);
         });
+        
+        // Atualizar subtotal
+        document.getElementById('subtotal-venda').textContent = 'R$ ' + formatarMoeda(subtotal);
+        
+        // Inicializar total com o subtotal
+        let total = subtotal;
+        let valorDesconto = 0;
         
         // Verificar se pagamento é à vista para aplicar desconto
         if (document.getElementById('pagamento_vista').checked) {
             const descontoPercent = parseFloat(document.getElementById('desconto_vista').value);
             if (!isNaN(descontoPercent) && descontoPercent > 0) {
-                const valorDesconto = total * (descontoPercent / 100);
-                total = total - valorDesconto;
-                // Mostrar o desconto aplicado
+                valorDesconto = subtotal * (descontoPercent / 100);
+                total = subtotal - valorDesconto;
+                
+                // Mostrar o desconto aplicado na linha de info
                 document.getElementById('desconto-info').innerText = 
-                    `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado: - R$ ${formatarMoeda(valorDesconto)} `;
+                    `Desconto de ${descontoPercent.toFixed(2).replace('.', ',')}% aplicado no pagamento à vista`;
+                
+                // Mostrar o desconto no resumo da venda
+                document.getElementById('linha-desconto').style.display = 'flex';
+                document.getElementById('desconto-venda').textContent = '- R$ ' + formatarMoeda(valorDesconto);
             }
+        } else {
+            // Esconder a linha de desconto no resumo da venda
+            document.getElementById('linha-desconto').style.display = 'none';
         }
         
+        // Atualizar o total final
         document.getElementById('total-venda').textContent = 'R$ ' + formatarMoeda(total);
     }
     

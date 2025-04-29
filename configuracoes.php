@@ -27,6 +27,12 @@ $configuracoes = [
     'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
     'max_parcelas' => 12, // Número máximo de parcelas permitidas
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
+    // Cores padrão do sistema
+    'cor_principal' => '#0d6efd', // Azul bootstrap
+    'cor_secundaria' => '#6c757d', // Secondary bootstrap
+    'cor_aprovado' => '#198754', // Success bootstrap
+    'cor_pendente' => '#ffc107', // Warning bootstrap
+    'cor_rejeitado' => '#dc3545', // Danger bootstrap
 ];
 
 // Buscar configurações atuais do banco de dados
@@ -164,7 +170,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
             
-            <!-- As configurações de estoque mínimo agora são definidas individualmente por produto -->
+            <!-- Configurações de Aparência -->
+            <div class="mb-4">
+                <h5><i class="fas fa-palette me-2"></i>Configurações de Aparência</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="cor_principal" class="form-label">Cor Principal do Sistema</label>
+                        <input type="color" class="form-control form-control-color" id="cor_principal" name="cor_principal" value="<?php echo $configuracoes['cor_principal'] ?? '#0d6efd'; ?>" title="Escolha a cor principal">
+                        <div class="form-text">Esta cor será usada para o cabeçalho e elementos principais do sistema.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="cor_secundaria" class="form-label">Cor Secundária do Sistema</label>
+                        <input type="color" class="form-control form-control-color" id="cor_secundaria" name="cor_secundaria" value="<?php echo $configuracoes['cor_secundaria'] ?? '#6c757d'; ?>" title="Escolha a cor secundária">
+                        <div class="form-text">Esta cor será usada para complementar a cor principal em botões e elementos secundários.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="cor_aprovado" class="form-label">Cor para Status "Aprovado"</label>
+                        <input type="color" class="form-control form-control-color" id="cor_aprovado" name="cor_aprovado" value="<?php echo $configuracoes['cor_aprovado'] ?? '#198754'; ?>" title="Escolha a cor para status aprovado">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="cor_pendente" class="form-label">Cor para Status "Pendente"</label>
+                        <input type="color" class="form-control form-control-color" id="cor_pendente" name="cor_pendente" value="<?php echo $configuracoes['cor_pendente'] ?? '#ffc107'; ?>" title="Escolha a cor para status pendente">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="cor_rejeitado" class="form-label">Cor para Status "Rejeitado"</label>
+                        <input type="color" class="form-control form-control-color" id="cor_rejeitado" name="cor_rejeitado" value="<?php echo $configuracoes['cor_rejeitado'] ?? '#dc3545'; ?>" title="Escolha a cor para status rejeitado">
+                    </div>
+                </div>
+            </div>
             
             <div class="d-flex justify-content-end">
                 <button type="reset" class="btn btn-outline-secondary me-2">Restaurar</button>

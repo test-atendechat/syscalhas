@@ -34,17 +34,30 @@
             <link href="css/styles.css" rel="stylesheet">
             
             <?php
-            // Carregar cor principal personalizada do banco de dados
+            // Carregar cores personalizadas do banco de dados
             $cor_principal = '#0d6efd'; // Cor padrão (Bootstrap primary)
+            $cor_secundaria = '#6c757d'; // Cor padrão (Bootstrap secondary)
+            $cor_aprovado = '#198754'; // Cor padrão (Bootstrap success)
+            $cor_pendente = '#ffc107'; // Cor padrão (Bootstrap warning)
+            $cor_rejeitado = '#dc3545'; // Cor padrão (Bootstrap danger)
+            
             try {
-                $stmt = $db->prepare("SELECT valor FROM configuracoes WHERE chave = 'cor_principal'");
+                require_once('db.php'); // Garantir que a conexão com o banco está disponível
+                
+                // Buscar configurações de cores
+                $stmt = $db->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN ('cor_principal', 'cor_secundaria', 'cor_aprovado', 'cor_pendente', 'cor_rejeitado')");
                 $stmt->execute();
-                $cor_db = $stmt->fetchColumn();
-                if ($cor_db) {
-                    $cor_principal = $cor_db;
-                }
+                
+                $cores = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+                
+                // Aplicar as cores personalizadas se existirem
+                if (isset($cores['cor_principal'])) $cor_principal = $cores['cor_principal'];
+                if (isset($cores['cor_secundaria'])) $cor_secundaria = $cores['cor_secundaria'];
+                if (isset($cores['cor_aprovado'])) $cor_aprovado = $cores['cor_aprovado'];
+                if (isset($cores['cor_pendente'])) $cor_pendente = $cores['cor_pendente'];
+                if (isset($cores['cor_rejeitado'])) $cor_rejeitado = $cores['cor_rejeitado'];
             } catch (Exception $e) {
-                // Silenciar erro e usar cor padrão
+                // Silenciar erro e usar cores padrão
             }
             ?>
             
@@ -103,8 +116,40 @@
                     background-color: var(--cor-principal) !important;
                 }
                 
-                .status-aprovado, .status-pago, .status-ativo {
-                    background-color: var(--cor-principal) !important;
+                /* Variáveis para cor dos status */
+                :root {
+                    --cor-aprovado: <?php echo $cor_aprovado; ?>;
+                    --cor-aprovado-texto: <?php echo adjustBrightness($cor_aprovado, 50); ?>;
+                    --cor-pendente: <?php echo $cor_pendente; ?>;
+                    --cor-pendente-texto: <?php echo adjustBrightness($cor_pendente, -50); ?>;
+                    --cor-rejeitado: <?php echo $cor_rejeitado; ?>;
+                    --cor-rejeitado-texto: <?php echo adjustBrightness($cor_rejeitado, -50); ?>;
+                }
+                
+                /* Cores dos status */
+                .status-aprovado {
+                    background-color: var(--cor-aprovado) !important;
+                    color: var(--cor-aprovado-texto) !important;
+                }
+                
+                .status-pendente {
+                    background-color: var(--cor-pendente) !important;
+                    color: var(--cor-pendente-texto) !important;
+                }
+                
+                .status-rejeitado {
+                    background-color: var(--cor-rejeitado) !important;
+                    color: var(--cor-rejeitado-texto) !important;
+                }
+                
+                .status-pago, .status-finalizado, .status-ativo {
+                    background-color: var(--cor-aprovado) !important;
+                    color: var(--cor-aprovado-texto) !important;
+                }
+                
+                .status-pago-parcial {
+                    background-color: #6c757d !important;
+                    color: #ffffff !important;
                 }
             </style>
         </head>
