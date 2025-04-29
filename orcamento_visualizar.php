@@ -246,6 +246,7 @@ if (!$acesso_interno) {
                 <p class="mb-0"><strong>Número:</strong> <?php echo $orcamento['numero']; ?></p>
                 <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
                 <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
 
             </div>
         </div>
@@ -287,6 +288,16 @@ if (!$acesso_interno) {
                 <?php endif; ?>
             </tbody>
             <tfoot>
+                <?php if ($orcamento['forma_pagamento'] == 'vista'): ?>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista = isset($configs['desconto_pagamento_vista']) ? $configs['desconto_pagamento_vista'] : 10; ?>%):</td>
+                    <td class="text-end"><?php 
+                      $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
+                      $valor_desconto = $subtotal - $orcamento['valor_total'];
+                      echo formataValor($valor_desconto); 
+                    ?></td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <td colspan="5" class="text-end fw-bold">Valor Total:</td>
                     <td class="text-end"><strong><?php echo formataValor($orcamento['valor_total']); ?></strong></td>
