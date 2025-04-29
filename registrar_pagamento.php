@@ -71,12 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Calcular a diferença entre o total pago e o valor total
         $valor_diferenca = abs($total_pago - $valor_total);
         
-        // Verificar se o pagamento é total ou tem uma diferença mínima (tolerância para arredondamento)
-        $diferenca_minima = $valor_diferenca < 0.01;
+        // Verificar se o pagamento é exatamente igual ao valor total (sem tolerância)
         $pago_total_ou_acima = $total_pago >= $valor_total;
         
-        // Verificar se o pagamento é exatamente igual ao valor total (com tolerância)
-        $pagamento_completo = $diferenca_minima || $total_pago == $valor_total;
+        // Considerar completo apenas se o valor total foi pago exatamente
+        $pagamento_completo = $pago_total_ou_acima;
         
         // Adicionar mensagem de debug no log
         $mensagem_debug = "Valor total da venda: {$valor_total}, " .
@@ -88,14 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         error_log($mensagem_debug);
         
-        // Determinar se é pagamento total baseado na soma
-        // Considerar como pago_total se:
-        // 1. O valor pago é maior ou igual ao valor total
-        // 2. Ou a diferença é menor que 10 centavos
-        // 3. Ou 98% do valor está pago (considerando possíveis arredondamentos)
-        // Calcular a porcentagem paga em relação ao valor total
-        $percentual_pago = ($valor_total > 0) ? ($total_pago / $valor_total) * 100 : 0;
-        $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($percentual_pago >= 98);
+        // Determinar se é pagamento total
+        // Considerar como pago_total apenas quando o valor total for pago exatamente
+        $pagamento_total = $pago_total_ou_acima;
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';

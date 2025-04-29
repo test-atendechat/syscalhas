@@ -129,10 +129,9 @@ require_once('includes/header.php');
                     // Verificar e atualizar o status de pagamento se necessário
                     $valor_total = floatval($venda['valor_total']);
                     $diferenca = abs($total_pago - $valor_total);
-                    $diferenca_minima = $diferenca < 0.1; // Tolerância de 10 centavos
                     $pago_total_ou_acima = $total_pago >= $valor_total;
                     
-                    // Verificar a porcentagem paga em relação ao valor total
+                    // Verificar a porcentagem paga em relação ao valor total (apenas para debug)
                     $percentual_pago = ($valor_total > 0) ? ($total_pago / $valor_total) * 100 : 0;
 
                     // Verificar valores para debug
@@ -140,10 +139,9 @@ require_once('includes/header.php');
                     error_log($debug_info);
                     
                     // Verificar se o pagamento deve ser considerado como total
-                    // - Se o valor pago é maior ou igual ao valor total
-                    // - Ou a diferença é menor que 10 centavos
-                    // - Ou 98% do valor está pago (para pequenos arredondamentos)
-                    $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($percentual_pago >= 98);
+                    // - Pagamento total apenas quando valor pago é maior ou igual ao valor total
+                    // - Sem nenhuma tolerância para pagamentos parciais
+                    $pagamento_total = $pago_total_ou_acima;
                     
                     // Se o status atual não corresponde ao status real calculado, atualizar
                     $status_atual = $venda['status_pagamento'] ?? 'pendente';

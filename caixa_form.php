@@ -294,7 +294,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $diferenca = abs($total_pago - $valor_orcamento);
                     
                     // Verificar se o pagamento é total ou parcial
-                    $diferenca_minima = $diferenca < 0.01; // Tolerância de 1 centavo
                     $pago_total_ou_acima = $total_pago >= $valor_orcamento;
                     
                     // Verificar valores para debug
@@ -302,11 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     error_log($debug_info);
                     
                     // Determinar se é pagamento total baseado na soma
-                    // Considerar como pago_total se:
-                    // 1. O valor pago é maior ou igual ao valor total
-                    // 2. Ou a diferença é menor que 1 centavo
-                    // 3. Ou 99.9% do valor está pago (considerando possíveis arredondamentos)
-                    $pagamento_total = $pago_total_ou_acima || $diferenca_minima || ($total_pago >= $valor_orcamento * 0.999);
+                    // Considerar como pago_total apenas quando valor pago é maior ou igual ao valor total
+                    $pagamento_total = $pago_total_ou_acima;
                     
                     // Configurar status de pagamento como total ou parcial
                     $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';
