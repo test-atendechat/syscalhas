@@ -324,7 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $erro = 'Erro ao salvar movimentação: ' . $e->getMessage();
             }
         }
-    } else {
+    // Se não for relacionado a orçamento ou venda
+    if (!isset($_POST['orcamento_id']) && !isset($_POST['venda_id'])) {
         try {
             // Iniciar transação para garantir integridade
             $db->beginTransaction();
