@@ -200,6 +200,10 @@ $data_hoje = date('Y-m-d');
                                         <a href="venda_visualizar.php?id=<?php echo $mov['venda_id']; ?>" class="text-decoration-none">
                                             <?php echo $mov['descricao']; ?>
                                         </a>
+                                    <?php elseif (strpos($mov['descricao'], 'Venda direta #V') !== false && isset($mov['venda_id'])): ?>
+                                        <a href="venda_visualizar.php?id=<?php echo $mov['venda_id']; ?>" class="text-decoration-none">
+                                            <?php echo $mov['descricao']; ?>
+                                        </a>
                                     <?php else: ?>
                                         <?php echo $mov['descricao']; ?>
                                     <?php endif; ?>

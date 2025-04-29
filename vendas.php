@@ -165,7 +165,11 @@ require_once('includes/header.php');
                     <?php if (count($vendas) > 0): ?>
                         <?php foreach ($vendas as $venda): ?>
                             <tr>
-                                <td>#<?php echo $venda['numero']; ?></td>
+                                <td>
+                                    <a href="venda_visualizar.php?id=<?php echo $venda['id']; ?>" class="text-decoration-none">
+                                        #<?php echo $venda['numero']; ?>
+                                    </a>
+                                </td>
                                 <td><?php echo dataParaBr($venda['data_venda']); ?></td>
                                 <td>
                                     <?php if (!empty($venda['cliente_nome'])): ?>
