@@ -9,6 +9,7 @@ $orcamento = null;
 $itens = [];
 $cliente = null;
 $mensagem = '';
+$pagamentos = [];
 
 // Verificar se existem mensagens vindas via GET
 if (isset($_GET['mensagem'])) {
@@ -75,6 +76,16 @@ if (isset($_GET['id'])) {
     if ($orcamento) {
         $itens = buscarItensOrcamento($id);
         $cliente = buscarCliente($orcamento['cliente_id']);
+        
+        // Buscar histórico de pagamentos do orçamento
+        $stmt = $db->prepare("SELECT c.*, 
+                          (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                          FROM caixa c 
+                          WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                          ORDER BY c.data_registro DESC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
     }
