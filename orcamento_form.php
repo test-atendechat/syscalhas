@@ -458,7 +458,7 @@ require_once('includes/header.php');
                             <td></td>
                         </tr>
                         <tr>
-                            <td colspan="5" class="text-end fw-bold">Mão de Obra (<?php echo number_format($taxa_mao_obra, 2, ',', '.'); ?>%):</td>
+                            <td colspan="5" class="text-end fw-bold"><span id="texto_mao_obra">Mão de Obra (<?php echo number_format($taxa_mao_obra, 2, ',', '.'); ?>%):</span></td>
                             <td>
                                 <input type="text" class="form-control" id="total_mao_obra" value="<?php echo formataValor($valor_mao_obra); ?>" readonly>
                             </td>
@@ -561,6 +561,9 @@ document.addEventListener('DOMContentLoaded', function() {
             valorTotal -= (valorTotal * (descontoVista / 100));
         }
 
+        // Atualizar texto da mão de obra para refletir a porcentagem atual
+        document.getElementById('texto_mao_obra').innerHTML = 'Mão de Obra (' + taxaMaoObra.toFixed(2).replace('.', ',') + '%):'
+        
         document.getElementById('total_produtos').value = 'R$ ' + totalProdutos.toFixed(2).replace('.', ',');
         document.getElementById('total_mao_obra').value = 'R$ ' + valorMaoObra.toFixed(2).replace('.', ',');
         document.getElementById('total_geral').value = 'R$ ' + valorTotal.toFixed(2).replace('.', ',');
