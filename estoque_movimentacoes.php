@@ -81,9 +81,9 @@ $stmt = $db->prepare("SELECT m.*,
                      LEFT JOIN orcamentos o ON m.orcamento_id = o.id
                      WHERE {$where}
                      ORDER BY m.data_movimentacao DESC
-                     LIMIT :offset, :limit");
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                     LIMIT :limit OFFSET :offset");
 $stmt->bindValue(':limit', $por_pagina, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 foreach ($params as $key => $value) {
     $stmt->bindValue($key, $value);
 }

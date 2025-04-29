@@ -61,7 +61,7 @@ $stmt = $db->prepare("SELECT p.*, c.nome as categoria_nome
                       LEFT JOIN categorias c ON p.categoria_id = c.id
                       WHERE {$where}
                       ORDER BY p.descricao
-                      LIMIT :offset, :limit");
+                      LIMIT :limit OFFSET :offset");
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $por_pagina, PDO::PARAM_INT);
 foreach ($params as $key => $value) {
