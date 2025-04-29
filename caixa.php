@@ -23,11 +23,14 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
 }
 
 // Obter movimentações de caixa com base nos filtros
-$sql = "SELECT c.*, u.nome as usuario_nome, o.numero as orcamento_numero, cl.nome as cliente_nome, cl.id as cliente_id 
+$sql = "SELECT c.*, u.nome as usuario_nome, o.numero as orcamento_numero, 
+        COALESCE(cl.nome, cl_orc.nome) as cliente_nome, 
+        COALESCE(c.cliente_id, o.cliente_id) as cliente_id 
         FROM caixa c 
         LEFT JOIN usuarios u ON c.usuario_id = u.id 
         LEFT JOIN orcamentos o ON c.orcamento_id = o.id 
-        LEFT JOIN clientes cl ON c.cliente_id = cl.id ";
+        LEFT JOIN clientes cl ON c.cliente_id = cl.id 
+        LEFT JOIN clientes cl_orc ON o.cliente_id = cl_orc.id";
 
 $where = [];
 $params = [];
@@ -225,7 +228,7 @@ require_once('includes/header.php');
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center py-4">Nenhuma movimentação encontrada.</td>
+                            <td colspan="9" class="text-center py-4">Nenhuma movimentação encontrada.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
