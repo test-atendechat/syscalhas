@@ -549,15 +549,15 @@ if (count($vendas) > 0) {
                     <tfoot class="table-group-divider">
                         <tr class="table-secondary">
                             <th colspan="2">Resumo por Unidades</th>
-                            <th class="text-center"></th>
-                            <th class="text-end"></th>
-                            <th class="text-end"></th>
+                            <th class="text-center">Quantidade</th>
+                            <th class="text-end">Valor Total</th>
+                            <th class="text-end">% do Total</th>
                         </tr>
                         <?php foreach ($totais_por_unidade as $unidade => $total): ?>
-                        <tr>
-                            <td colspan="2">Total em <?php echo $unidade; ?></td>
+                        <tr class="fw-bold">
+                            <td colspan="2">Total em <span class="badge bg-secondary"><?php echo $unidade; ?></span></td>
                             <td class="text-center">
-                                <strong><?php echo number_format($total['quantidade'], 2, ',', '.') . ' ' . $unidade; ?></strong>
+                                <?php echo number_format($total['quantidade'], 2, ',', '.'); ?>
                             </td>
                             <td class="text-end"><?php echo formataValor($total['valor']); ?></td>
                             <td class="text-end">

@@ -114,6 +114,27 @@ function mesParaPtBr($mes) {
 }
 
 /**
+ * Converte o código da forma de pagamento para texto legível
+ * 
+ * @param string $forma Código da forma de pagamento
+ * @return string Texto legível da forma de pagamento
+ */
+function formaPagamentoParaTexto($forma) {
+    $formas = [
+        'dinheiro' => 'Dinheiro',
+        'pix' => 'PIX',
+        'debito' => 'Cartão de Débito',
+        'credito' => 'Cartão de Crédito',
+        'transferencia' => 'Transferência Bancária',
+        'boleto' => 'Boleto',
+        'cheque' => 'Cheque',
+        'outro' => 'Outro'
+    ];
+    
+    return isset($formas[$forma]) ? $formas[$forma] : $forma;
+}
+
+/**
  * Gera um número único para orçamento no formato ANO/MÊS/SEQUENCIAL
  * 
  * @return string Número do orçamento
