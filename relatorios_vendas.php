@@ -81,17 +81,58 @@ $stmt = $db->query("SELECT id, nome FROM categorias ORDER BY nome");
 $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Construir consulta SQL para vendas
-// Considerar vendas como orçamentos aprovados e saídas diretas do estoque com motivo "Venda"
+// Vamos usar UNION para combinar dados de orçamentos pagos e vendas diretas do caixa
+// Primeiro parte da consulta: vendas registradas no caixa
 $sql_base = "SELECT 
+                DATE(c.data_operacao) as data,
+                c.valor as valor_total,
+                1 as quantidade,
+                c.id as transacao_id,
+                'Caixa' as origem,
+                c.descricao as descricao,
+                c.forma_pagamento,
+                COALESCE(cl.nome, cl_orc.nome) as cliente_nome,
+                COALESCE(c.cliente_id, o.cliente_id) as cliente_id,
+                o.numero as orcamento_numero
+            FROM 
+                caixa c
+            LEFT JOIN 
+                orcamentos o ON c.orcamento_id = o.id 
+            LEFT JOIN 
+                clientes cl ON c.cliente_id = cl.id 
+            LEFT JOIN 
+                clientes cl_orc ON o.cliente_id = cl_orc.id
+            WHERE 
+                c.tipo = 'entrada' AND
+                (c.orcamento_id IS NOT NULL OR c.descricao LIKE '%Venda%') AND
+                DATE(c.data_operacao) BETWEEN :data_inicio AND :data_fim";
+
+// Adicionar filtro de categoria se selecionado
+if ($categoria_id > 0) {
+    // Não aplicamos o filtro de categoria aqui, pois a tabela 'caixa' não tem relação com 'categorias'
+}
+
+// Segundo parte da consulta: movimentações de saída do estoque
+$sql_base .= " UNION ALL 
+            SELECT 
                 DATE(m.data_movimentacao) as data,
-                SUM(m.valor_total) as valor_total,
-                SUM(m.quantidade) as quantidade
+                m.valor_total,
+                m.quantidade,
+                m.id as transacao_id,
+                'Estoque' as origem,
+                CONCAT(p.descricao, ' (', m.quantidade, ' ', p.unidade_medida, ')') as descricao,
+                o.forma_pagamento,
+                c.nome as cliente_nome,
+                o.cliente_id,
+                o.numero as orcamento_numero
             FROM 
                 estoque_movimentacoes m
             JOIN 
                 produtos p ON m.produto_id = p.id
             LEFT JOIN 
                 orcamentos o ON m.orcamento_id = o.id
+            LEFT JOIN 
+                clientes c ON o.cliente_id = c.id
             WHERE 
                 (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
                 AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
@@ -101,74 +142,68 @@ if ($categoria_id > 0) {
     $sql_base .= " AND p.categoria_id = :categoria_id";
 }
 
+// Adicionar filtro de categoria se selecionado
+if ($categoria_id > 0) {
+    $sql_base .= " AND p.categoria_id = :categoria_id";
+}
+
+// Remover o filtro duplicado de categoria
+if ($categoria_id > 0) {
+    $sql_base = str_replace(" AND p.categoria_id = :categoria_id", "", $sql_base);
+}
+
 // Agrupar dados conforme selecionado
 switch ($agrupar_por) {
     case 'dia':
-        $sql_agrupamento = " GROUP BY DATE(m.data_movimentacao) ORDER BY DATE(m.data_movimentacao)";
+        // Nota: Agora a nossa consulta base é uma união de duas tabelas diferentes
+        // Vamos precisar ordenar pelo campo 'data' e agrupar por dia
+        $sql = "SELECT 
+                    data, 
+                    SUM(valor_total) as valor_total, 
+                    SUM(quantidade) as quantidade
+                FROM (
+                    {$sql_base}
+                ) as vendas_combinadas
+                GROUP BY data
+                ORDER BY data";
         $rotulo_data = "dataParaBr";
         break;
     case 'semana':
-        // PostgreSQL usa EXTRACT(WEEK FROM date) e EXTRACT(YEAR FROM date)
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao)";
+        // Vamos agrupar por semana do ano
+        $sql = "SELECT 
+                    EXTRACT(YEAR FROM data) as ano,
+                    EXTRACT(WEEK FROM data) as semana,
+                    MIN(data) as data,
+                    SUM(valor_total) as valor_total,
+                    SUM(quantidade) as quantidade
+                FROM (
+                    {$sql_base}
+                ) as vendas_combinadas
+                GROUP BY EXTRACT(YEAR FROM data), EXTRACT(WEEK FROM data)
+                ORDER BY EXTRACT(YEAR FROM data), EXTRACT(WEEK FROM data)";
         $rotulo_data = "Semana";
-        // Modificar a consulta para incluir as informações de semana/ano
-        $sql_base = "SELECT 
-                        EXTRACT(YEAR FROM m.data_movimentacao) as ano,
-                        EXTRACT(WEEK FROM m.data_movimentacao) as semana,
-                        MIN(DATE(m.data_movimentacao)) as data,
-                        SUM(m.valor_total) as valor_total,
-                        SUM(m.quantidade) as quantidade
-                    FROM 
-                        estoque_movimentacoes m
-                    JOIN 
-                        produtos p ON m.produto_id = p.id
-                    LEFT JOIN 
-                        orcamentos o ON m.orcamento_id = o.id
-                    WHERE 
-                        (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
-                        AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
-        
-        if ($categoria_id > 0) {
-            $sql_base .= " AND p.categoria_id = :categoria_id";
-        }
-        
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(WEEK FROM m.data_movimentacao)";
         break;
     case 'mes':
-        // PostgreSQL usa EXTRACT(MONTH FROM date) e EXTRACT(YEAR FROM date)
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao)";
+        // Vamos agrupar por mês do ano
+        $sql = "SELECT 
+                    EXTRACT(YEAR FROM data) as ano,
+                    EXTRACT(MONTH FROM data) as mes,
+                    MIN(data) as data,
+                    SUM(valor_total) as valor_total,
+                    SUM(quantidade) as quantidade
+                FROM (
+                    {$sql_base}
+                ) as vendas_combinadas
+                GROUP BY EXTRACT(YEAR FROM data), EXTRACT(MONTH FROM data)
+                ORDER BY EXTRACT(YEAR FROM data), EXTRACT(MONTH FROM data)";
         $rotulo_data = "Mês";
-        // Modificar a consulta para incluir as informações de mês/ano
-        $sql_base = "SELECT 
-                        EXTRACT(YEAR FROM m.data_movimentacao) as ano,
-                        EXTRACT(MONTH FROM m.data_movimentacao) as mes,
-                        MIN(DATE(m.data_movimentacao)) as data,
-                        SUM(m.valor_total) as valor_total,
-                        SUM(m.quantidade) as quantidade
-                    FROM 
-                        estoque_movimentacoes m
-                    JOIN 
-                        produtos p ON m.produto_id = p.id
-                    LEFT JOIN 
-                        orcamentos o ON m.orcamento_id = o.id
-                    WHERE 
-                        (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
-                        AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim";
-        
-        if ($categoria_id > 0) {
-            $sql_base .= " AND p.categoria_id = :categoria_id";
-        }
-        
-        $sql_agrupamento = " GROUP BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao) 
-                             ORDER BY EXTRACT(YEAR FROM m.data_movimentacao), EXTRACT(MONTH FROM m.data_movimentacao)";
         break;
 }
 
-// Consulta SQL final
-$sql = $sql_base . $sql_agrupamento;
+// Varível sql já foi definida nos casos do switch, não precisamos usar $sql_base+$sql_agrupamento
+
+// Importar a conexão com o banco de dados, caso não esteja disponível
+require_once 'includes/db.php';
 
 $stmt = $db->prepare($sql);
 $stmt->bindParam(':data_inicio', $data_inicio);
@@ -356,7 +391,7 @@ if (count($vendas) > 0) {
     
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Detalhamento de Vendas</h5>
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Resumo de Vendas por Período</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -413,6 +448,162 @@ if (count($vendas) > 0) {
                             <th class="text-end">100,00%</th>
                         </tr>
                     </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalhamento de produtos vendidos no período -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Detalhamento de Produtos Vendidos</h5>
+        </div>
+        <div class="card-body p-0">
+            <?php
+            // Consulta para obter o detalhamento de todos os produtos vendidos no período
+            $sql_produtos = "SELECT 
+                                p.descricao as produto_nome,
+                                p.unidade_medida,
+                                c.nome as categoria_nome,
+                                SUM(m.quantidade) as total_quantidade,
+                                SUM(m.valor_total) as valor_total
+                            FROM 
+                                estoque_movimentacoes m
+                            JOIN 
+                                produtos p ON m.produto_id = p.id
+                            LEFT JOIN 
+                                categorias c ON p.categoria_id = c.id
+                            LEFT JOIN 
+                                orcamentos o ON m.orcamento_id = o.id
+                            WHERE 
+                                (m.tipo = 'saida' AND (m.observacao LIKE '%Venda%' OR (m.orcamento_id IS NOT NULL AND o.status = 'aprovado')))
+                                AND DATE(m.data_movimentacao) BETWEEN :data_inicio AND :data_fim
+                            GROUP BY 
+                                p.descricao, p.unidade_medida, c.nome
+                            ORDER BY 
+                                valor_total DESC";
+            
+            $stmt_produtos = $db->prepare($sql_produtos);
+            $stmt_produtos->bindParam(':data_inicio', $data_inicio);
+            $stmt_produtos->bindParam(':data_fim', $data_fim);
+            $stmt_produtos->execute();
+            $produtos_vendidos = $stmt_produtos->fetchAll(PDO::FETCH_ASSOC);
+            ?>
+            
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th class="text-center">Quantidade</th>
+                            <th class="text-end">Valor Total</th>
+                            <th class="text-end">% do Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (count($produtos_vendidos) > 0): ?>
+                            <?php foreach ($produtos_vendidos as $produto): ?>
+                                <tr>
+                                    <td><?php echo $produto['produto_nome']; ?></td>
+                                    <td><?php echo $produto['categoria_nome']; ?></td>
+                                    <td class="text-center">
+                                        <?php echo number_format($produto['total_quantidade'], 2, ',', '.') . ' ' . $produto['unidade_medida']; ?>
+                                    </td>
+                                    <td class="text-end"><?php echo formataValor($produto['valor_total']); ?></td>
+                                    <td class="text-end">
+                                        <?php 
+                                            $percentual = ($total_vendas > 0) ? ($produto['valor_total'] / $total_vendas) * 100 : 0;
+                                            echo number_format($percentual, 2, ',', '.') . '%';
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center py-3">Nenhum produto vendido no período selecionado.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalhamento de clientes no período -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Clientes com Maior Volume de Compras</h5>
+        </div>
+        <div class="card-body p-0">
+            <?php
+            // Consulta para obter o detalhamento de clientes
+            $sql_clientes = "SELECT 
+                                COALESCE(cl.nome, 'Venda sem cliente') as cliente_nome,
+                                COALESCE(cl.telefone, '-') as telefone,
+                                COALESCE(cl.email, '-') as email,
+                                COUNT(DISTINCT c.id) as total_compras,
+                                SUM(c.valor) as valor_total
+                            FROM 
+                                caixa c
+                            LEFT JOIN 
+                                clientes cl ON c.cliente_id = cl.id
+                            LEFT JOIN
+                                orcamentos o ON c.orcamento_id = o.id
+                            LEFT JOIN
+                                clientes cl_orc ON o.cliente_id = cl_orc.id
+                            WHERE 
+                                c.tipo = 'entrada' AND
+                                (c.orcamento_id IS NOT NULL OR c.descricao LIKE '%Venda%') AND
+                                DATE(c.data_operacao) BETWEEN :data_inicio AND :data_fim
+                            GROUP BY 
+                                COALESCE(cl.nome, 'Venda sem cliente'), COALESCE(cl.telefone, '-'), COALESCE(cl.email, '-')
+                            ORDER BY 
+                                valor_total DESC
+                            LIMIT 15";
+            
+            $stmt_clientes = $db->prepare($sql_clientes);
+            $stmt_clientes->bindParam(':data_inicio', $data_inicio);
+            $stmt_clientes->bindParam(':data_fim', $data_fim);
+            $stmt_clientes->execute();
+            $clientes = $stmt_clientes->fetchAll(PDO::FETCH_ASSOC);
+            ?>
+            
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Telefone</th>
+                            <th>Email</th>
+                            <th class="text-center">Nº de Compras</th>
+                            <th class="text-end">Valor Total</th>
+                            <th class="text-end">% do Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (count($clientes) > 0): ?>
+                            <?php foreach ($clientes as $cliente): ?>
+                                <tr>
+                                    <td><?php echo $cliente['cliente_nome']; ?></td>
+                                    <td><?php echo $cliente['telefone']; ?></td>
+                                    <td><?php echo $cliente['email']; ?></td>
+                                    <td class="text-center"><?php echo $cliente['total_compras']; ?></td>
+                                    <td class="text-end"><?php echo formataValor($cliente['valor_total']); ?></td>
+                                    <td class="text-end">
+                                        <?php 
+                                            $percentual = ($total_vendas > 0) ? ($cliente['valor_total'] / $total_vendas) * 100 : 0;
+                                            echo number_format($percentual, 2, ',', '.') . '%';
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" class="text-center py-3">Nenhum cliente com compras no período selecionado.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
                 </table>
             </div>
         </div>
