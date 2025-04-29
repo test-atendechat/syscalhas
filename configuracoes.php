@@ -157,6 +157,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <input type="number" class="form-control" id="dias_validade_orcamento" name="dias_validade_orcamento" min="1" value="<?php echo $configuracoes['dias_validade_orcamento']; ?>">
                         <div class="form-text">Número de dias em que os orçamentos permanecem válidos a partir da data de criação.</div>
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="max_parcelas" class="form-label">Número Máximo de Parcelas</label>
+                        <input type="number" class="form-control" id="max_parcelas" name="max_parcelas" min="1" max="12" value="<?php echo $configuracoes['max_parcelas']; ?>">
+                        <div class="form-text">Número máximo de parcelas permitidas para pagamento a prazo.</div>
+                    </div>
                 </div>
             </div>
             

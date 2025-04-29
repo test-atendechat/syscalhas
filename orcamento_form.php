@@ -11,7 +11,7 @@ $cliente_id = 0;
 $data_criacao = date('Y-m-d');
 $data_validade = date('Y-m-d', strtotime('+30 days'));
 $status = 'pendente';
-$taxa_mao_obra = 0;
+$taxa_mao_obra = 100; // Valor padrão
 $valor_produtos = 0;
 $valor_mao_obra = 0;
 $valor_total = 0;
@@ -24,11 +24,16 @@ $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
 
-// Fetch discount configuration from database
-$stmt = $db->query("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
-$config = $stmt->fetch(PDO::FETCH_ASSOC);
-if ($config && isset($config['valor'])) {
-    $desconto_vista = (float)$config['valor'];
+// Buscar configurações do banco de dados
+$stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
+$configs = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Aplicar configurações, se existirem
+if (isset($configs['desconto_pagamento_vista'])) {
+    $desconto_vista = (float)$configs['desconto_pagamento_vista'];
+}
+if (isset($configs['taxa_padrao_mao_obra'])) {
+    $taxa_mao_obra = (float)$configs['taxa_padrao_mao_obra'];
 }
 
 
@@ -303,6 +308,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <option value="vista" <?php echo ($forma_pagamento == 'vista') ? 'selected' : ''; ?>>À Vista</option>
                     </select>
                 </div>
+
             </div>
 
             <div class="row">
