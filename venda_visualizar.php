@@ -14,6 +14,18 @@ $itens = [];
 $cliente = null;
 $mensagem = '';
 
+// Verificar mensagens
+if (isset($_GET['mensagem'])) {
+    if ($_GET['mensagem'] == 'pagamento_registrado') {
+        $mensagem = alerta('Pagamento registrado com sucesso!', 'success');
+    }
+}
+
+// Verificar erros
+if (isset($_GET['erro'])) {
+    $mensagem = alerta(urldecode($_GET['erro']), 'danger');
+}
+
 if ($id > 0) {
     // Buscar dados da venda
     $stmt = $db->prepare("SELECT v.*, u.nome as usuario_nome 
@@ -73,6 +85,15 @@ require_once('includes/header.php');
                     <p class="mb-1"><strong>Data:</strong> <?php echo dataParaBr($venda['data_venda']); ?></p>
                     <p class="mb-1"><strong>Forma de Pagamento:</strong> <?php echo ucfirst($venda['forma_pagamento']); ?></p>
                     <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">Finalizada</span></p>
+                    <p class="mb-1"><strong>Pagamento:</strong> 
+                        <?php if (isset($venda['status_pagamento']) && $venda['status_pagamento'] == 'pago_total'): ?>
+                            <span class="badge bg-success">Pago Total</span>
+                        <?php elseif (isset($venda['status_pagamento']) && $venda['status_pagamento'] == 'pago_parcial'): ?>
+                            <span class="badge bg-info">Pago Parcial</span>
+                        <?php else: ?>
+                            <span class="badge bg-warning text-dark">Pendente</span>
+                        <?php endif; ?>
+                    </p>
                     <p class="mb-1"><strong>Vendedor:</strong> <?php echo $venda['usuario_nome']; ?></p>
                 </div>
                 
@@ -151,6 +172,48 @@ require_once('includes/header.php');
         </div>
     </div>
     
+    <!-- Seção para registrar pagamento se pendente -->
+    <?php if ((!isset($venda['status_pagamento']) || $venda['status_pagamento'] == 'pendente') && !empty($venda['cliente_id'])): ?>
+    <div class="card mt-4 mb-4">
+        <div class="card-header bg-warning text-dark">
+            <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento
+        </div>
+        <div class="card-body">
+            <form method="post" action="registrar_pagamento.php">
+                <input type="hidden" name="venda_id" value="<?php echo $venda['id']; ?>">
+                <input type="hidden" name="venda_numero" value="<?php echo $venda['numero']; ?>">
+                <input type="hidden" name="valor_total" value="<?php echo $venda['valor_total']; ?>">
+                <input type="hidden" name="cliente_id" value="<?php echo $venda['cliente_id']; ?>">
+                
+                <div class="row align-items-end">
+                    <div class="col-md-4 mb-3">
+                        <label for="forma_pagamento" class="form-label">Forma de Pagamento</label>
+                        <select class="form-select" id="forma_pagamento" name="forma_pagamento" required>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="cartao">Cartão de Crédito/Débito</option>
+                            <option value="pix">PIX</option>
+                            <option value="transferencia">Transferência</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="valor_pago" class="form-label">Valor Pago</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="text" class="form-control" id="valor_pago" name="valor_pago" value="<?php echo number_format($venda['valor_total'], 2, ',', '.'); ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check-circle me-2"></i>Registrar Pagamento
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text text-muted">Ao registrar o pagamento, será criada uma entrada no caixa e a venda será marcada como paga.</div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="d-flex justify-content-between mt-4">
         <a href="vendas.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Voltar para Vendas

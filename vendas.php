@@ -55,7 +55,8 @@ if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
 // Obter vendas com base nos filtros
 $sql = "SELECT v.*, 
        c.nome as cliente_nome,
-       u.nome as usuario_nome 
+       u.nome as usuario_nome,
+       COALESCE(v.status_pagamento, 'pendente') as status_pagamento
        FROM vendas v 
        LEFT JOIN clientes c ON v.cliente_id = c.id 
        LEFT JOIN usuarios u ON v.usuario_id = u.id ";
@@ -176,7 +177,13 @@ require_once('includes/header.php');
                                 <td><?php echo ucfirst($venda['forma_pagamento']); ?></td>
                                 <td class="text-end"><?php echo formataValor($venda['valor_total']); ?></td>
                                 <td>
-                                    <span class="badge bg-success">Finalizada</span>
+                                    <?php if ($venda['status_pagamento'] == 'pago_total'): ?>
+                                        <span class="badge bg-success">Pago Total</span>
+                                    <?php elseif ($venda['status_pagamento'] == 'pago_parcial'): ?>
+                                        <span class="badge bg-info">Pago Parcial</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning text-dark">Pendente</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?php echo $venda['usuario_nome']; ?></td>
                                 <td class="text-center">
