@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Determinar se o valor total foi atingido (com tolerância para arredondamentos)
         $diferenca = abs($total_pago - $valor_total);
-        $pagamento_total = ($diferenca <= 0.01);
+        $pagamento_total = ($diferenca <= 0.01 || $total_pago >= $valor_total);
         
         // Definir status de pagamento
         $status_pagamento = $pagamento_total ? 'pago_total' : 'pago_parcial';

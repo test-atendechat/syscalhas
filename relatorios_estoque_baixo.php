@@ -58,7 +58,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <div class="alert alert-warning mb-4">
-    <i class="fas fa-info-circle me-2"></i>Este relatório exibe produtos com estoque abaixo do mínimo definido ou com menos de <?php echo $nivel_baixo; ?> unidades.
+    <i class="fas fa-info-circle me-2"></i>Este relatório exibe produtos com estoque abaixo do mínimo definido para cada produto.
 </div>
 
 <?php if (count($produtos) > 0): ?>
