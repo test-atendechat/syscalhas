@@ -168,6 +168,7 @@ $valor_total_produtos = $totais_orcamentos['valor_total_produtos'] ?? 0;
 $valor_total_mao_obra = $totais_orcamentos['valor_total_mao_obra'] ?? 0;
 $valor_produtos_aprovados = $totais_orcamentos['valor_produtos_aprovados'] ?? 0;
 $valor_mao_obra_aprovados = $totais_orcamentos['valor_mao_obra_aprovados'] ?? 0;
+$valor_orcamentos_aprovados = $totais_orcamentos['valor_orcamentos_aprovados'] ?? 0;
 
 // Calcular custo dos produtos vendidos (aproximadamente 50% do valor - usando média de custo)
 $custo_medio_produtos = 0.5; // 50% do valor de venda é o custo médio
