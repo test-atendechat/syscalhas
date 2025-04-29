@@ -233,11 +233,12 @@ require_once('includes/header.php');
                         <label for="valor_pago" class="form-label">Valor Restante a Pagar</label>
                         <div class="input-group">
                             <span class="input-group-text">R$</span>
-                            <input type="text" class="form-control" id="valor_pago" name="valor_pago" value="<?php echo number_format($valor_restante, 2, ',', '.'); ?>" required>
+                            <input type="text" class="form-control" id="valor_pago" name="valor_pago" value="<?php echo number_format($valor_restante, 2, ',', '.'); ?>" data-max-valor="<?php echo $valor_restante; ?>" required>
                         </div>
+                        <div class="form-text text-muted">Valor máximo: R$ <?php echo number_format($valor_restante, 2, ',', '.'); ?></div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <button type="submit" class="btn btn-success w-100">
+                        <button type="submit" class="btn btn-success w-100" id="botao-registrar-pagamento">
                             <i class="fas fa-check-circle me-2"></i>Registrar Pagamento
                         </button>
                     </div>
@@ -266,3 +267,46 @@ require_once('includes/header.php');
 <?php
 require_once('includes/footer.php');
 ?>
+
+<script>
+// Validar o campo de valor pago para que não exceda o valor restante
+document.addEventListener('DOMContentLoaded', function() {
+    const formPagamento = document.querySelector('form[action="registrar_pagamento.php"]');
+    
+    if (formPagamento) {
+        const valorPagoInput = document.getElementById('valor_pago');
+        const maxValor = parseFloat(valorPagoInput.getAttribute('data-max-valor') || 0);
+        
+        // Formatar o valor quando o usuário digitar
+        valorPagoInput.addEventListener('input', function(e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            
+            if (valor.length === 0) {
+                e.target.value = '';
+                return;
+            }
+            
+            // Converter para formato de moeda
+            valor = (parseInt(valor) / 100).toFixed(2);
+            e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+        
+        // Validar antes de enviar o formulário
+        formPagamento.addEventListener('submit', function(e) {
+            const valorPago = parseFloat(valorPagoInput.value.replace('.', '').replace(',', '.'));
+            
+            if (isNaN(valorPago) || valorPago <= 0) {
+                e.preventDefault();
+                alert('Por favor, insira um valor válido maior que zero.');
+                return;
+            }
+            
+            if (valorPago > maxValor) {
+                e.preventDefault();
+                alert(`O valor inserido (R$ ${valorPago.toFixed(2).replace('.', ',')}) é maior que o valor restante a pagar (R$ ${maxValor.toFixed(2).replace('.', ',')}).`);
+                return;
+            }
+        });
+    }
+});
+</script>
