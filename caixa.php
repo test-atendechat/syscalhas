@@ -85,12 +85,22 @@ require_once('includes/header.php');
 
 <?php
 // Verificar se o caixa está aberto hoje
+$caixa_aberto = false;
+$caixa_atual = null;
 $data_hoje = date('Y-m-d');
-$stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
-$stmt->bindParam(':data_hoje', $data_hoje);
-$stmt->execute();
-$caixa_aberto = $stmt->rowCount() > 0;
-$caixa_atual = $caixa_aberto ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+
+// Verificar se a tabela existe antes de consultar
+try {
+    $stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
+    $stmt->bindParam(':data_hoje', $data_hoje);
+    $stmt->execute();
+    $caixa_aberto = $stmt->rowCount() > 0;
+    $caixa_atual = $caixa_aberto ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+} catch (PDOException $e) {
+    // Se a tabela não existir, apenas continua com o caixa fechado
+    $caixa_aberto = false;
+    $caixa_atual = null;
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">

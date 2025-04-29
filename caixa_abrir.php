@@ -9,12 +9,20 @@ verificarAutenticacao();
 
 // Verificar se o caixa já está aberto
 $data_hoje = date('Y-m-d');
-$stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
-$stmt->bindParam(':data_hoje', $data_hoje);
-$stmt->execute();
+$caixa_aberto = false;
+
+try {
+    $stmt = $db->prepare("SELECT * FROM caixa_controle WHERE data_abertura = :data_hoje AND data_fechamento IS NULL");
+    $stmt->bindParam(':data_hoje', $data_hoje);
+    $stmt->execute();
+    $caixa_aberto = $stmt->rowCount() > 0;
+} catch (PDOException $e) {
+    // Se a tabela não existir, o caixa não está aberto
+    $caixa_aberto = false;
+}
 
 // Se o caixa já estiver aberto, redirecionar para o caixa
-if ($stmt->rowCount() > 0) {
+if ($caixa_aberto) {
     header('Location: caixa.php?mensagem=ja_aberto');
     exit;
 }
