@@ -547,15 +547,18 @@ if (count($vendas) > 0) {
                     </tbody>
                     <?php if (count($produtos_vendidos) > 0 && count($unidades_encontradas) > 0): ?>
                     <tfoot class="table-group-divider">
+                        <tr class="table-primary">
+                            <th colspan="5" class="text-center h5 py-2">Resumo por Unidades</th>
+                        </tr>
                         <tr class="table-secondary">
-                            <th colspan="2">Resumo por Unidades</th>
+                            <th colspan="2">Tipo de Unidade</th>
                             <th class="text-center">Quantidade</th>
                             <th class="text-end">Valor Total</th>
                             <th class="text-end">% do Total</th>
                         </tr>
                         <?php foreach ($totais_por_unidade as $unidade => $total): ?>
                         <tr class="fw-bold">
-                            <td colspan="2">Total em <span class="badge bg-secondary"><?php echo $unidade; ?></span></td>
+                            <td colspan="2">Total em <span class="badge bg-primary"><?php echo $unidade; ?></span></td>
                             <td class="text-center">
                                 <?php echo number_format($total['quantidade'], 2, ',', '.'); ?>
                             </td>

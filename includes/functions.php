@@ -3,6 +3,8 @@
  * Arquivo com funções utilitárias para o sistema
  */
 
+// Esta função foi movida para a versão abaixo
+
 /**
  * Exibe um alerta formatado em HTML
  * 
@@ -119,20 +121,7 @@ function mesParaPtBr($mes) {
  * @param string $forma Código da forma de pagamento
  * @return string Texto legível da forma de pagamento
  */
-function formaPagamentoParaTexto($forma) {
-    $formas = [
-        'dinheiro' => 'Dinheiro',
-        'pix' => 'PIX',
-        'debito' => 'Cartão de Débito',
-        'credito' => 'Cartão de Crédito',
-        'transferencia' => 'Transferência Bancária',
-        'boleto' => 'Boleto',
-        'cheque' => 'Cheque',
-        'outro' => 'Outro'
-    ];
-    
-    return isset($formas[$forma]) ? $formas[$forma] : $forma;
-}
+// Função foi movida para o topo do arquivo
 
 /**
  * Gera um número único para orçamento no formato ANO/MÊS/SEQUENCIAL

@@ -8,7 +8,11 @@ require_once('db.php');
  */
 function verificarAutenticacao() {
     if (!isset($_SESSION['usuario_id'])) {
-        header('Location: login.php');
+        if (!headers_sent()) {
+            header('Location: login.php');
+        } else {
+            echo '<script>window.location.href = "login.php";</script>';
+        }
         exit;
     }
 }
