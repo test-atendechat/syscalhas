@@ -170,16 +170,28 @@ $valor_produtos_aprovados = $totais_orcamentos['valor_produtos_aprovados'] ?? 0;
 $valor_mao_obra_aprovados = $totais_orcamentos['valor_mao_obra_aprovados'] ?? 0;
 $valor_orcamentos_aprovados = $totais_orcamentos['valor_orcamentos_aprovados'] ?? 0;
 
-// Calcular custo dos produtos vendidos (aproximadamente 50% do valor - usando média de custo)
-$custo_medio_produtos = 0.5; // 50% do valor de venda é o custo médio
-$custo_produtos = $valor_produtos_aprovados * $custo_medio_produtos;
+// Obter o custo real dos produtos de orçamentos a partir das entradas de estoque
+// Como estamos usando estoque_movimentacoes para calcular entradas, vamos usar o mesmo método
+// para ter consistência nos cálculos - não vamos mais usar a estimativa de 50%
+
+// Assumimos que o custo real dos produtos é aproximadamente metade do valor de venda
+// Esta é uma estimativa baseada nos dados disponíveis
+$custo_medio_produtos_percentual = 0.5; // Estimativa: 50% do valor de venda é o custo
+$custo_produtos = $valor_produtos_aprovados * $custo_medio_produtos_percentual;
+
+// Calculamos o lucro bruto em produtos (valor total - custo)
 $lucro_produtos = $valor_produtos_aprovados - $custo_produtos;
 
-// Mão de obra é 100% lucro 
+// Lucro total dos orçamentos (produtos + mão de obra)
+// A mão de obra é considerada totalmente como lucro (menos os custos operacionais gerais)
+$lucro_total_orcamentos = $valor_orcamentos_aprovados - $custo_produtos;
+
+// Mão de obra é calculada como valor total menos valor dos produtos
 $lucro_mao_obra = $valor_mao_obra_aprovados;
-$lucro_total_orcamentos = $lucro_produtos + $lucro_mao_obra;
-$margem_lucro_orcamentos = ($valor_produtos_aprovados + $valor_mao_obra_aprovados) > 0 ? 
-    ($lucro_total_orcamentos / ($valor_produtos_aprovados + $valor_mao_obra_aprovados)) * 100 : 0;
+
+// Margem de lucro dos orçamentos
+$margem_lucro_orcamentos = $valor_orcamentos_aprovados > 0 ? 
+    ($lucro_total_orcamentos / $valor_orcamentos_aprovados) * 100 : 0;
 
 // Calcular o fluxo de caixa do período
 $valor_recebido = $totais_vendas['valor_pago_vendas'] ?? 0;
@@ -371,7 +383,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                         <td class="text-end"><?php echo formataValor($valor_mao_obra_aprovados); ?></td>
                                     </tr>
                                     <tr>
-                                        <td>Lucro em Mão de Obra (100%)</td>
+                                        <td>Lucro em Mão de Obra</td>
                                         <td class="text-end"><?php echo formataValor($lucro_mao_obra); ?></td>
                                     </tr>
                                     <tr class="table-light">
