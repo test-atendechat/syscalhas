@@ -155,14 +155,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
-                    <select class="form-select" id="categoria" name="categoria" required>
-                        <option value="">Selecione uma categoria</option>
-                        <?php foreach ($categorias as $cat): ?>
-                            <option value="<?php echo $cat['nome']; ?>" <?php echo ($produto['categoria'] == $cat['nome']) ? 'selected' : ''; ?>>
-                                <?php echo $cat['nome']; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="input-group">
+                        <select class="form-select" id="categoria" name="categoria" required>
+                            <option value="">Selecione uma categoria</option>
+                            <?php foreach ($categorias as $cat): ?>
+                                <option value="<?php echo $cat['nome']; ?>" <?php echo ($produto['categoria'] == $cat['nome']) ? 'selected' : ''; ?>>
+                                    <?php echo $cat['nome']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#modalCategoria">
+                            <i class="fas fa-plus-circle"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label for="unidade" class="form-label">Unidade <span class="text-danger">*</span></label>
@@ -181,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label for="valor_unitario" class="form-label">Valor Unitário <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text">R$</span>
-                        <input type="text" class="form-control" id="valor_unitario" name="valor_unitario" value="<?php echo number_format($produto['valor_unitario'], 2, ',', '.'); ?>" required>
+                        <input type="text" class="form-control" id="valor_unitario" name="valor_unitario" value="<?php echo !empty($produto['valor_unitario']) ? number_format((float)$produto['valor_unitario'], 2, ',', '.') : '0,00'; ?>" required>
                     </div>
                 </div>
             </div>
@@ -226,6 +231,96 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
         }
         form.classList.add('was-validated');
+    });
+});
+</script>
+
+<!-- Modal para adicionar nova categoria -->
+<div class="modal fade" id="modalCategoria" tabindex="-1" aria-labelledby="modalCategoriaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalCategoriaLabel">Nova Categoria</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="nova_categoria" class="form-label">Nome da Categoria</label>
+                    <input type="text" class="form-control" id="nova_categoria" placeholder="Digite o nome da categoria">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCategoria">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatação de valor unitário
+    const valorUnitario = document.getElementById('valor_unitario');
+    const form = document.getElementById('formProduto');
+    
+    valorUnitario.addEventListener('input', function(e) {
+        let valor = e.target.value.replace(/\D/g, '');
+        
+        if (valor.length === 0) {
+            e.target.value = '';
+            return;
+        }
+        
+        // Converter para formato de moeda
+        valor = (parseInt(valor) / 100).toFixed(2);
+        e.target.value = valor.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    });
+
+    // Validação do formulário
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+
+    // Adicionar nova categoria
+    document.getElementById('btnSalvarCategoria').addEventListener('click', function() {
+        const novaCategoria = document.getElementById('nova_categoria').value.trim();
+        if (novaCategoria) {
+            // Enviar via AJAX para criar nova categoria
+            fetch('ajax/salvar_categoria.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'nome=' + encodeURIComponent(novaCategoria)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Adicionar ao select
+                    const select = document.getElementById('categoria');
+                    const option = new Option(novaCategoria, novaCategoria, true, true);
+                    select.appendChild(option);
+                    
+                    // Fechar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalCategoria')).hide();
+                    
+                    // Limpar campo
+                    document.getElementById('nova_categoria').value = '';
+                } else {
+                    alert('Erro ao adicionar categoria: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao processar a requisição');
+            });
+        } else {
+            alert('Por favor, digite o nome da categoria');
+        }
     });
 });
 </script>
