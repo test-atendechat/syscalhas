@@ -306,7 +306,7 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <small class="text-muted">Baseado no preço de venda dos produtos</small>
                             <div class="mt-2">
                                 <span class="badge bg-info fs-6 p-2">Valor Estimado Final: <?php echo formataValor(($totais['valor_saidas'] ?? 0) + $valor_venda_estimado); ?></span>
-                                <br><small class="text-muted">Vendas + Estoque atual valorado a preço de venda</small>
+                                <br><small class="text-muted">Vendas atuais + Valor de venda do estoque atual</small>
                             </div>
                         </div>
                         
@@ -318,12 +318,15 @@ $produtos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </h4>
                             <small class="text-muted">Diferença entre valor de vendas e valor investido</small>
                             
-                            <?php if ($lucro_total < 0): // Mostrar o lucro estimado quando há investimento no estoque ?>
+                            <?php if ($lucro_total < 0): // Mostrar o lucro estimado quando há investimento no estoque 
+                                // Calcular o lucro real entre (vendas realizadas - custo das vendas) + (valor de venda do estoque - custo do estoque)
+                                $lucro_atual = (($totais['valor_saidas'] ?? 0) - ($totais['valor_entradas'] ?? 0)) + $lucro_estimado;
+                            ?>
                             <div class="mt-3">
                                 <h5 class="text-success">
-                                    Lucro Estimado Total: <?php echo formataValor($lucro_total + $lucro_estimado); ?>
+                                    Lucro Estimado Total: <?php echo formataValor($lucro_atual); ?>
                                 </h5>
-                                <small class="text-muted">Lucro após venda de todo o estoque atual</small>
+                                <small class="text-muted">Lucro após venda de todo o estoque atual pelo preço de venda</small>
                             </div>
                             <?php endif; ?>
                         </div>
