@@ -4,7 +4,9 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 
 // Verificar se o usuário está logado e tem permissão para acessar esta página
-if (!isset($_SESSION['usuario']) || !verificarPermissao('visualizar_relatorios_financeiros')) {
+// Administradores sempre têm acesso, outros usuários precisam de permissão específica
+if (!isset($_SESSION['usuario']) || 
+    ($_SESSION['usuario']['nivel'] !== 'admin' && !verificarPermissao('visualizar_relatorios_financeiros'))) {
     $_SESSION['erro'] = "Você não tem permissão para acessar esta página.";
     header("Location: dashboard.php");
     exit;
