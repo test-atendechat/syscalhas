@@ -425,6 +425,20 @@ if (!$acesso_interno) {
         <div class="row">
             <div class="col-md-12 text-center">
                 <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                
+                <?php if ($acesso_interno && $orcamento['status'] == 'pendente'): ?>
+                <div class="mt-4">
+                    <form method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+                        <button type="submit" name="decisao" value="aprovar" class="btn btn-success mx-2">
+                            <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                        </button>
+                        <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger mx-2">
+                            <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                        </button>
+                    </form>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

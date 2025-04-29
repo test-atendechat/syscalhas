@@ -48,11 +48,25 @@ if ($orcamento_id > 0) {
             exit;
         }
         
+        // Buscar pagamentos anteriores
+        $stmt = $db->prepare("SELECT SUM(valor) as total_pago FROM caixa 
+                          WHERE orcamento_id = :orcamento_id AND tipo = 'entrada'");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_pago = floatval($pagamentos['total_pago'] ?? 0);
+        
+        // Calcular valor restante para pagamento
+        $valor_restante = $orcamento['valor_total'] - $total_pago;
+        if ($valor_restante < 0) $valor_restante = 0; // Evitar valores negativos
+        
         // Preencher movimentação com dados do orçamento
         $movimentacao['descricao'] = "Pagamento do orçamento #{$orcamento['numero']}";
-        $movimentacao['valor'] = $orcamento['valor_total'];
+        $movimentacao['valor'] = $valor_restante;
         $movimentacao['orcamento_id'] = $orcamento_id;
         $movimentacao['forma_pagamento'] = $orcamento['forma_pagamento'];
+        $movimentacao['valor_total_orcamento'] = $orcamento['valor_total'];
+        $movimentacao['total_ja_pago'] = $total_pago;
         $titulo = 'Registrar Pagamento de Orçamento';
     } else {
         $erro = 'Orçamento não encontrado.';
@@ -257,6 +271,22 @@ require_once('includes/header.php');
     <div class="card-body">
         <form method="post" action="caixa_form.php" id="formCaixa">
             <input type="hidden" name="id" value="<?php echo $movimentacao['id']; ?>">
+            
+            <?php if (isset($movimentacao['orcamento_id']) && $movimentacao['orcamento_id'] > 0 && isset($movimentacao['valor_total_orcamento'])): ?>
+            <div class="alert alert-info mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Valor Total do Orçamento:</strong> <?php echo formataValor($movimentacao['valor_total_orcamento']); ?>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Valor Já Pago:</strong> <?php echo formataValor($movimentacao['total_ja_pago']); ?>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Valor Restante:</strong> <?php echo formataValor($movimentacao['valor_total_orcamento'] - $movimentacao['total_ja_pago']); ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
             
             <div class="row mb-3">
                 <div class="col-md-4">
