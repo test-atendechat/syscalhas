@@ -25,7 +25,7 @@ $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 0; // Default discount for cash payment
 
 // Fetch discount configuration from database
-$stmt = $db->query("SELECT valor FROM configuracoes WHERE nome = 'desconto_vista'");
+$stmt = $db->query("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
 $config = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($config && isset($config['valor'])) {
     $desconto_vista = (float)$config['valor'];
