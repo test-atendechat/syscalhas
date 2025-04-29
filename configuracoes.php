@@ -26,7 +26,6 @@ $configuracoes = [
     'taxa_padrao_mao_obra' => 100, // Valor padrão para a taxa de mão de obra (em %)
     'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
     'max_parcelas' => 12, // Número máximo de parcelas permitidas
-    'estoque_alerta_minimo' => 50, // Valor padrão para alerta de estoque mínimo
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
 ];
 
@@ -165,18 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
             
-            <!-- Configurações de Estoque -->
-            <div class="mb-4">
-                <h5><i class="fas fa-warehouse me-2"></i>Configurações de Estoque</h5>
-                <hr>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="estoque_alerta_minimo" class="form-label">Alerta de Estoque Mínimo</label>
-                        <input type="number" class="form-control" id="estoque_alerta_minimo" name="estoque_alerta_minimo" min="0" step="0.01" value="<?php echo $configuracoes['estoque_alerta_minimo']; ?>">
-                        <div class="form-text">Produtos com estoque abaixo deste valor serão destacados como estoque baixo.</div>
-                    </div>
-                </div>
-            </div>
+            <!-- As configurações de estoque mínimo agora são definidas individualmente por produto -->
             
             <div class="d-flex justify-content-end">
                 <button type="reset" class="btn btn-outline-secondary me-2">Restaurar</button>
