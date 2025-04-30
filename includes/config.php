@@ -27,14 +27,6 @@ if (file_exists($config_local)) {
     define('DB_PORT', getenv('PGPORT') ?: '5432');
 }
 
-// Configurações de email
-define('MAIL_HOST', 'smtp.gmail.com');
-define('MAIL_PORT', 587);
-define('MAIL_USER', 'seu-email@gmail.com');
-define('MAIL_PASS', 'sua-senha-ou-token');
-define('MAIL_FROM', 'seu-email@gmail.com');
-define('MAIL_FROM_NAME', APP_NAME);
-
 // Configurações de data e hora
 date_default_timezone_set('America/Sao_Paulo');
 
