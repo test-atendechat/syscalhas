@@ -13,15 +13,15 @@ $data_final = isset($_GET['data_final']) ? $_GET['data_final'] : date('Y-m-d');
 $filtro_tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 
 // Processar exclusão se solicitado
-if (isset($_GET['excluir']) && is_numeric($_GET['excluir']) && podeDeletar('caixa')) {
+if (isset($_GET['excluir']) && is_numeric($_GET['excluir']) && isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin') {
     $id = intval($_GET['excluir']);
     $stmt = $db->prepare("DELETE FROM caixa WHERE id = :id");
     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     header("Location: caixa.php?mensagem=excluido");
     exit;
-} elseif (isset($_GET['excluir']) && !podeDeletar('caixa')) {
-    // Redirecionamento com mensagem de erro
+} elseif (isset($_GET['excluir']) && (empty($_SESSION['usuario']['nivel']) || $_SESSION['usuario']['nivel'] !== 'admin')) {
+    // Redirecionamento com mensagem de erro para usuários não-admin
     header("Location: caixa.php?mensagem=erro_permissao");
     exit;
 }
@@ -175,11 +175,7 @@ $data_hoje = date('Y-m-d');
     </div>
 </div>
 
-<!-- Debug da permissão -->
-<?php 
-$permissao_debug = podeDeletar('caixa') ? 'Tem permissão para deletar' : 'Não tem permissão para deletar'; 
-echo "<div class='alert alert-info'>Status permissão: $permissao_debug</div>";
-?>
+
 
 <!-- Listagem das movimentações -->
 <div class="card">
@@ -252,7 +248,7 @@ echo "<div class='alert alert-info'>Status permissão: $permissao_debug</div>";
                                     <a href="caixa_form.php?id=<?php echo $mov['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <?php if (podeDeletar('caixa')): ?>
+                                    <?php if (isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin'): ?>
                                     <a href="#" onclick="confirmarExclusao(<?php echo $mov['id']; ?>, '<?php echo addslashes($mov['descricao']); ?>', 'caixa.php'); return false;" class="btn btn-sm btn-danger" title="Excluir">
                                         <i class="fas fa-trash"></i>
                                     </a>
