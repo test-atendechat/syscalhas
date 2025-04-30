@@ -73,12 +73,16 @@ $totais_movimentacoes = $stmt->fetch(PDO::FETCH_ASSOC);
 // Consultar dados de vendas
 $stmt = $db->prepare("
     SELECT 
-        COUNT(*) as total_vendas,
-        SUM(valor_total) as valor_total_vendas,
-        SUM(CASE WHEN status_pagamento = 'pago_total' THEN valor_total ELSE 0 END) as valor_pago_vendas,
-        SUM(CASE WHEN status_pagamento != 'pago_total' THEN valor_total ELSE 0 END) as valor_pendente_vendas
-    FROM vendas
-    WHERE data_venda BETWEEN :data_inicio AND :data_fim
+        COUNT(v.id) as total_vendas,
+        SUM(v.valor_total) as valor_total_vendas,
+        SUM(CASE WHEN v.status_pagamento = 'pago_total' THEN v.valor_total 
+                 ELSE COALESCE((SELECT SUM(c.valor) FROM caixa c WHERE c.venda_id = v.id AND c.tipo = 'entrada'), 0)
+                 END) as valor_pago_vendas,
+        SUM(CASE WHEN v.status_pagamento != 'pago_total' 
+                 THEN (v.valor_total - COALESCE((SELECT SUM(c.valor) FROM caixa c WHERE c.venda_id = v.id AND c.tipo = 'entrada'), 0)) 
+                 ELSE 0 END) as valor_pendente_vendas
+    FROM vendas v
+    WHERE v.data_venda BETWEEN :data_inicio AND :data_fim
 ");
 $stmt->bindValue(':data_inicio', $data_inicio_mysql);
 $stmt->bindValue(':data_fim', $data_fim_mysql);
@@ -173,7 +177,7 @@ $proporcao_custo = ($valor_saidas > 0) ? ($custo_produtos_vendidos / $valor_said
 // Calcular o custo dos produtos vendidos, com base no valor TOTAL das vendas
 $custo_total_vendas = $valor_total_vendas * $proporcao_custo;
 
-// Calcular o custo dos produtos nas vendas que foram PAGAS
+// Calcular o custo dos produtos nas vendas que foram PAGAS (total ou parcialmente)
 $custo_vendas_pagas = $valor_pago_vendas * $proporcao_custo;
 
 // Lucro das vendas diretas - considerando APENAS as vendas PAGAS para o lucro operacional
@@ -200,8 +204,8 @@ $lucro_orcamentos = $valor_orcamentos_aprovados - $custo_produtos;
 // Isso representa quanto a empresa ganhou operacionalmente após subtrair os custos dos materiais
 $lucro_operacional = $lucro_vendas + $lucro_orcamentos;
 
-// Valor total para cálculo da margem (vendas + orçamentos)
-$valor_total_operacional = $valor_saidas + $valor_orcamentos_aprovados;
+// Valor total para cálculo da margem (vendas pagas + orçamentos aprovados)
+$valor_total_operacional = $valor_pago_vendas + $valor_orcamentos_aprovados;
 $margem_lucro = $valor_total_operacional > 0 ? ($lucro_operacional / $valor_total_operacional) * 100 : 0;
 
 // Margem de lucro específica dos orçamentos
