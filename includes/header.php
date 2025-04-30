@@ -466,17 +466,43 @@ try {
         if (toggleThemeBtn) {
             toggleThemeBtn.addEventListener('click', function() {
                 // Alterna o tema sem recarregar a página
-                const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+                const currentTheme = document.documentElement.getAttribute('data-bs-theme') || '<?php echo $tema_sistema; ?>';
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                 
                 // Atualiza o atributo no HTML
                 document.documentElement.setAttribute('data-bs-theme', newTheme);
                 
-                // Atualiza o ícone do botão
+                // Aplicar diretamente as variáveis CSS para modo escuro/claro
                 if (newTheme === 'dark') {
+                    // Aplicar tema escuro diretamente via CSS
+                    document.documentElement.style.setProperty('--bg-color', '#212529');
+                    document.documentElement.style.setProperty('--text-color', '#f8f9fa');
+                    document.documentElement.style.setProperty('--card-bg', '#343a40');
+                    document.documentElement.style.setProperty('--card-border', '#495057');
+                    document.documentElement.style.setProperty('--input-bg', '#2b3035');
+                    document.documentElement.style.setProperty('--input-border', '#495057');
+                    document.documentElement.style.setProperty('--table-stripe', 'rgba(255, 255, 255, 0.05)');
+                    document.documentElement.style.setProperty('--hover-bg', 'rgba(255, 255, 255, 0.075)');
+                    document.documentElement.style.setProperty('--border-color', '#495057');
+                    document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.5)');
+                    
+                    // Atualiza o ícone para sol (mudar para claro)
                     this.innerHTML = '<i class="fas fa-sun"></i>';
                     this.title = 'Mudar para tema claro';
                 } else {
+                    // Aplicar tema claro diretamente via CSS
+                    document.documentElement.style.setProperty('--bg-color', '#f8f9fa');
+                    document.documentElement.style.setProperty('--text-color', '#212529');
+                    document.documentElement.style.setProperty('--card-bg', '#ffffff');
+                    document.documentElement.style.setProperty('--card-border', '#dee2e6');
+                    document.documentElement.style.setProperty('--input-bg', '#ffffff');
+                    document.documentElement.style.setProperty('--input-border', '#ced4da');
+                    document.documentElement.style.setProperty('--table-stripe', 'rgba(0, 0, 0, 0.05)');
+                    document.documentElement.style.setProperty('--hover-bg', 'rgba(0, 0, 0, 0.075)');
+                    document.documentElement.style.setProperty('--border-color', '#dee2e6');
+                    document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.15)');
+                    
+                    // Atualiza o ícone para lua (mudar para escuro)
                     this.innerHTML = '<i class="fas fa-moon"></i>';
                     this.title = 'Mudar para tema escuro';
                 }
