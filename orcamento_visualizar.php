@@ -328,7 +328,7 @@ if (!$acesso_interno) {
                 </span>
                 
                 <!-- Status de pagamento -->
-                <?php if ($orcamento['status_pagamento'] == 'pago'): ?>
+                <?php if ($orcamento['status_pagamento'] == 'pago_total'): ?>
                 <span class="status-box status-pago ms-2">
                     PAGO TOTAL
                 </span>
