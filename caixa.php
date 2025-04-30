@@ -175,6 +175,12 @@ $data_hoje = date('Y-m-d');
     </div>
 </div>
 
+<!-- Debug da permissão -->
+<?php 
+$permissao_debug = podeDeletar('caixa') ? 'Tem permissão para deletar' : 'Não tem permissão para deletar'; 
+echo "<div class='alert alert-info'>Status permissão: $permissao_debug</div>";
+?>
+
 <!-- Listagem das movimentações -->
 <div class="card">
     <div class="card-header bg-primary text-white">

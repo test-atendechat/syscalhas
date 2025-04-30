@@ -14,17 +14,32 @@ function verificarPermissao($permissao) {
     
     // Se não há usuário logado, não tem permissão
     if (!isset($_SESSION['usuario']) || !isset($_SESSION['usuario']['id'])) {
+        error_log("Usuário não logado tentando acessar permissão: $permissao");
         return false;
     }
     
     $usuario_id = $_SESSION['usuario']['id'];
+    $usuario_nome = $_SESSION['usuario']['nome'] ?? 'Desconhecido';
+    $usuario_nivel = $_SESSION['usuario']['nivel'] ?? 'Desconhecido';
     
     // Administradores têm todas as permissões automaticamente
     if (isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin') {
+        error_log("Usuário $usuario_nome (ID: $usuario_id) é admin, permissão $permissao concedida automaticamente");
         return true;
     }
     
     try {
+        // Verifica se a permissão existe na tabela
+        $verificar_coluna = $db->prepare("SELECT column_name FROM information_schema.columns 
+                                         WHERE table_name = 'permissoes' AND column_name = :coluna");
+        $verificar_coluna->bindParam(':coluna', $permissao);
+        $verificar_coluna->execute();
+        
+        if ($verificar_coluna->rowCount() == 0) {
+            error_log("ERRO: Permissão '$permissao' não existe na tabela permissoes. Usuário: $usuario_nome (ID: $usuario_id, Nível: $usuario_nivel)");
+            return false;
+        }
+        
         // Verifica na tabela de permissões
         $sql = "SELECT $permissao FROM permissoes WHERE usuario_id = :usuario_id";
         $stmt = $db->prepare($sql);
@@ -33,11 +48,15 @@ function verificarPermissao($permissao) {
         
         if ($stmt->rowCount() > 0) {
             $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
-            return (isset($resultado[$permissao]) && $resultado[$permissao]);
+            $tem_permissao = (isset($resultado[$permissao]) && $resultado[$permissao]);
+            error_log("Verificando permissão '$permissao' para usuário $usuario_nome (ID: $usuario_id, Nível: $usuario_nivel): " . ($tem_permissao ? 'SIM' : 'NÃO'));
+            return $tem_permissao;
+        } else {
+            error_log("ERRO: Usuário $usuario_nome (ID: $usuario_id, Nível: $usuario_nivel) não tem registro na tabela de permissões");
+            return false;
         }
     } catch (Exception $e) {
-        // Log do erro (em ambiente de produção)
-        error_log("Erro ao verificar permissão: " . $e->getMessage());
+        error_log("ERRO ao verificar permissão '$permissao': " . $e->getMessage() . " - Usuário: $usuario_nome (ID: $usuario_id, Nível: $usuario_nivel)");
     }
     
     return false;
