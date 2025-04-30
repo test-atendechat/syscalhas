@@ -75,8 +75,8 @@ $stmt = $db->prepare("
     SELECT 
         COUNT(*) as total_vendas,
         SUM(valor_total) as valor_total_vendas,
-        SUM(valor_total) as valor_pago_vendas,
-        0 as valor_pendente_vendas
+        SUM(CASE WHEN status_pagamento = 'pago_total' THEN valor_total ELSE 0 END) as valor_pago_vendas,
+        SUM(CASE WHEN status_pagamento != 'pago_total' THEN valor_total ELSE 0 END) as valor_pendente_vendas
     FROM vendas
     WHERE data_venda BETWEEN :data_inicio AND :data_fim
 ");
@@ -163,8 +163,15 @@ $valor_entradas = $totais_movimentacoes['valor_entradas'] ?? 0;
 $valor_saidas = $totais_movimentacoes['valor_saidas'] ?? 0;
 $custo_produtos_vendidos = $totais_movimentacoes['custo_produtos_vendidos'] ?? 0;
 
-// Lucro das vendas diretas (produtos vendidos diretamente no caixa)
-$lucro_vendas = $valor_saidas - $custo_produtos_vendidos;
+// Obter os valores das vendas a partir da tabela vendas
+$valor_total_vendas = $totais_vendas['valor_total_vendas'] ?? 0;
+
+// Calcular o custo médio das vendas (utilizando a mesma proporção da movimentação de estoque)
+$proporcao_custo = ($valor_saidas > 0) ? ($custo_produtos_vendidos / $valor_saidas) : 0.5;
+$custo_total_vendas = $valor_total_vendas * $proporcao_custo;
+
+// Lucro das vendas diretas - considerando TODAS as vendas, não apenas as pagas
+$lucro_vendas = $valor_total_vendas - $custo_total_vendas;
 
 // Cálculos de lucratividade dos orçamentos
 $valor_total_produtos = $totais_orcamentos['valor_total_produtos'] ?? 0;
@@ -306,7 +313,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                             Valor Total de Vendas</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo formataValor($valor_saidas); ?></div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo formataValor($valor_total_vendas); ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -394,11 +401,11 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     </tr>
                                     <tr>
                                         <td>Valor Total de Vendas</td>
-                                        <td class="text-end"><?php echo formataValor($valor_saidas); ?></td>
+                                        <td class="text-end"><?php echo formataValor($valor_total_vendas); ?></td>
                                     </tr>
                                     <tr>
                                         <td>Lucro em Vendas</td>
-                                        <td class="text-end"><?php echo formataValor($valor_saidas - $custo_produtos_vendidos); ?></td>
+                                        <td class="text-end"><?php echo formataValor($valor_total_vendas - $custo_total_vendas); ?></td>
                                     </tr>
                                     
                                     <tr class="table-light">
@@ -427,7 +434,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     
                                     <tr class="table-success">
                                         <td><strong>Lucro Total (Vendas + Orçamentos)</strong></td>
-                                        <td class="text-end"><strong><?php echo formataValor(($valor_saidas - $custo_produtos_vendidos) + ($valor_orcamentos_aprovados - $custo_produtos)); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo formataValor(($valor_total_vendas - $custo_total_vendas) + ($valor_orcamentos_aprovados - $custo_produtos)); ?></strong></td>
                                     </tr>
                                 </tbody>
                             </table>
