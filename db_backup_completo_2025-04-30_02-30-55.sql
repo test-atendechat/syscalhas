@@ -1535,4 +1535,4 @@ ALTER TABLE permissoes
   ALTER COLUMN visualizar_relatorios_gerais SET DEFAULT false;
 
 -- Corrigir dados do usuário admin
-UPDATE usuarios SET senha = '$2y$10$GWTRZi02R5EDTvVxrGtPiewh//Ls6QeFQzxsWMFIXUZxALTwhtNzC' WHERE email = 'admin@admin.com';
+UPDATE usuarios SET senha = '$2y$10$EEBJiT97K69mpRsHtSepR.xMp/XuBOlKX6c3D3N/pTDDKoPtJRbZu' WHERE email = 'admin@admin.com';
