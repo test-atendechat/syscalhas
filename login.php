@@ -5,7 +5,10 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/auth.php');
 
-// Forçar desconexão para evitar loops de redirecionamento
+// Iniciar nova sessão limpa
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 session_unset();
 session_destroy();
 session_start();
