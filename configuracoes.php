@@ -33,8 +33,7 @@ $configuracoes = [
     'cor_aprovado' => '#198754', // Success bootstrap
     'cor_pendente' => '#ffc107', // Warning bootstrap
     'cor_rejeitado' => '#dc3545', // Danger bootstrap
-    // Opções de menu e tema
-    'estilo_menu' => 'padrao', // padrao, black, lateral
+    // Opção de tema
     'tema_sistema' => 'light', // light, dark
 ];
 
@@ -178,17 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h5><i class="fas fa-palette me-2"></i>Configurações de Aparência</h5>
                 <hr>
                 
-                <!-- Menu e Tema -->
+                <!-- Tema -->
                 <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
-                        <label for="estilo_menu" class="form-label">Estilo do Menu</label>
-                        <select class="form-select" id="estilo_menu" name="estilo_menu">
-                            <option value="padrao" <?php echo ($configuracoes['estilo_menu'] == 'padrao') ? 'selected' : ''; ?>>Menu Padrão (Superior)</option>
-                            <option value="black" <?php echo ($configuracoes['estilo_menu'] == 'black') ? 'selected' : ''; ?>>Menu Black (Centralizado com bordas)</option>
-                            <option value="lateral" <?php echo ($configuracoes['estilo_menu'] == 'lateral') ? 'selected' : ''; ?>>Menu Lateral (Sidebar)</option>
-                        </select>
-                        <div class="form-text">Escolha o estilo de menu que você prefere usar no sistema.</div>
-                    </div>
                     <div class="col-md-6 mb-3">
                         <label for="tema_sistema" class="form-label">Tema do Sistema</label>
                         <select class="form-select" id="tema_sistema" name="tema_sistema">
@@ -196,6 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <option value="dark" <?php echo ($configuracoes['tema_sistema'] == 'dark') ? 'selected' : ''; ?>>Tema Escuro (Dark)</option>
                         </select>
                         <div class="form-text">Define a aparência geral do sistema (claro ou escuro).</div>
+                        <div class="mt-2 form-text"><i class="fas fa-info-circle"></i> Você também pode alternar o tema rapidamente usando o botão de sol/lua no menu superior.</div>
                     </div>
                 </div>
                 

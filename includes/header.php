@@ -293,8 +293,7 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 }
                 <?php endif; ?>
                 
-                /* Estilos para o menu black centralizado */
-                <?php if ($estilo_menu == 'black'): ?>
+                /* Estilos para o menu centralizado com bordas (padrão) */
                 .navbar.navbar-dark.bg-primary {
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 }
@@ -331,7 +330,6 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     border: 1px solid rgba(255, 255, 255, 0.15);
                     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
                 }
-                <?php endif; ?>
                 
                 /* Botão alternar tema */
                 .toggle-theme-btn {
@@ -391,148 +389,8 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 }
             </style>
         </head>
-        <body class="<?php echo ($estilo_menu == 'lateral') ? 'sidebar-layout' : ''; ?>">
-            <?php if ($estilo_menu == 'lateral'): ?>
-            <!-- Menu Lateral -->
-            <div class="sidebar">
-                <a class="navbar-brand" href="dashboard.php">
-                    <i class="fas fa-water me-2"></i><?php echo APP_NAME; ?>
-                </a>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo ($pagina_atual == 'dashboard.php') ? 'active' : ''; ?>" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                    </li>
-                    
-                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_orcamentos')): ?>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo (strpos($pagina_atual, 'orcamento') !== false) ? 'active' : ''; ?>" href="orcamentos.php">
-                            <i class="fas fa-file-invoice-dollar me-2"></i>Orçamentos
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_clientes')): ?>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo (strpos($pagina_atual, 'cliente') !== false) ? 'active' : ''; ?>" href="clientes.php">
-                            <i class="fas fa-users me-2"></i>Clientes
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php 
-                    // Verifica se o usuário tem acesso a pelo menos uma seção financeira
-                    $mostra_financas = ($_SESSION['usuario']['nivel'] === 'admin' || 
-                                       verificarPermissao('gerenciar_caixa') || 
-                                       verificarPermissao('gerenciar_vendas') || 
-                                       verificarPermissao('gerenciar_contas'));
-                    
-                    if ($mostra_financas): 
-                    ?>
-                    <li class="nav-item">
-                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'caixa') !== false || strpos($pagina_atual, 'vendas') !== false || strpos($pagina_atual, 'conta') !== false) ? 'active' : ''; ?>" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-cash-register me-2"></i>Finanças
-                        </a>
-                        <div class="dropdown-menu">
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_caixa')): ?>
-                            <a class="dropdown-item" href="caixa.php"><i class="fas fa-money-bill-wave me-2"></i>Caixa</a>
-                            <?php endif; ?>
-                            
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_vendas')): ?>
-                            <a class="dropdown-item" href="vendas.php"><i class="fas fa-shopping-cart me-2"></i>Histórico de Vendas</a>
-                            <?php endif; ?>
-                            
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_contas')): ?>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="contas_pagar.php"><i class="fas fa-file-invoice me-2"></i>Contas a Pagar</a>
-                            <?php endif; ?>
-                        </div>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php 
-                    // Verifica se o usuário tem acesso a pelo menos uma seção de produtos/estoque
-                    $mostra_produtos = ($_SESSION['usuario']['nivel'] === 'admin' || 
-                                      verificarPermissao('gerenciar_produtos') || 
-                                      verificarPermissao('gerenciar_estoque'));
-                    
-                    if ($mostra_produtos): 
-                    ?>
-                    <li class="nav-item">
-                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'produto') !== false || strpos($pagina_atual, 'estoque') !== false) ? 'active' : ''; ?>" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-boxes me-2"></i>Produtos e Estoque
-                        </a>
-                        <div class="dropdown-menu">
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_produtos')): ?>
-                            <a class="dropdown-item" href="produtos.php"><i class="fas fa-box me-2"></i>Cadastro de Produtos</a>
-                            <?php endif; ?>
-                            
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_estoque')): ?>
-                            <a class="dropdown-item" href="estoque.php"><i class="fas fa-warehouse me-2"></i>Controle de Estoque</a>
-                            <a class="dropdown-item" href="estoque_movimentacoes.php"><i class="fas fa-exchange-alt me-2"></i>Movimentações</a>
-                            <?php endif; ?>
-                        </div>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'relatorio') !== false) ? 'active' : ''; ?>" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-chart-bar me-2"></i>Relatórios
-                        </a>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="relatorio_financeiro.php"><i class="fas fa-dollar-sign me-2"></i>Financeiro</a>
-                            <a class="dropdown-item" href="relatorios_vendas.php"><i class="fas fa-shopping-cart me-2"></i>Vendas</a>
-                            <a class="dropdown-item" href="relatorios_produtos_vendidos.php"><i class="fas fa-boxes me-2"></i>Produtos Vendidos</a>
-                            <a class="dropdown-item" href="relatorios_orcamentos.php"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamentos</a>
-                            <a class="dropdown-item" href="relatorios_contas.php"><i class="fas fa-file-invoice me-2"></i>Contas a Pagar</a>
-                            <a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-2"></i>Estoque Baixo</a>
-                        </div>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'usuario') !== false || $pagina_atual == 'configuracoes.php') ? 'active' : ''; ?>" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-cogs me-2"></i>Sistema
-                        </a>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="usuarios.php"><i class="fas fa-users-cog me-2"></i>Usuários</a>
-                            <a class="dropdown-item" href="configuracoes.php"><i class="fas fa-cog me-2"></i>Configurações</a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="backup_sql_simples.php" onclick="return confirm('Deseja fazer um backup do banco de dados?')"><i class="fas fa-database me-2"></i>Backup do Banco</a>
-                        </div>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                
-                <!-- Usuário e tema no menu lateral -->
-                <div class="mt-auto p-3 border-top">
-                    <div class="d-flex align-items-center mb-3">
-                        <button id="toggle-theme-btn" class="toggle-theme-btn me-2">
-                            <?php if ($tema_sistema == 'dark'): ?>
-                            <i class="fas fa-sun"></i>
-                            <?php else: ?>
-                            <i class="fas fa-moon"></i>
-                            <?php endif; ?>
-                        </button>
-                        <div class="text-white">
-                            <?php echo ($tema_sistema == 'dark') ? 'Modo Claro' : 'Modo Escuro'; ?>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-user-circle text-white fs-4 me-2"></i>
-                        <div class="text-white">
-                            <div class="small"><?php echo $_SESSION['usuario']['nome']; ?></div>
-                            <div class="small text-white-50"><?php echo ucfirst($_SESSION['usuario']['nivel']); ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="main-content">
-            <?php else: ?>
-            <!-- Menu Superior (Padrão ou Black) -->
+        <body>
+            <!-- Menu com bordas (estilo black) -->
             <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
                 <div class="container-fluid">
                     <a class="navbar-brand" href="dashboard.php">
@@ -695,7 +553,6 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
 
             <div class="container mt-4 mb-5">
                 <!-- Conteúdo da página será incluído aqui -->
-            <?php endif; ?>
 
             <!-- Script para alternar tema -->
             <script>
@@ -703,14 +560,24 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 const toggleThemeBtn = document.getElementById('toggle-theme-btn');
                 if (toggleThemeBtn) {
                     toggleThemeBtn.addEventListener('click', function() {
+                        // Alterna o tema sem recarregar a página
                         const currentTheme = '<?php echo $tema_sistema; ?>';
                         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                         
-                        // Definir um cookie para o tema
-                        document.cookie = `tema_sistema=${newTheme};path=/;max-age=${60*60*24*30}`;
+                        // Atualiza o atributo no HTML
+                        document.documentElement.setAttribute('data-bs-theme', newTheme);
                         
-                        // Recarregar a página para aplicar o novo tema
-                        location.reload();
+                        // Atualiza o ícone do botão
+                        if (newTheme === 'dark') {
+                            this.innerHTML = '<i class="fas fa-sun"></i>';
+                            this.title = 'Mudar para tema claro';
+                        } else {
+                            this.innerHTML = '<i class="fas fa-moon"></i>';
+                            this.title = 'Mudar para tema escuro';
+                        }
+                        
+                        // Salva a preferência em cookie
+                        document.cookie = 'tema_sistema=' + newTheme + '; path=/; max-age=31536000'; // 1 ano
                     });
                 }
             });
