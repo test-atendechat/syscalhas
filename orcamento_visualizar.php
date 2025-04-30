@@ -82,7 +82,7 @@ if (isset($_GET['id'])) {
                           (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
                           FROM caixa c 
                           WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
-                          ORDER BY c.data_registro DESC");
+                          ORDER BY c.data_operacao DESC");
         $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -110,6 +110,22 @@ if (isset($_GET['id'])) {
         $orcamento = buscarOrcamento($id);
         $itens = buscarItensOrcamento($id);
         $cliente = buscarCliente($orcamento['cliente_id']);
+        
+        // Buscar histórico de pagamentos do orçamento
+        $stmt = $db->prepare("SELECT c.*, 
+                         (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                         FROM caixa c 
+                         WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                         ORDER BY c.data_operacao DESC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
+        }
     } else {
         // Template HTML mínimo para exibir erro
         ?>
