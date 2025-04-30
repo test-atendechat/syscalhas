@@ -205,14 +205,20 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 
                 /* Estilos específicos para o menu lateral */
                 <?php if ($estilo_menu == 'lateral'): ?>
+                html, body {
+                    min-height: 100%;
+                    height: 100%;
+                }
+                
                 body {
                     display: flex;
-                    min-height: 100vh;
+                    flex-direction: column;
+                    padding-left: 250px; /* Largura do sidebar */
                 }
                 
                 .sidebar {
                     width: 250px;
-                    min-height: 100vh;
+                    height: 100%;
                     background-color: var(--cor-principal);
                     color: white;
                     position: fixed;
@@ -220,6 +226,8 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     left: 0;
                     z-index: 1000;
                     padding-top: 1rem;
+                    display: flex;
+                    flex-direction: column;
                 }
                 
                 .sidebar .navbar-brand {
@@ -263,17 +271,31 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     color: white;
                 }
                 
+                .sidebar .nav {
+                    overflow-y: auto;
+                    flex-grow: 1;
+                }
+                
                 .main-content {
                     flex: 1;
-                    margin-left: 250px;
-                    padding: 1rem;
+                    display: flex;
+                    flex-direction: column;
+                    min-height: 100vh;
+                }
+                
+                .container.mt-4.mb-5 {
+                    flex: 1;
+                }
+                
+                footer {
+                    width: 100%;
+                    margin-left: 0;
                 }
                 <?php endif; ?>
                 
-                /* Estilos para o menu black */
+                /* Estilos para o menu black centralizado */
                 <?php if ($estilo_menu == 'black'): ?>
                 .navbar.navbar-dark.bg-primary {
-                    background-color: #000 !important;
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 }
                 
@@ -287,6 +309,7 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     padding: 0.7rem 1.2rem;
                     margin: 0 0.3rem;
                     border-radius: 5px;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
                     transition: all 0.3s ease;
                     text-transform: uppercase;
                     font-size: 0.9rem;
@@ -295,25 +318,18 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 
                 .navbar .nav-link:hover {
                     background-color: rgba(255, 255, 255, 0.1);
+                    border-color: rgba(255, 255, 255, 0.3);
                 }
                 
                 .navbar .nav-link.active {
-                    background-color: var(--cor-principal);
+                    background-color: rgba(255, 255, 255, 0.15);
+                    border-color: rgba(255, 255, 255, 0.5);
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
                 }
                 
                 .navbar .dropdown-menu {
-                    background-color: #222;
-                    border: 1px solid #333;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
                     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-                }
-                
-                .navbar .dropdown-item {
-                    color: #fff;
-                }
-                
-                .navbar .dropdown-item:hover {
-                    background-color: #333;
                 }
                 <?php endif; ?>
                 
