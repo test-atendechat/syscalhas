@@ -246,9 +246,11 @@ $data_hoje = date('Y-m-d');
                                     <a href="caixa_form.php?id=<?php echo $mov['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <?php if (podeDeletar('caixa')): ?>
                                     <a href="#" onclick="confirmarExclusao(<?php echo $mov['id']; ?>, '<?php echo addslashes($mov['descricao']); ?>', 'caixa.php'); return false;" class="btn btn-sm btn-danger" title="Excluir">
                                         <i class="fas fa-trash"></i>
                                     </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
