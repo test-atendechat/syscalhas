@@ -335,8 +335,8 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Valor Total de Vendas</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo formataValor($valor_total_vendas); ?></div>
+                            Valor Total Recebido</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo formataValor($valor_pago_vendas); ?></div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -423,8 +423,8 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                         <td class="text-end"><?php echo formataValor($custo_total_vendas); ?></td>
                                     </tr>
                                     <tr>
-                                        <td>Valor Total de Vendas</td>
-                                        <td class="text-end"><?php echo formataValor($valor_total_vendas); ?></td>
+                                        <td>Valor Recebido de Vendas</td>
+                                        <td class="text-end"><?php echo formataValor($valor_pago_vendas); ?></td>
                                     </tr>
                                     <tr>
                                         <td>Lucro em Vendas</td>
