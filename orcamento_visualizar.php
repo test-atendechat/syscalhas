@@ -438,7 +438,7 @@ if (!$acesso_interno) {
         </table>
     </div>
     
-    <?php if ($acesso_interno && count($pagamentos) > 0): ?>
+    <?php if (count($pagamentos) > 0): ?>
     <div class="mt-4">
         <h5><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h5>
         <div class="table-responsive">
@@ -449,7 +449,9 @@ if (!$acesso_interno) {
                         <th>Valor</th>
                         <th>Forma de Pagamento</th>
                         <th>Descrição</th>
+                        <?php if ($acesso_interno): ?>
                         <th>Usuário</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -478,7 +480,9 @@ if (!$acesso_interno) {
                             ?>
                         </td>
                         <td><?php echo $pagamento['descricao']; ?></td>
+                        <?php if ($acesso_interno): ?>
                         <td><?php echo $pagamento['usuario_nome'] ?? 'Sistema'; ?></td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -486,7 +490,7 @@ if (!$acesso_interno) {
                     <tr class="table-info">
                         <td colspan="1"><strong>Total Pago:</strong></td>
                         <td class="text-end"><strong><?php echo formataValor($total_pago); ?></strong></td>
-                        <td colspan="3">
+                        <td colspan="<?php echo $acesso_interno ? '3' : '2'; ?>">
                             <?php if ($total_pago > 0 && $total_pago < $orcamento['valor_total']): ?>
                             <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $total_pago); ?></span>
                             <?php endif; ?>

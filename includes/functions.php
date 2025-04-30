@@ -55,21 +55,25 @@ function podeDeletar($area = '') {
         return true;
     }
     
-    // Verificar permissões específicas por área
+    // Verificar permissões específicas por área usando as permissões existentes
     if (!empty($area)) {
         switch ($area) {
             case 'caixa':
-                return verificarPermissao('excluir_movimentacoes_caixa');
+                return verificarPermissao('gerenciar_caixa');
             case 'clientes':
-                return verificarPermissao('excluir_clientes');
+                return verificarPermissao('gerenciar_clientes');
             case 'produtos':
-                return verificarPermissao('excluir_produtos');
+                return verificarPermissao('gerenciar_produtos');
             case 'orcamentos':
-                return verificarPermissao('excluir_orcamentos');
+                return verificarPermissao('gerenciar_orcamentos');
             case 'vendas':
-                return verificarPermissao('excluir_vendas');
+                return verificarPermissao('gerenciar_vendas');
             case 'usuarios':
-                return verificarPermissao('excluir_usuarios');
+                return verificarPermissao('gerenciar_usuarios');
+            case 'contas':
+                return verificarPermissao('gerenciar_contas');
+            case 'estoque':
+                return verificarPermissao('gerenciar_estoque');
             default:
                 return false;
         }
