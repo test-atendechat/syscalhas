@@ -1,0 +1,16 @@
+Parece que o banco foi instalado, mas com alguns erros nos valores booleanos. Vamos corrigir as permissões:
+
+
+Agent ran into an error
+Vamos corrigir as permissões uma por uma:
+
+
+Executed SQL query -- Corrigir os valores booleanos vazios nas permissões UPDATE permissoes SET gerenciar_usuarios = false WHERE gerenciar_usuarios IS NULL; UPDATE permissoes SET visualizar_relatorios_financeiros = false WHERE visualizar_relatorios_financeiros IS NULL; UPDATE permissoes SET gerenciar_estoque = false WHERE gerenciar_estoque IS NULL; UPDATE permissoes SET gerenciar_produtos = false WHERE gerenciar_produtos IS NULL; UPDATE permissoes SET gerenciar_orcamentos = false WHERE gerenciar_orcamentos IS NULL; UPDATE permissoes SET gerenciar_vendas = false WHERE gerenciar_vendas IS NULL; UPDATE permissoes SET gerenciar_clientes = false WHERE gerenciar_clientes IS NULL; UPDATE permissoes SET gerenciar_caixa = false WHERE gerenciar_caixa IS NULL; UPDATE permissoes SET gerenciar_contas = false WHERE gerenciar_contas IS NULL; UPDATE permissoes SET visualizar_relatorios_gerais = false WHERE visualizar_relatorios_gerais IS NULL;
+Vamos corrigir de outra forma:
+
+
+Executed SQL query -- Excluir e recriar as permissões para os usuários DELETE FROM permissoes WHERE id = 2 OR id = 3; -- Recriar a permissão para o usuário Atendente (id = 3) INSERT INTO permissoes ( usuario_id, gerenciar_usuarios, visualizar_relatorios_financeiros, gerenciar_estoque, gerenciar_produtos, gerenciar_orcamentos, gerenciar_vendas, gerenciar_clientes, gerenciar_caixa, gerenciar_contas, visualizar_relatorios_gerais ) VALUES ( 3, false, false, true, false, true, true, true, true, false, false ); -- Recriar a permissão para o usuário Financeiro (id = 4) INSERT INTO permissoes ( usuario_id, gerenciar_usuarios, visualizar_relatorios_financeiros, gerenciar_estoque, gerenciar_produtos, gerenciar_orcamentos, gerenciar_vendas, gerenciar_clientes, gerenciar_caixa, gerenciar_contas, visualizar_relatorios_gerais ) VALUES ( 4, false, true, true, false, true, true, true, true, true, false );
+Agora vamos limpar apenas os dados operacionais, mantendo as configurações, usuários, produtos e clientes:
+
+
+Executed SQL query -- Desativar temporariamente restriç
