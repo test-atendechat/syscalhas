@@ -1,4 +1,3 @@
-
 <?php
 // Configurações do sistema
 define('APP_NAME', 'Grupo Sandro Calhas LTDA');

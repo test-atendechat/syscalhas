@@ -197,23 +197,23 @@ footer {
     .no-print {
         display: none !important;
     }
-    
+
     .orcamento-container {
         padding: 20px;
         font-size: 12pt;
     }
-    
+
     .table-orcamento {
         width: 100%;
         border-collapse: collapse;
     }
-    
+
     .table-orcamento th,
     .table-orcamento td {
         border: 1px solid #ddd;
         padding: 8px;
     }
-    
+
     .orcamento-header,
     .orcamento-footer {
         margin-bottom: 20px;
@@ -225,7 +225,7 @@ footer {
     .sidebar {
         margin-left: -250px;
     }
-    
+
     .sidebar.active {
         margin-left: 0;
     }

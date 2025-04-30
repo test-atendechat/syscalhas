@@ -187,9 +187,9 @@ if (isset($_POST['excluir']) && isset($_POST['id'])) {
                                 <td><?php echo $produto['categoria_nome']; ?></td>
                                 <td><?php echo $produto['unidade']; ?></td>
                                 <td>
-                                    <?php echo number_format($produto['estoque_atual'], 0); ?>
+                                    <?php echo number_format($produto['estoque_atual'], 2, ',', '.'); ?>
                                     <?php if ($produto['estoque_minimo'] > 0): ?>
-                                        <small class="text-muted d-block">Min: <?php echo $produto['estoque_minimo']; ?></small>
+                                        <small class="text-muted d-block">Min: <?php echo number_format($produto['estoque_minimo'], 2, ',', '.'); ?></small>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo formataValor($produto['custo_unitario']); ?></td>
