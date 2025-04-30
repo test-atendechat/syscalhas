@@ -2,6 +2,34 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+
+// Configurar locale para português (para nomes de dias e meses)
+setlocale(LC_TIME, 'pt_BR.utf8', 'pt_BR', 'pt_BR.utf-8', 'portuguese');
+
+// Definir fuso horário
+date_default_timezone_set('America/Sao_Paulo');
+
+// Função para obter a data formatada em português
+function getDataFormatadaPtBr($format = '%A, %d de %B de %Y') {
+    $timestamp = time();
+    $result = strftime($format, $timestamp);
+    
+    // Caso o locale não funcione corretamente, temos uma alternativa
+    if (strpos($result, '%') !== false) {
+        $dias = array('Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado');
+        $meses = array('Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro');
+        
+        $dia_semana = $dias[date('w', $timestamp)];
+        $dia = date('d', $timestamp);
+        $mes = $meses[date('n', $timestamp) - 1];
+        $ano = date('Y', $timestamp);
+        
+        return "$dia_semana, $dia de $mes de $ano";
+    }
+    
+    return $result;
+}
+
 require_once('includes/header.php');
 
 // Obter estatísticas
@@ -102,7 +130,7 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="col-md-5">
             <div class="date-info">
                 <h3><?php echo date('H:i'); ?></h3>
-                <div class="current-date"><?php echo utf8_encode(strftime('%A, %d de %B de %Y', strtotime('today'))); ?></div>
+                <div class="current-date"><?php echo getDataFormatadaPtBr(); ?></div>
             </div>
         </div>
     </div>
@@ -112,19 +140,18 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php if ($contas_vencidas > 0 || $contas_a_vencer > 0 || $orcamentos_sem_retorno > 0 || $estoque_baixo > 0): ?>
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="alert-card card">
             <div class="card-header bg-danger text-white">
                 <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Alertas Importantes</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body py-4">
                 <div class="row">
                     <?php if ($contas_vencidas > 0): ?>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-danger" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-exclamation-circle me-2"></i>Contas Vencidas!</h5>
+                        <div class="alert-item alert-item-critical">
+                            <h5><i class="fas fa-exclamation-circle me-2"></i>Contas Vencidas</h5>
                             <p>Você tem <strong><?php echo $contas_vencidas; ?> conta(s)</strong> vencida(s) aguardando pagamento.</p>
-                            <hr>
-                            <a href="contas_pagar.php?status=pendente&vencidas=1" class="btn btn-sm btn-danger">
+                            <a href="contas_pagar.php?status=pendente&vencidas=1" class="btn btn-sm btn-outline-danger mt-2">
                                 <i class="fas fa-money-bill-wave me-1"></i>Ver contas vencidas
                             </a>
                         </div>
@@ -133,11 +160,10 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <?php if ($contas_a_vencer > 0): ?>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-warning" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Contas a Vencer!</h5>
+                        <div class="alert-item alert-item-warning">
+                            <h5><i class="fas fa-clock me-2"></i>Contas a Vencer</h5>
                             <p>Você tem <strong><?php echo $contas_a_vencer; ?> conta(s)</strong> a vencer nos próximos 7 dias.</p>
-                            <hr>
-                            <a href="contas_pagar.php?status=pendente&a_vencer=1" class="btn btn-sm btn-warning">
+                            <a href="contas_pagar.php?status=pendente&a_vencer=1" class="btn btn-sm btn-outline-warning mt-2">
                                 <i class="fas fa-money-bill-wave me-1"></i>Ver contas a vencer
                             </a>
                         </div>
@@ -146,11 +172,10 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <?php if ($orcamentos_sem_retorno > 0): ?>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-info" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamentos sem Retorno</h5>
+                        <div class="alert-item alert-item-info">
+                            <h5><i class="fas fa-file-invoice-dollar me-2"></i>Orçamentos sem Retorno</h5>
                             <p>Você tem <strong><?php echo $orcamentos_sem_retorno; ?> orçamento(s)</strong> pendente(s) há mais de 5 dias.</p>
-                            <hr>
-                            <a href="orcamentos.php?status=pendente&antigos=1" class="btn btn-sm btn-info text-white">
+                            <a href="orcamentos.php?status=pendente&antigos=1" class="btn btn-sm btn-outline-info mt-2">
                                 <i class="fas fa-search me-1"></i>Ver orçamentos pendentes
                             </a>
                         </div>
@@ -159,11 +184,10 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <?php if ($estoque_baixo > 0): ?>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-secondary" role="alert">
-                            <h5 class="alert-heading"><i class="fas fa-boxes me-2"></i>Estoque Baixo</h5>
+                        <div class="alert-item alert-item-neutral">
+                            <h5><i class="fas fa-boxes me-2"></i>Estoque Baixo</h5>
                             <p>Você tem <strong><?php echo $estoque_baixo; ?> produto(s)</strong> com estoque abaixo do mínimo.</p>
-                            <hr>
-                            <a href="relatorios_estoque_baixo.php" class="btn btn-sm btn-secondary">
+                            <a href="relatorios_estoque_baixo.php" class="btn btn-sm btn-outline-secondary mt-2">
                                 <i class="fas fa-search me-1"></i>Ver produtos com estoque baixo
                             </a>
                         </div>
@@ -179,60 +203,60 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!-- Painel de Acesso Rápido -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
+        <div class="quick-access-card card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Acesso Rápido</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body py-4">
                 <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="orcamento_form.php" class="btn btn-primary btn-lg w-100 py-4">
-                            <i class="fas fa-file-invoice-dollar fa-2x mb-2"></i><br>
-                            Novo Orçamento
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="orcamento_form.php" class="quick-access-button bg-primary text-white">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Novo Orçamento</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="venda_form.php" class="btn btn-success btn-lg w-100 py-4">
-                            <i class="fas fa-shopping-cart fa-2x mb-2"></i><br>
-                            Nova Venda Direta
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="venda_form.php" class="quick-access-button bg-success text-white">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Nova Venda Direta</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="caixa_form.php" class="btn btn-info btn-lg w-100 py-4 text-white">
-                            <i class="fas fa-cash-register fa-2x mb-2"></i><br>
-                            Registrar no Caixa
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="caixa_form.php" class="quick-access-button bg-info text-white">
+                            <i class="fas fa-cash-register"></i>
+                            <span>Registrar no Caixa</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="cliente_form.php" class="btn btn-secondary btn-lg w-100 py-4">
-                            <i class="fas fa-user-plus fa-2x mb-2"></i><br>
-                            Novo Cliente
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="cliente_form.php" class="quick-access-button bg-secondary text-white">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Novo Cliente</span>
                         </a>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="conta_pagar_form.php" class="btn btn-danger btn-lg w-100 py-4">
-                            <i class="fas fa-money-bill-wave fa-2x mb-2"></i><br>
-                            Nova Conta a Pagar
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="conta_pagar_form.php" class="quick-access-button bg-danger text-white">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Nova Conta a Pagar</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="estoque_entrada.php" class="btn btn-warning btn-lg w-100 py-4 text-dark">
-                            <i class="fas fa-truck-loading fa-2x mb-2"></i><br>
-                            Entrada de Estoque
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="estoque_entrada.php" class="quick-access-button bg-warning text-dark">
+                            <i class="fas fa-truck-loading"></i>
+                            <span>Entrada de Estoque</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="relatorios_vendas.php" class="btn btn-dark btn-lg w-100 py-4">
-                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
-                            Relatório de Vendas
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="relatorios_vendas.php" class="quick-access-button bg-dark text-white">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Relatório de Vendas</span>
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="produto_form.php" class="btn btn-light btn-lg w-100 py-4 text-dark border">
-                            <i class="fas fa-box fa-2x mb-2"></i><br>
-                            Novo Produto
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <a href="produto_form.php" class="quick-access-button bg-light text-dark border">
+                            <i class="fas fa-box"></i>
+                            <span>Novo Produto</span>
                         </a>
                     </div>
                 </div>
@@ -242,58 +266,74 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-3 mb-4">
-        <div class="card dashboard-card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-users dashboard-icon mb-3"></i>
-                <h5 class="card-title">Clientes</h5>
-                <h3 class="card-text"><?php echo $clientes_total; ?></h3>
-                <p class="card-text text-muted">Clientes cadastrados</p>
-                <a href="clientes.php" class="btn btn-outline-primary btn-sm">Gerenciar Clientes</a>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="card-body">
+                <div class="stat-title">Clientes</div>
+                <div class="stat-value"><?php echo $clientes_total; ?></div>
+                <div class="stat-description">Total de clientes cadastrados</div>
+                <a href="clientes.php" class="stat-link btn btn-sm btn-outline-primary">
+                    <i class="fas fa-user-cog me-1"></i>Gerenciar
+                </a>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card dashboard-card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-file-invoice-dollar dashboard-icon mb-3"></i>
-                <h5 class="card-title">Orçamentos</h5>
-                <h3 class="card-text"><?php echo $orcamentos_total; ?></h3>
-                <p class="card-text text-muted">
-                    <span class="text-warning"><?php echo $orcamentos_pendentes; ?> pendentes</span> | 
-                    <span class="text-success"><?php echo $orcamentos_aprovados; ?> aprovados</span>
-                </p>
-                <a href="orcamentos.php" class="btn btn-outline-primary btn-sm">Gerenciar Orçamentos</a>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="stat-card">
+            <i class="fas fa-file-invoice-dollar stat-icon"></i>
+            <div class="card-body">
+                <div class="stat-title">Orçamentos</div>
+                <div class="stat-value"><?php echo $orcamentos_total; ?></div>
+                <div class="stat-description">
+                    <?php if ($orcamentos_pendentes > 0): ?>
+                        <span class="badge bg-warning text-dark me-1"><?php echo $orcamentos_pendentes; ?> pendentes</span>
+                    <?php endif; ?>
+                    <?php if ($orcamentos_aprovados > 0): ?>
+                        <span class="badge bg-success"><?php echo $orcamentos_aprovados; ?> aprovados</span>
+                    <?php endif; ?>
+                </div>
+                <a href="orcamentos.php" class="stat-link btn btn-sm btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>Gerenciar
+                </a>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card dashboard-card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-boxes dashboard-icon mb-3"></i>
-                <h5 class="card-title">Produtos</h5>
-                <h3 class="card-text"><?php echo $produtos_total; ?></h3>
-                <?php if ($estoque_baixo > 0): ?>
-                    <p class="card-text text-danger"><?php echo $estoque_baixo; ?> produtos com estoque baixo</p>
-                <?php else: ?>
-                    <p class="card-text text-muted">Todos os estoques estão OK</p>
-                <?php endif; ?>
-                <a href="produtos.php" class="btn btn-outline-primary btn-sm">Gerenciar Produtos</a>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="stat-card">
+            <i class="fas fa-boxes stat-icon"></i>
+            <div class="card-body">
+                <div class="stat-title">Produtos</div>
+                <div class="stat-value"><?php echo $produtos_total; ?></div>
+                <div class="stat-description">
+                    <?php if ($estoque_baixo > 0): ?>
+                        <span class="badge bg-danger"><?php echo $estoque_baixo; ?> com estoque baixo</span>
+                    <?php else: ?>
+                        <span class="badge bg-success">Estoque regular</span>
+                    <?php endif; ?>
+                </div>
+                <a href="produtos.php" class="stat-link btn btn-sm btn-outline-primary">
+                    <i class="fas fa-box me-1"></i>Gerenciar
+                </a>
             </div>
         </div>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card dashboard-card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-warehouse dashboard-icon mb-3"></i>
-                <h5 class="card-title">Estoque</h5>
-                <p class="card-text">Gerencie entradas e saídas do estoque</p>
-                <div class="btn-group w-100">
-                    <a href="estoque.php" class="btn btn-outline-primary btn-sm">Visualizar</a>
-                    <a href="estoque_movimentacoes.php" class="btn btn-outline-secondary btn-sm">Movimentações</a>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="stat-card">
+            <i class="fas fa-warehouse stat-icon"></i>
+            <div class="card-body">
+                <div class="stat-title">Gestão de Estoque</div>
+                <div class="stat-description mb-2">Controle de entradas e saídas</div>
+                <div class="d-grid gap-2">
+                    <a href="estoque.php" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>Visualizar
+                    </a>
+                    <a href="estoque_movimentacoes.php" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-exchange-alt me-1"></i>Movimentações
+                    </a>
                 </div>
             </div>
         </div>
@@ -304,7 +344,7 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <div class="row">
     <div class="col-md-6 mb-4">
-        <div class="card">
+        <div class="data-table-card">
             <div class="card-header bg-primary text-white">
                 <i class="fas fa-file-invoice-dollar me-1"></i> Últimos Orçamentos
             </div>
@@ -324,12 +364,12 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php if (count($ultimos_orcamentos) > 0): ?>
                                 <?php foreach ($ultimos_orcamentos as $orcamento): ?>
                                     <tr>
-                                        <td><a href="orcamento_visualizar.php?id=<?php echo $orcamento['id']; ?>"><?php echo $orcamento['numero']; ?></a></td>
+                                        <td><a href="orcamento_visualizar.php?id=<?php echo $orcamento['id']; ?>" class="fw-medium"><?php echo $orcamento['numero']; ?></a></td>
                                         <td><?php echo $orcamento['cliente_nome']; ?></td>
-                                        <td><?php echo dataParaBr($orcamento['data_criacao']); ?></td>
-                                        <td><?php echo formataValor($orcamento['valor_total']); ?></td>
+                                        <td><span class="text-muted"><?php echo dataParaBr($orcamento['data_criacao']); ?></span></td>
+                                        <td class="fw-bold"><?php echo formataValor($orcamento['valor_total']); ?></td>
                                         <td>
-                                            <span class="status-box status-<?php echo $orcamento['status']; ?>">
+                                            <span class="status-badge status-<?php echo $orcamento['status']; ?>">
                                                 <?php echo ucfirst($orcamento['status']); ?>
                                             </span>
                                         </td>
@@ -337,7 +377,12 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center">Nenhum orçamento cadastrado ainda.</td>
+                                    <td colspan="5" class="text-center py-3">
+                                        <div class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Nenhum orçamento cadastrado ainda.
+                                        </div>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -345,10 +390,14 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
             <div class="card-footer">
-                <a href="orcamentos.php" class="btn btn-sm btn-outline-primary">Ver todos os orçamentos</a>
-                <a href="orcamento_form.php" class="btn btn-sm btn-primary float-end">
-                    <i class="fas fa-plus-circle me-1"></i> Novo Orçamento
-                </a>
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="orcamentos.php" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> Ver todos os orçamentos
+                    </a>
+                    <a href="orcamento_form.php" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i> Novo Orçamento
+                    </a>
+                </div>
             </div>
         </div>
     </div>
