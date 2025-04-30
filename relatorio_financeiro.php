@@ -186,12 +186,12 @@ $valor_vendas_confirmadas = $totais_vendas['valor_vendas_confirmadas'] ?? $valor
 // Calcular o custo médio das vendas (utilizando a mesma proporção da movimentação de estoque)
 $proporcao_custo = ($valor_saidas > 0) ? ($custo_produtos_vendidos / $valor_saidas) : 0.5;
 
-// Calcular o custo dos produtos vendidos, com base APENAS nas vendas confirmadas ou pagas
+// Calcular o custo dos produtos vendidos, com base APENAS nas vendas pagas (total ou parcialmente)
 // Excluímos vendas a prazo sem pagamento para não contabilizar custo de algo que não foi recebido
-$custo_total_vendas = $valor_vendas_confirmadas * $proporcao_custo;
+$custo_total_vendas = $valor_pago_vendas * $proporcao_custo;
 
-// Calcular o custo dos produtos nas vendas que foram PAGAS (total ou parcialmente)
-$custo_vendas_pagas = $valor_pago_vendas * $proporcao_custo;
+// A variável custo_total_vendas já contém o custo dos produtos nas vendas PAGAS
+$custo_vendas_pagas = $custo_total_vendas;
 
 // Lucro das vendas diretas - considerando APENAS as vendas PAGAS para o lucro operacional
 $lucro_vendas = $valor_pago_vendas - $custo_vendas_pagas;
@@ -419,7 +419,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                         <td colspan="2"><strong>Vendas</strong></td>
                                     </tr>
                                     <tr>
-                                        <td>Custo dos Produtos Vendidos</td>
+                                        <td>Custo dos Produtos Vendidos (Pagos)</td>
                                         <td class="text-end"><?php echo formataValor($custo_total_vendas); ?></td>
                                     </tr>
                                     <tr>
@@ -497,7 +497,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                         <td colspan="2"></td>
                                     </tr>
                                     <tr>
-                                        <td>Custo dos Materiais (Vendas)</td>
+                                        <td>Custo dos Materiais (Vendas Pagas)</td>
                                         <td class="text-end"><?php echo formataValor($custo_vendas_pagas); ?></td>
                                     </tr>
                                     <tr>
