@@ -115,12 +115,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 110px; /* Reduzido de 140px */
+    height: 140px;
     border-radius: 8px;
     text-decoration: none;
     transition: all 0.2s;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    padding: 15px 10px; /* Adicionado padding */
 }
 
 .quick-access-button:hover {
@@ -129,12 +128,12 @@
 }
 
 .quick-access-button i {
-    font-size: 2rem; /* Reduzido de 2.5rem */
-    margin-bottom: 10px; /* Reduzido de 15px */
+    font-size: 2.5rem;
+    margin-bottom: 15px;
 }
 
 .quick-access-button span {
-    font-size: 0.9rem; /* Reduzido de 1rem */
+    font-size: 1rem;
     font-weight: 500;
 }
 
@@ -218,20 +217,8 @@
 }
 
 .data-table-card .table td {
-    padding: 8px 20px;
+    padding: 12px 20px;
     vertical-align: middle;
-}
-
-/* Botões menores para ações nas tabelas */
-.data-table-card .btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1.4;
-}
-
-.table .btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
 }
 
 .data-table-card .card-footer {
