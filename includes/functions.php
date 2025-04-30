@@ -46,11 +46,37 @@ function verificarPermissao($permissao) {
 /**
  * Verifica se o usuário tem permissão para excluir
  * 
+ * @param string $area Área específica para verificar permissão (opcional)
  * @return boolean True se tem permissão, False caso contrário
  */
-function podeDeletar() {
-    // Apenas administradores podem excluir
-    return isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin';
+function podeDeletar($area = '') {
+    // Administradores têm todas as permissões
+    if (isset($_SESSION['usuario']['nivel']) && $_SESSION['usuario']['nivel'] === 'admin') {
+        return true;
+    }
+    
+    // Verificar permissões específicas por área
+    if (!empty($area)) {
+        switch ($area) {
+            case 'caixa':
+                return verificarPermissao('excluir_movimentacoes_caixa');
+            case 'clientes':
+                return verificarPermissao('excluir_clientes');
+            case 'produtos':
+                return verificarPermissao('excluir_produtos');
+            case 'orcamentos':
+                return verificarPermissao('excluir_orcamentos');
+            case 'vendas':
+                return verificarPermissao('excluir_vendas');
+            case 'usuarios':
+                return verificarPermissao('excluir_usuarios');
+            default:
+                return false;
+        }
+    }
+    
+    // Comportamento padrão - apenas admin pode excluir
+    return false;
 }
 
 // Esta função foi movida para a versão abaixo

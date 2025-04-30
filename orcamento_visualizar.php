@@ -330,18 +330,18 @@ if (!$acesso_interno) {
                 <!-- Status de pagamento -->
                 <?php if ($orcamento['status_pagamento'] == 'pago_total'): ?>
                 <span class="status-box status-pago ms-2">
-                    PAGO TOTAL
+                    Pago Total
                 </span>
                 <?php elseif ($orcamento['status_pagamento'] == 'pago_parcial'): ?>
                 <span class="status-box status-pago-parcial ms-2">
-                    PAGO PARCIAL
+                    Pago Parcial
                 </span>
                 <?php endif; ?>
                 
                 <!-- Status de execução -->
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                 <span class="status-box status-finalizado ms-2">
-                    FINALIZADO
+                    Finalizado
                 </span>
                 <?php endif; ?>
             </div>

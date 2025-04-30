@@ -13,12 +13,16 @@ $data_final = isset($_GET['data_final']) ? $_GET['data_final'] : date('Y-m-d');
 $filtro_tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 
 // Processar exclusão se solicitado
-if (isset($_GET['excluir']) && is_numeric($_GET['excluir'])) {
+if (isset($_GET['excluir']) && is_numeric($_GET['excluir']) && podeDeletar('caixa')) {
     $id = intval($_GET['excluir']);
     $stmt = $db->prepare("DELETE FROM caixa WHERE id = :id");
     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
     header("Location: caixa.php?mensagem=excluido");
+    exit;
+} elseif (isset($_GET['excluir']) && !podeDeletar('caixa')) {
+    // Redirecionamento com mensagem de erro
+    header("Location: caixa.php?mensagem=erro_permissao");
     exit;
 }
 
@@ -106,6 +110,8 @@ $data_hoje = date('Y-m-d');
         <div class="alert alert-success">Movimentação registrada com sucesso!</div>
     <?php elseif ($_GET['mensagem'] == 'excluido'): ?>
         <div class="alert alert-warning">Movimentação excluída com sucesso.</div>
+    <?php elseif ($_GET['mensagem'] == 'erro_permissao'): ?>
+        <div class="alert alert-danger">Você não tem permissão para excluir movimentações do caixa. Entre em contato com o administrador.</div>
     <?php endif; ?>
 <?php endif; ?>
 
