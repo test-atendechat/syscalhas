@@ -436,14 +436,18 @@ if (!$acesso_interno) {
                         $config = $stmt->fetch(PDO::FETCH_ASSOC);
                         $desconto_vista = floatval($config['valor']);
                     }
+                    
+                    // Calcular o subtotal (valor antes do desconto)
+                    $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
+                    $valor_desconto = $subtotal - $orcamento['valor_total'];
                 ?>
                 <tr>
+                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                    <td class="text-end"><?php echo formataValor($subtotal); ?></td>
+                </tr>
+                <tr>
                     <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista; ?>%):</td>
-                    <td class="text-end"><?php 
-                      $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
-                      $valor_desconto = $subtotal - $orcamento['valor_total'];
-                      echo formataValor($valor_desconto); 
-                    ?></td>
+                    <td class="text-end"><?php echo formataValor($valor_desconto); ?></td>
                 </tr>
                 <?php endif; ?>
                 <tr>
