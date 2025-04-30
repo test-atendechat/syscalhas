@@ -195,11 +195,13 @@ $margem_lucro = $valor_total_operacional > 0 ? ($lucro_operacional / $valor_tota
 $margem_lucro_orcamentos = $valor_orcamentos_aprovados > 0 ? 
     ($lucro_orcamentos / $valor_orcamentos_aprovados) * 100 : 0;
 
-// Consultar movimentações do caixa para calcular o fluxo de caixa real
+// Consultar todas as movimentações financeiras para calcular o fluxo de caixa real
+// Isso inclui todos os registros da tabela caixa que representam movimentos reais de dinheiro
 $stmt = $db->prepare("
     SELECT 
         SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) as total_entradas,
-        SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) as total_saidas
+        SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) as total_saidas,
+        SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END) as saldo_liquido
     FROM caixa
     WHERE data_operacao BETWEEN :data_inicio AND :data_fim
 ");
@@ -209,10 +211,14 @@ $stmt->execute();
 $fluxo_caixa_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Calcular o fluxo de caixa real do período
-// Fluxo de caixa é a soma de todas as entradas (vendas, orçamentos) menos todas as saídas (pagamentos, contas)
+// Fluxo de caixa é a soma de todas as entradas (vendas, orçamentos, recebimentos) 
+// menos todas as saídas (pagamentos, despesas, contas)
 $total_entradas_caixa = $fluxo_caixa_data['total_entradas'] ?? 0;
 $total_saidas_caixa = $fluxo_caixa_data['total_saidas'] ?? 0;
 $fluxo_caixa = $total_entradas_caixa - $total_saidas_caixa;
+
+// Podemos usar diretamente o saldo líquido calculado pelo banco de dados (alternativa)
+// $fluxo_caixa = $fluxo_caixa_data['saldo_liquido'] ?? 0;
 
 // Estimativa de vendas futuras com base no estoque atual
 $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_venda_estimado;
@@ -617,6 +623,85 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fluxo de Caixa Detalhado -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-warning text-white">
+        <h6 class="m-0 font-weight-bold">Fluxo de Caixa Detalhado</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>O que é Fluxo de Caixa?</strong> É o registro de todas as movimentações financeiras (entradas e saídas) no período selecionado, mostrando se a empresa está gerando mais dinheiro do que está gastando.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Descrição</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-success">
+                                <td><strong>Entrada de Recursos</strong></td>
+                                <td class="text-end"><strong><?php echo formataValor($total_entradas_caixa); ?></strong></td>
+                            </tr>
+                            <tr class="table-danger">
+                                <td><strong>Saída de Recursos</strong></td>
+                                <td class="text-end"><strong><?php echo formataValor($total_saidas_caixa); ?></strong></td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td><strong>Fluxo de Caixa Líquido</strong></td>
+                                <td class="text-end"><strong><?php echo formataValor($fluxo_caixa); ?></strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-light">
+                        <h6 class="m-0 font-weight-bold text-primary">Análise do Fluxo de Caixa</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>O fluxo de caixa representa todas as movimentações de dinheiro da empresa no período selecionado, incluindo:</p>
+                        
+                        <ul>
+                            <li><strong>Entradas:</strong> Recebimentos de vendas, orçamentos aprovados, e outros valores recebidos.</li>
+                            <li><strong>Saídas:</strong> Pagamentos de contas, compra de materiais, e outras despesas.</li>
+                        </ul>
+                        
+                        <hr>
+                        
+                        <p><strong>Interpretação:</strong></p>
+                        
+                        <?php if($fluxo_caixa > 0): ?>
+                            <div class="alert alert-success">
+                                <i class="fas fa-thumbs-up me-2"></i>
+                                <strong>Fluxo de Caixa Positivo:</strong> No período selecionado, a empresa recebeu mais dinheiro do que gastou, indicando uma boa saúde financeira de curto prazo.
+                            </div>
+                        <?php elseif($fluxo_caixa < 0): ?>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-thumbs-down me-2"></i>
+                                <strong>Fluxo de Caixa Negativo:</strong> No período selecionado, a empresa gastou mais dinheiro do que recebeu, o que pode indicar problemas de liquidez.
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-equals me-2"></i>
+                                <strong>Fluxo de Caixa Neutro:</strong> No período selecionado, as entradas e saídas de dinheiro se equilibraram.
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
