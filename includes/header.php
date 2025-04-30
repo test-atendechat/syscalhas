@@ -36,30 +36,43 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
             <?php endif; ?>
             
             <?php
-            // Carregar cores personalizadas do banco de dados
+            // Carregar configurações do banco de dados
+            // Valores padrão
             $cor_principal = '#0d6efd'; // Cor padrão (Bootstrap primary)
             $cor_secundaria = '#6c757d'; // Cor padrão (Bootstrap secondary)
             $cor_aprovado = '#198754'; // Cor padrão (Bootstrap success)
             $cor_pendente = '#ffc107'; // Cor padrão (Bootstrap warning)
             $cor_rejeitado = '#dc3545'; // Cor padrão (Bootstrap danger)
+            $estilo_menu = 'padrao'; // Estilo padrão do menu
+            $tema_sistema = 'light'; // Tema padrão do sistema
             
             try {
                 require_once('db.php'); // Garantir que a conexão com o banco está disponível
                 
-                // Buscar configurações de cores
-                $stmt = $db->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN ('cor_principal', 'cor_secundaria', 'cor_aprovado', 'cor_pendente', 'cor_rejeitado')");
+                // Buscar configurações
+                $stmt = $db->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN (
+                    'cor_principal', 'cor_secundaria', 'cor_aprovado', 'cor_pendente', 'cor_rejeitado',
+                    'estilo_menu', 'tema_sistema'
+                )");
                 $stmt->execute();
                 
-                $cores = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+                $configs = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 
-                // Aplicar as cores personalizadas se existirem
-                if (isset($cores['cor_principal'])) $cor_principal = $cores['cor_principal'];
-                if (isset($cores['cor_secundaria'])) $cor_secundaria = $cores['cor_secundaria'];
-                if (isset($cores['cor_aprovado'])) $cor_aprovado = $cores['cor_aprovado'];
-                if (isset($cores['cor_pendente'])) $cor_pendente = $cores['cor_pendente'];
-                if (isset($cores['cor_rejeitado'])) $cor_rejeitado = $cores['cor_rejeitado'];
+                // Aplicar as configurações personalizadas se existirem
+                if (isset($configs['cor_principal'])) $cor_principal = $configs['cor_principal'];
+                if (isset($configs['cor_secundaria'])) $cor_secundaria = $configs['cor_secundaria'];
+                if (isset($configs['cor_aprovado'])) $cor_aprovado = $configs['cor_aprovado'];
+                if (isset($configs['cor_pendente'])) $cor_pendente = $configs['cor_pendente'];
+                if (isset($configs['cor_rejeitado'])) $cor_rejeitado = $configs['cor_rejeitado'];
+                if (isset($configs['estilo_menu'])) $estilo_menu = $configs['estilo_menu'];
+                if (isset($configs['tema_sistema'])) $tema_sistema = $configs['tema_sistema'];
+                
+                // Se tema foi alterado via cookie, usar esta configuração
+                if (isset($_COOKIE['tema_sistema'])) {
+                    $tema_sistema = $_COOKIE['tema_sistema'];
+                }
             } catch (Exception $e) {
-                // Silenciar erro e usar cores padrão
+                // Silenciar erro e usar configurações padrão
             }
             ?>
             
@@ -69,6 +82,78 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     --cor-principal: <?php echo $cor_principal; ?>;
                     --cor-principal-hover: <?php echo adjustBrightness($cor_principal, -15); ?>;
                     --cor-principal-active: <?php echo adjustBrightness($cor_principal, -20); ?>;
+                    
+                    /* Tema claro (padrão) */
+                    --bg-color: #f8f9fa;
+                    --text-color: #212529;
+                    --card-bg: #ffffff;
+                    --card-border: #dee2e6;
+                    --input-bg: #ffffff;
+                    --input-border: #ced4da;
+                    --table-stripe: rgba(0, 0, 0, 0.05);
+                    --hover-bg: rgba(0, 0, 0, 0.075);
+                    --border-color: #dee2e6;
+                    --shadow-color: rgba(0, 0, 0, 0.15);
+                }
+                
+                /* Aplicar tema escuro se selecionado */
+                <?php if ($tema_sistema == 'dark'): ?>
+                :root {
+                    --bg-color: #212529;
+                    --text-color: #f8f9fa;
+                    --card-bg: #343a40;
+                    --card-border: #495057;
+                    --input-bg: #2b3035;
+                    --input-border: #495057;
+                    --table-stripe: rgba(255, 255, 255, 0.05);
+                    --hover-bg: rgba(255, 255, 255, 0.075);
+                    --border-color: #495057;
+                    --shadow-color: rgba(0, 0, 0, 0.5);
+                }
+                <?php endif; ?>
+                
+                /* Estilo global baseado no tema */
+                body {
+                    background-color: var(--bg-color);
+                    color: var(--text-color);
+                }
+                
+                .card {
+                    background-color: var(--card-bg);
+                    border-color: var(--card-border);
+                }
+                
+                .form-control, .form-select {
+                    background-color: var(--input-bg);
+                    border-color: var(--input-border);
+                    color: var(--text-color);
+                }
+                
+                .table {
+                    color: var(--text-color);
+                }
+                
+                .table-striped > tbody > tr:nth-of-type(odd) {
+                    background-color: var(--table-stripe);
+                }
+                
+                .dropdown-menu {
+                    background-color: var(--card-bg);
+                    border-color: var(--card-border);
+                }
+                
+                .dropdown-item {
+                    color: var(--text-color);
+                }
+                
+                .dropdown-item:hover {
+                    background-color: var(--hover-bg);
+                }
+                
+                .modal-content {
+                    background-color: var(--card-bg);
+                    color: var(--text-color);
+                    border-color: var(--card-border);
                 }
                 
                 .bg-primary, .btn-primary, .page-item.active .page-link {
@@ -116,6 +201,141 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                 
                 .nav-pills .nav-link.active {
                     background-color: var(--cor-principal) !important;
+                }
+                
+                /* Estilos específicos para o menu lateral */
+                <?php if ($estilo_menu == 'lateral'): ?>
+                body {
+                    display: flex;
+                    min-height: 100vh;
+                }
+                
+                .sidebar {
+                    width: 250px;
+                    min-height: 100vh;
+                    background-color: var(--cor-principal);
+                    color: white;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    z-index: 1000;
+                    padding-top: 1rem;
+                }
+                
+                .sidebar .navbar-brand {
+                    padding: 0.75rem 1rem;
+                    font-size: 1.25rem;
+                    display: block;
+                    text-align: center;
+                    margin-bottom: 1rem;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                
+                .sidebar .nav-link {
+                    color: rgba(255, 255, 255, 0.8);
+                    padding: 0.5rem 1rem;
+                    margin: 0.2rem 0.5rem;
+                    border-radius: 0.25rem;
+                }
+                
+                .sidebar .nav-link:hover {
+                    color: white;
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+                
+                .sidebar .nav-link.active {
+                    color: white;
+                    background-color: rgba(255, 255, 255, 0.2);
+                }
+                
+                .sidebar .dropdown-menu {
+                    margin-left: 1rem;
+                    background-color: rgba(0, 0, 0, 0.2);
+                    border: none;
+                }
+                
+                .sidebar .dropdown-item {
+                    color: rgba(255, 255, 255, 0.8);
+                }
+                
+                .sidebar .dropdown-item:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: white;
+                }
+                
+                .main-content {
+                    flex: 1;
+                    margin-left: 250px;
+                    padding: 1rem;
+                }
+                <?php endif; ?>
+                
+                /* Estilos para o menu black */
+                <?php if ($estilo_menu == 'black'): ?>
+                .navbar.navbar-dark.bg-primary {
+                    background-color: #000 !important;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                }
+                
+                .navbar-nav {
+                    margin: 0 auto;
+                    display: flex;
+                    justify-content: center;
+                }
+                
+                .navbar .nav-link {
+                    padding: 0.7rem 1.2rem;
+                    margin: 0 0.3rem;
+                    border-radius: 5px;
+                    transition: all 0.3s ease;
+                    text-transform: uppercase;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                }
+                
+                .navbar .nav-link:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+                
+                .navbar .nav-link.active {
+                    background-color: var(--cor-principal);
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                }
+                
+                .navbar .dropdown-menu {
+                    background-color: #222;
+                    border: 1px solid #333;
+                    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+                }
+                
+                .navbar .dropdown-item {
+                    color: #fff;
+                }
+                
+                .navbar .dropdown-item:hover {
+                    background-color: #333;
+                }
+                <?php endif; ?>
+                
+                /* Botão alternar tema */
+                .toggle-theme-btn {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255, 255, 255, 0.2);
+                    color: white;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-left: 10px;
+                }
+                
+                .toggle-theme-btn:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: scale(1.05);
                 }
                 
                 /* Variáveis para cor dos status */

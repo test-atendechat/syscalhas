@@ -33,6 +33,9 @@ $configuracoes = [
     'cor_aprovado' => '#198754', // Success bootstrap
     'cor_pendente' => '#ffc107', // Warning bootstrap
     'cor_rejeitado' => '#dc3545', // Danger bootstrap
+    // Opções de menu e tema
+    'estilo_menu' => 'padrao', // padrao, black, lateral
+    'tema_sistema' => 'light', // light, dark
 ];
 
 // Buscar configurações atuais do banco de dados
@@ -174,6 +177,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="mb-4">
                 <h5><i class="fas fa-palette me-2"></i>Configurações de Aparência</h5>
                 <hr>
+                
+                <!-- Menu e Tema -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label for="estilo_menu" class="form-label">Estilo do Menu</label>
+                        <select class="form-select" id="estilo_menu" name="estilo_menu">
+                            <option value="padrao" <?php echo ($configuracoes['estilo_menu'] == 'padrao') ? 'selected' : ''; ?>>Menu Padrão (Superior)</option>
+                            <option value="black" <?php echo ($configuracoes['estilo_menu'] == 'black') ? 'selected' : ''; ?>>Menu Black (Centralizado com bordas)</option>
+                            <option value="lateral" <?php echo ($configuracoes['estilo_menu'] == 'lateral') ? 'selected' : ''; ?>>Menu Lateral (Sidebar)</option>
+                        </select>
+                        <div class="form-text">Escolha o estilo de menu que você prefere usar no sistema.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="tema_sistema" class="form-label">Tema do Sistema</label>
+                        <select class="form-select" id="tema_sistema" name="tema_sistema">
+                            <option value="light" <?php echo ($configuracoes['tema_sistema'] == 'light') ? 'selected' : ''; ?>>Tema Claro (Light)</option>
+                            <option value="dark" <?php echo ($configuracoes['tema_sistema'] == 'dark') ? 'selected' : ''; ?>>Tema Escuro (Dark)</option>
+                        </select>
+                        <div class="form-text">Define a aparência geral do sistema (claro ou escuro).</div>
+                    </div>
+                </div>
+                
+                <!-- Cores -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="cor_principal" class="form-label">Cor Principal do Sistema</label>
@@ -198,6 +224,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="col-md-4 mb-3">
                         <label for="cor_rejeitado" class="form-label">Cor para Status "Rejeitado"</label>
                         <input type="color" class="form-control form-control-color" id="cor_rejeitado" name="cor_rejeitado" value="<?php echo $configuracoes['cor_rejeitado'] ?? '#dc3545'; ?>" title="Escolha a cor para status rejeitado">
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>As mudanças de tema e menu serão aplicadas após salvar as configurações. Para alternar o tema rapidamente, use o botão de sol/lua no canto superior direito da página.
                     </div>
                 </div>
             </div>
