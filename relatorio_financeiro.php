@@ -74,13 +74,24 @@ $totais_movimentacoes = $stmt->fetch(PDO::FETCH_ASSOC);
 $stmt = $db->prepare("
     SELECT 
         COUNT(v.id) as total_vendas,
+        -- Total bruto de todas as vendas
         SUM(v.valor_total) as valor_total_vendas,
+        -- Apenas o valor que foi efetivamente pago
         SUM(CASE WHEN v.status_pagamento = 'pago_total' THEN v.valor_total 
                  ELSE COALESCE((SELECT SUM(c.valor) FROM caixa c WHERE c.venda_id = v.id AND c.tipo = 'entrada'), 0)
                  END) as valor_pago_vendas,
+        -- Valor pendente (ainda não pago)
         SUM(CASE WHEN v.status_pagamento != 'pago_total' 
                  THEN (v.valor_total - COALESCE((SELECT SUM(c.valor) FROM caixa c WHERE c.venda_id = v.id AND c.tipo = 'entrada'), 0)) 
-                 ELSE 0 END) as valor_pendente_vendas
+                 ELSE 0 END) as valor_pendente_vendas,
+        -- Total excluindo vendas a prazo com status pendente sem pagamentos 
+        SUM(CASE 
+            WHEN v.status_pagamento = 'pago_total' THEN v.valor_total
+            WHEN v.forma_pagamento = 'prazo' AND v.status_pagamento = 'pendente' AND 
+                 NOT EXISTS (SELECT 1 FROM caixa c WHERE c.venda_id = v.id AND c.tipo = 'entrada')
+            THEN 0
+            ELSE v.valor_total
+            END) as valor_vendas_confirmadas
     FROM vendas v
     WHERE v.data_venda BETWEEN :data_inicio AND :data_fim
 ");
@@ -170,12 +181,14 @@ $custo_produtos_vendidos = $totais_movimentacoes['custo_produtos_vendidos'] ?? 0
 // Obter os valores das vendas a partir da tabela vendas
 $valor_total_vendas = $totais_vendas['valor_total_vendas'] ?? 0;
 $valor_pago_vendas = $totais_vendas['valor_pago_vendas'] ?? 0;
+$valor_vendas_confirmadas = $totais_vendas['valor_vendas_confirmadas'] ?? $valor_pago_vendas; // Se não existir, usamos o valor pago
 
 // Calcular o custo médio das vendas (utilizando a mesma proporção da movimentação de estoque)
 $proporcao_custo = ($valor_saidas > 0) ? ($custo_produtos_vendidos / $valor_saidas) : 0.5;
 
-// Calcular o custo dos produtos vendidos, com base no valor TOTAL das vendas
-$custo_total_vendas = $valor_total_vendas * $proporcao_custo;
+// Calcular o custo dos produtos vendidos, com base APENAS nas vendas confirmadas ou pagas
+// Excluímos vendas a prazo sem pagamento para não contabilizar custo de algo que não foi recebido
+$custo_total_vendas = $valor_vendas_confirmadas * $proporcao_custo;
 
 // Calcular o custo dos produtos nas vendas que foram PAGAS (total ou parcialmente)
 $custo_vendas_pagas = $valor_pago_vendas * $proporcao_custo;
@@ -407,7 +420,7 @@ $valor_total_estimado = ($totais_movimentacoes['valor_saidas'] ?? 0) + $valor_ve
                                     </tr>
                                     <tr>
                                         <td>Custo dos Produtos Vendidos</td>
-                                        <td class="text-end"><?php echo formataValor($custo_produtos_vendidos); ?></td>
+                                        <td class="text-end"><?php echo formataValor($custo_total_vendas); ?></td>
                                     </tr>
                                     <tr>
                                         <td>Valor Total de Vendas</td>
