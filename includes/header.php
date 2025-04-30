@@ -291,8 +291,6 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     width: 100%;
                     margin-left: 0;
                 }
-                <?php endif; ?>
-                
                 /* Estilos para o menu centralizado com bordas (padrão) */
                 .navbar.navbar-dark.bg-primary {
                     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -581,5 +579,7 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
                     });
                 }
             });
+            // Inicializa o tema no carregamento da página
+            document.documentElement.setAttribute('data-bs-theme', '<?php echo $tema_sistema; ?>');
             </script>
-            
+            </div> <!-- Fechamento do container -->
