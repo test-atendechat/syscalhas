@@ -11,11 +11,20 @@ define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
 
 // Configurações do banco de dados
 define('DB_TYPE', 'pgsql'); // mysql ou pgsql
-define('DB_HOST', getenv('PGHOST') ?: 'localhost');
-define('DB_NAME', getenv('PGDATABASE') ?: 'postgres');
-define('DB_USER', getenv('PGUSER') ?: 'postgres');
-define('DB_PASS', getenv('PGPASSWORD') ?: '');
-define('DB_PORT', getenv('PGPORT') ?: '5432');
+
+// Verifica se o arquivo de configuração local existe
+$config_local = __DIR__ . '/config.local.php';
+if (file_exists($config_local)) {
+    // Se existir, inclui o arquivo de configuração local
+    include($config_local);
+} else {
+    // Se não existir, usa as variáveis de ambiente ou valores padrão
+    define('DB_HOST', getenv('PGHOST') ?: 'localhost');
+    define('DB_NAME', getenv('PGDATABASE') ?: 'postgres');
+    define('DB_USER', getenv('PGUSER') ?: 'postgres');
+    define('DB_PASS', getenv('PGPASSWORD') ?: 'postgres'); // Senha padrão mais segura
+    define('DB_PORT', getenv('PGPORT') ?: '5432');
+}
 
 // Configurações de email
 define('MAIL_HOST', 'smtp.gmail.com');

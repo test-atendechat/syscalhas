@@ -1,0 +1,17 @@
+<?php
+// INSTRUÇÕES:
+// 1. Faça uma cópia deste arquivo e renomeie para "config.local.php"
+// 2. Modifique as informações abaixo com os dados de acesso ao seu banco de dados
+// 3. O arquivo config.local.php não será enviado para o repositório (está no .gitignore)
+
+// Configurações do banco de dados para servidor externo
+define('DB_HOST', 'localhost');     // Nome do host ou IP do servidor
+define('DB_NAME', 'nome_do_banco'); // Nome do banco de dados
+define('DB_USER', 'usuario_db');    // Nome de usuário do banco
+define('DB_PASS', 'senha_db');      // Senha do banco de dados
+define('DB_PORT', '5432');          // Porta PostgreSQL (normalmente 5432)
+
+// Você também pode substituir outras configurações definidas em config.php
+// Por exemplo:
+// define('APP_NAME', 'Nome personalizado para este servidor');
+?>
