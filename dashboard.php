@@ -119,8 +119,22 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
         <div class="col-md-5">
             <div class="date-info">
-                <h3><?php echo date('H:i'); ?></h3>
+                <h3 id="relogio">00:00:00</h3>
                 <div class="current-date"><?php echo getDataFormatadaPtBr(); ?></div>
+                
+                <script>
+                function atualizarRelogio() {
+                    const agora = new Date();
+                    const horas = agora.getHours().toString().padStart(2, '0');
+                    const minutos = agora.getMinutes().toString().padStart(2, '0');
+                    const segundos = agora.getSeconds().toString().padStart(2, '0');
+                    document.getElementById('relogio').textContent = `${horas}:${minutos}:${segundos}`;
+                }
+                
+                // Executar imediatamente e depois a cada segundo
+                atualizarRelogio();
+                setInterval(atualizarRelogio, 1000);
+                </script>
             </div>
         </div>
     </div>
