@@ -3,31 +3,21 @@ require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 
-// Configurar locale para português (para nomes de dias e meses)
-setlocale(LC_TIME, 'pt_BR.utf8', 'pt_BR', 'pt_BR.utf-8', 'portuguese');
-
 // Definir fuso horário
 date_default_timezone_set('America/Sao_Paulo');
 
 // Função para obter a data formatada em português
-function getDataFormatadaPtBr($format = '%A, %d de %B de %Y') {
-    $timestamp = time();
-    $result = strftime($format, $timestamp);
+function getDataFormatadaPtBr() {
+    $dias = array('Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado');
+    $meses = array('Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro');
     
-    // Caso o locale não funcione corretamente, temos uma alternativa
-    if (strpos($result, '%') !== false) {
-        $dias = array('Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado');
-        $meses = array('Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro');
-        
-        $dia_semana = $dias[date('w', $timestamp)];
-        $dia = date('d', $timestamp);
-        $mes = $meses[date('n', $timestamp) - 1];
-        $ano = date('Y', $timestamp);
-        
-        return "$dia_semana, $dia de $mes de $ano";
-    }
+    $hoje = new DateTime();
+    $dia_semana = $dias[$hoje->format('w')];
+    $dia = $hoje->format('d');
+    $mes = $meses[(int)$hoje->format('m') - 1];
+    $ano = $hoje->format('Y');
     
-    return $result;
+    return "$dia_semana, $dia de $mes de $ano";
 }
 
 require_once('includes/header.php');
