@@ -8,7 +8,7 @@ require_once('includes/auth.php');
 verificarAutenticacao();
 
 // Verificar se o usuário é administrador
-if (!isset($_SESSION['usuario_tipo']) || $_SESSION['usuario_tipo'] !== 'admin') {
+if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] !== 'admin') {
     die('Acesso restrito. Apenas administradores podem exportar o banco de dados.');
 }
 
