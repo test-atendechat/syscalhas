@@ -29,8 +29,11 @@ $pagina_atual = basename($_SERVER['PHP_SELF']);
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
             <!-- IMask para máscaras de input -->
             <script src="https://unpkg.com/imask@7.1.3/dist/imask.js"></script>
-            <!-- Estilo personalizado -->
+            <!-- Estilos personalizados -->
             <link href="css/styles.css" rel="stylesheet">
+            <?php if ($pagina_atual == 'dashboard.php'): ?>
+            <link href="css/dashboard.css" rel="stylesheet">
+            <?php endif; ?>
             
             <?php
             // Carregar cores personalizadas do banco de dados

@@ -87,10 +87,24 @@ $stmt = $db->query("SELECT p.id, p.descricao, p.unidade, SUM(m.quantidade) as to
 $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
-        <p class="text-muted">Bem-vindo ao sistema de gestão de orçamentos para calhas.</p>
+<div class="dashboard-welcome">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+            <p>Bem-vindo ao sistema de gestão de orçamentos e vendas</p>
+            <div class="user-welcome">
+                <i class="fas fa-user-circle me-1"></i> Olá, <?php echo $_SESSION['usuario']['nome']; ?> | 
+                <span class="badge bg-light text-dark">
+                    <?php echo ucfirst($_SESSION['usuario']['nivel']); ?>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="date-info">
+                <h3><?php echo date('H:i'); ?></h3>
+                <div class="current-date"><?php echo utf8_encode(strftime('%A, %d de %B de %Y', strtotime('today'))); ?></div>
+            </div>
+        </div>
     </div>
 </div>
 

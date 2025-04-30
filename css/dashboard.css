@@ -1,0 +1,292 @@
+/* Dashboard Styles - Layout Profissional */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --bg-light: #f5f7fa;
+    
+    --border-radius: 10px;
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Layout principal */
+.dashboard-welcome {
+    position: relative;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), #3b8aec);
+    border-radius: var(--border-radius);
+    color: white;
+    box-shadow: var(--card-shadow);
+}
+
+.dashboard-welcome h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-welcome p {
+    opacity: 0.85;
+    margin-bottom: 0;
+}
+
+.dashboard-welcome .user-welcome {
+    font-weight: 300;
+    font-size: 0.95rem;
+}
+
+.dashboard-welcome .date-info {
+    position: absolute;
+    right: 1.5rem;
+    top: 1.5rem;
+    text-align: right;
+}
+
+.dashboard-welcome .date-info .current-date {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Cards de estatísticas */
+.stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-icon {
+    font-size: 2rem;
+    opacity: 0.2;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+}
+
+.stat-card .card-body {
+    padding: 1.5rem;
+}
+
+.stat-card .stat-title {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card .stat-description {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+}
+
+.stat-card .stat-link {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+/* Cartões de acesso rápido */
+.quick-access-card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.quick-access-card .card-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.quick-access-button {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: var(--border-radius);
+    padding: 1.5rem 1rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.quick-access-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.quick-access-button i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.quick-access-button span {
+    display: block;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Cards de alertas */
+.alert-card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.alert-card .card-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.alert-item {
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.alert-item h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.alert-item p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.alert-item-critical {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid var(--danger-color);
+}
+
+.alert-item-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid var(--warning-color);
+}
+
+.alert-item-info {
+    background-color: rgba(13, 202, 240, 0.1);
+    border-left: 4px solid var(--info-color);
+}
+
+.alert-item-neutral {
+    background-color: rgba(108, 117, 125, 0.1);
+    border-left: 4px solid var(--secondary-color);
+}
+
+/* Tabelas */
+.data-table-card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+}
+
+.data-table-card .card-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.data-table-card .table {
+    margin-bottom: 0;
+}
+
+.data-table-card .table th {
+    border-top: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+}
+
+.status-badge {
+    padding: 0.35rem 0.65rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #a07800;
+}
+
+.status-approved {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #0d5a35;
+}
+
+.status-rejected {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #a42834;
+}
+
+.status-completed {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0a58ca;
+}
+
+/* Rodapé do card */
+.data-table-card .card-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1.5rem;
+    background-color: transparent;
+}
+
+/* Produtos mais vendidos */
+.product-rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .dashboard-welcome .date-info {
+        position: static;
+        text-align: left;
+        margin-top: 1rem;
+    }
+    
+    .stat-card .stat-icon {
+        display: none;
+    }
+}
