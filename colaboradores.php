@@ -187,6 +187,9 @@ require_once('includes/header.php');
                                         <a href="colaborador_equipe.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-info" title="Gerenciar Equipe">
                                             <i class="fas fa-users"></i>
                                         </a>
+                                        <a href="colaborador_agenda.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-secondary" title="Gerenciar Agenda">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </a>
                                         <?php endif; ?>
                                         
                                         <?php if ($colaborador['status'] === 'ativo'): ?>
