@@ -29,7 +29,9 @@ $agendamento = [
     'previsao_chuva' => false,
     'observacoes' => '',
     'usuario_id' => $_SESSION['usuario']['id'],
-    'cliente_agendou' => false
+    'cliente_agendou' => false,
+    'instalador_id' => 0,
+    'auxiliar_id' => 0
 ];
 
 // Verificar se é edição
@@ -54,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agendamento['status'] = $_POST['status'];
     $agendamento['observacoes'] = $_POST['observacoes'] ?? '';
     $agendamento['usuario_id'] = $_SESSION['usuario']['id'];
+    $agendamento['instalador_id'] = !empty($_POST['instalador_id']) ? intval($_POST['instalador_id']) : null;
+    $agendamento['auxiliar_id'] = !empty($_POST['auxiliar_id']) ? intval($_POST['auxiliar_id']) : null;
     
     // Validar campos obrigatórios
     $erros = [];
@@ -126,9 +130,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Se não houver erros, consultar a previsão do tempo
     if (empty($erros)) {
         // Buscar configurações da API de previsão do tempo
-        $stmt = $db->prepare("SELECT chave, valor, valor_texto FROM configuracoes WHERE chave IN ('api_previsao_tempo', 'api_previsao_tempo_key', 'cidade_previsao_tempo')");
+        $stmt = $db->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN ('api_previsao_tempo', 'api_previsao_tempo_key', 'cidade_previsao_tempo')");
         $stmt->execute();
-        $configs = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $configuracoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Converter resultado para array associativo
+        $configs = [];
+        foreach ($configuracoes as $config) {
+            $configs[$config['chave']] = $config['valor'];
+        }
         
         $api_ativa = isset($configs['api_previsao_tempo']) && $configs['api_previsao_tempo'] === 'true';
         $api_key = $configs['api_previsao_tempo_key'] ?? '';
@@ -187,6 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 previsao_chuva = :previsao_chuva,
                                 observacoes = :observacoes,
                                 usuario_id = :usuario_id,
+                                instalador_id = :instalador_id,
+                                auxiliar_id = :auxiliar_id,
                                 atualizado_em = CURRENT_TIMESTAMP
                                 WHERE id = :id");
             $stmt->bindParam(':id', $agendamento['id'], PDO::PARAM_INT);
@@ -297,7 +309,7 @@ if (!empty($erros)) {
             </div>
             
             <div class="row mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="hora_inicio" class="form-label required">Horário Início</label>
                     <select class="form-select" id="hora_inicio" name="hora_inicio" required>
                         <?php
@@ -314,7 +326,7 @@ if (!empty($erros)) {
                     </select>
                     <div class="invalid-feedback">Por favor, selecione um horário de início.</div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="hora_fim" class="form-label required">Horário Fim</label>
                     <select class="form-select" id="hora_fim" name="hora_fim" required>
                         <?php
@@ -330,6 +342,37 @@ if (!empty($erros)) {
                         ?>
                     </select>
                     <div class="invalid-feedback">Por favor, selecione um horário de fim.</div>
+                </div>
+                <div class="col-md-3">
+                    <label for="instalador_id" class="form-label">Instalador</label>
+                    <select class="form-select" id="instalador_id" name="instalador_id">
+                        <option value="">Selecione um instalador...</option>
+                        <?php
+                        // Listar instaladores ativos
+                        $stmt = $db->prepare("SELECT id, nome FROM instaladores WHERE ativo = true ORDER BY nome ASC");
+                        $stmt->execute();
+                        $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        foreach ($instaladores as $instalador) {
+                            $selected = (isset($agendamento['instalador_id']) && $agendamento['instalador_id'] == $instalador['id']) ? 'selected' : '';
+                            echo "<option value=\"{$instalador['id']}\" {$selected}>{$instalador['nome']}</option>";
+                        }
+                        ?>
+                    </select>
+                    <div class="form-text">Selecione o instalador responsável por este serviço.</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Auxiliar</label>
+                    <div id="info-auxiliar" class="form-control-plaintext">
+                        <?php if ($agendamento['instalador_id']): ?>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-secondary me-2">Auxiliar do instalador selecionado</span>
+                            </div>
+                        <?php else: ?>
+                            <span class="text-muted">O auxiliar será atribuído automaticamente</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-text">O auxiliar é associado automaticamente ao instalador.</div>
                 </div>
                 
                 <div class="col-md-4">
@@ -477,6 +520,63 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Carregar auxiliares com base no instalador selecionado
+    const instaladorSelect = document.getElementById('instalador_id');
+    const auxiliarSelect = document.getElementById('auxiliar_id');
+    
+    if (instaladorSelect && auxiliarSelect) {
+        instaladorSelect.addEventListener('change', function() {
+            const instaladorId = this.value;
+            
+            // Limpar opções atuais, manter apenas a primeira opção vazia
+            auxiliarSelect.innerHTML = '<option value="">Selecione um auxiliar...</option>';
+            
+            if (instaladorId) {
+                // Simular carregamento de auxiliares para demonstração
+                // Em produção, fazer uma requisição AJAX para buscar os auxiliares
+                // Aqui estamos usando dados estáticos para demonstração
+                const auxiliares = {
+                    '1': [
+                        { id: 1, nome: 'Pedro Santos' },
+                        { id: 2, nome: 'João Costa' }
+                    ],
+                    '2': [
+                        { id: 3, nome: 'Rafael Lima' }
+                    ]
+                };
+                
+                // Adicionar opções de auxiliares para o instalador selecionado
+                if (auxiliares[instaladorId]) {
+                    auxiliares[instaladorId].forEach(auxiliar => {
+                        const option = document.createElement('option');
+                        option.value = auxiliar.id;
+                        option.textContent = auxiliar.nome;
+                        auxiliarSelect.appendChild(option);
+                    });
+                    
+                    // Habilitar o select de auxiliares
+                    auxiliarSelect.disabled = false;
+                } else {
+                    // Mensagem quando não há auxiliares para o instalador
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Nenhum auxiliar disponível';
+                    auxiliarSelect.appendChild(option);
+                    auxiliarSelect.disabled = true;
+                }
+            } else {
+                // Desabilitar o select de auxiliares quando nenhum instalador está selecionado
+                auxiliarSelect.disabled = true;
+            }
+        });
+        
+        // Disparar o evento change para carregar os auxiliares iniciais se houver um instalador selecionado
+        if (instaladorSelect.value) {
+            const event = new Event('change');
+            instaladorSelect.dispatchEvent(event);
+        }
+    }
     
     // Iniciar o carregamento dos horários disponíveis se há uma data selecionada
     if (dataInput.value) {
