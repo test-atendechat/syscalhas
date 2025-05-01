@@ -399,7 +399,16 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Informação:</strong> Um profissional especializado irá até o local para avaliar o serviço. A consulta tem duração estimada de <?php echo intval($tempo_previsto_visita/60); ?> hora<?php echo ($tempo_previsto_visita != 60) ? 's' : ''; ?> e <?php echo $tempo_previsto_visita % 60; ?> minutos.
+                    <strong>Informação:</strong> Um profissional especializado irá até o local para avaliar o serviço. A consulta tem duração estimada de <?php 
+                        $horas = intval($tempo_previsto_visita/60);
+                        $minutos = $tempo_previsto_visita % 60;
+                        if ($horas > 0) {
+                            echo $horas . ' hora' . ($horas > 1 ? 's' : '');
+                            if ($minutos > 0) echo ' e ' . $minutos . ' minutos';
+                        } else {
+                            echo $minutos . ' minutos';
+                        }
+                    ?>.
                 </div>
                 
                 <div class="row mb-3">
@@ -478,7 +487,16 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                             }
                             ?>
                         </select>
-                        <small class="text-muted">Tempo previsto para esta visita: <?php echo intval($tempo_previsto_visita/60); ?> hora<?php echo ($tempo_previsto_visita != 60) ? 's' : ''; ?> e <?php echo $tempo_previsto_visita % 60; ?> minutos.</small>
+                        <small class="text-muted">Tempo previsto para esta visita: <?php 
+                            $horas = intval($tempo_previsto_visita/60);
+                            $minutos = $tempo_previsto_visita % 60;
+                            if ($horas > 0) {
+                                echo $horas . ' hora' . ($horas > 1 ? 's' : '');
+                                if ($minutos > 0) echo ' e ' . $minutos . ' minutos';
+                            } else {
+                                echo $minutos . ' minutos';
+                            }
+                        ?>.</small>
                     </div>
                 </div>
                 
