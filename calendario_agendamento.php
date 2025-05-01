@@ -584,14 +584,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Limpar opções atuais
                 selectHorario.innerHTML = '<option value="">Selecione um horário</option>';
                 
+                // Obter o tempo previsto para o orçamento
+                const tempoPrevisto = <?php echo $orcamento_id > 0 ? 'parseInt(document.getElementById("tempo_previsto")?.value || "2")' : '2'; ?>;
+                
                 // Adicionar horários disponíveis para o dia da semana
                 if (horariosPorDia[diaSemana]) {
                     horariosPorDia[diaSemana].forEach(horario => {
-                        const option = document.createElement('option');
-                        option.value = horario.inicio;
-                        option.textContent = horario.inicio;
-                        selectHorario.appendChild(option);
+                        // Verificar se o serviço será concluído no mesmo dia
+                        // Os instaladores trabalham das 7:00 às 17:00
+                        const [horas, minutos] = horario.inicio.split(':');
+                        const horaInicio = parseInt(horas);
+                        const horaFim = horaInicio + tempoPrevisto;
+                        
+                        // Só adicionar horários que terminam antes das 17:00 (fim do expediente)
+                        if (horaFim <= 17) {
+                            const option = document.createElement('option');
+                            option.value = horario.inicio;
+                            option.textContent = horario.inicio;
+                            selectHorario.appendChild(option);
+                        }
                     });
+                }
+                
+                // Se não houver horários disponíveis devido à duração do serviço
+                if (selectHorario.options.length <= 1) {
+                    const option = document.createElement('option');
+                    option.value = "07:00";
+                    option.textContent = "07:00 (início do dia seguinte)";
+                    selectHorario.appendChild(option);
+                    
+                    // Mensagem explicativa
+                    const mensagem = document.createElement('div');
+                    mensagem.className = 'alert alert-info mt-2';
+                    mensagem.innerHTML = `<small>Como o serviço tem duração de ${tempoPrevisto} horas e não pode ser concluído em um único dia de trabalho, a instalação será agendada para o início do expediente (7h).</small>`;
+                    selectHorario.parentNode.appendChild(mensagem);
                 }
             }
             

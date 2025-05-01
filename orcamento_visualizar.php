@@ -757,10 +757,21 @@ if (!$acesso_interno) {
                                             <select class="form-select" id="hora_inicio" name="hora_inicio" required>
                                                 <option value="">Selecione o horário</option>
                                                 <?php 
-                                                // Horários disponíveis (das 7h às 17h)
-                                                $horarios = array('07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00');
+                                                // Horários disponíveis (das 7h às 16h - 17h é fim do expediente)
+                                                $horarios = array('07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00');
+                                                
+                                                // Verificar o tempo previsto de execução
+                                                $tempo_previsto = isset($orcamento['tempo_previsto_horas']) ? intval($orcamento['tempo_previsto_horas']) : 2;
+                                                
                                                 foreach ($horarios as $hora) {
-                                                    echo "<option value=\"{$hora}\">{$hora}</option>";
+                                                    $partes = explode(':', $hora);
+                                                    $hora_inicio = intval($partes[0]);
+                                                    $hora_fim = $hora_inicio + $tempo_previsto;
+                                                    
+                                                    // Se o serviço termina depois das 17h, este horário não deve estar disponível
+                                                    if ($hora_fim <= 17) {
+                                                        echo "<option value=\"{$hora}\">{$hora}</option>";
+                                                    }
                                                 }
                                                 ?>
                                             </select>

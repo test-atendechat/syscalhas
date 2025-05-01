@@ -24,7 +24,11 @@ $stmt->execute();
 if ($stmt->fetchColumn() > 0) {
     // Já existe um agendamento para este orçamento
     $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
-    header("Location: {$redirect_url}&erro=" . urlencode('Este orçamento já possui um agendamento'));
+    
+    // Verificar se a URL já tem parâmetros
+    $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
+    
+    header("Location: {$redirect_url}{$separador}erro=" . urlencode('Este orçamento já possui um agendamento'));
     exit;
 }
 
@@ -36,7 +40,11 @@ $codigo_acesso = isset($_POST['codigo_acesso']) ? $_POST['codigo_acesso'] : null
 // Validar dados
 if (empty($data_agendamento) || empty($hora_inicio)) {
     $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
-    header("Location: {$redirect_url}&erro=" . urlencode('Data e hora de início são obrigatórios'));
+    
+    // Verificar se a URL já tem parâmetros
+    $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
+    
+    header("Location: {$redirect_url}{$separador}erro=" . urlencode('Data e hora de início são obrigatórios'));
     exit;
 }
 
@@ -113,7 +121,11 @@ try {
     // Redirecionar para a página de sucesso
     $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
     $data_formatada = date('d/m/Y', strtotime($data_agendamento));
-    header("Location: {$redirect_url}&data={$data_formatada}&hora={$hora_inicio}");
+    
+    // Verificar se a URL já tem parâmetros
+    $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
+    
+    header("Location: {$redirect_url}{$separador}agendado=true&data={$data_formatada}&hora={$hora_inicio}");
     exit;
     
 } catch (Exception $e) {
@@ -122,6 +134,10 @@ try {
     
     // Redirecionar com mensagem de erro
     $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
-    header("Location: {$redirect_url}&erro=" . urlencode('Erro ao salvar agendamento: ' . $e->getMessage()));
+    
+    // Verificar se a URL já tem parâmetros
+    $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
+    
+    header("Location: {$redirect_url}{$separador}erro=" . urlencode('Erro ao salvar agendamento: ' . $e->getMessage()));
     exit;
 }
