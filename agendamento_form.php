@@ -207,11 +207,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $db->prepare("INSERT INTO agendamentos (
                                 orcamento_id, data_agendamento, hora_inicio, hora_fim, 
                                 status, previsao_tempo, temperatura, umidade, previsao_chuva, 
-                                observacoes, usuario_id, cliente_agendou
+                                observacoes, usuario_id, cliente_agendou, instalador_id, auxiliar_id
                                 ) VALUES (
                                 :orcamento_id, :data_agendamento, :hora_inicio, :hora_fim, 
                                 :status, :previsao_tempo, :temperatura, :umidade, :previsao_chuva, 
-                                :observacoes, :usuario_id, :cliente_agendou
+                                :observacoes, :usuario_id, :cliente_agendou, :instalador_id, :auxiliar_id
                                 )");
             $stmt->bindParam(':cliente_agendou', $agendamento['cliente_agendou'], PDO::PARAM_BOOL);
         }
@@ -521,61 +521,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Carregar auxiliares com base no instalador selecionado
+    // Atualizar informações do auxiliar ao selecionar um instalador
     const instaladorSelect = document.getElementById('instalador_id');
-    const auxiliarSelect = document.getElementById('auxiliar_id');
+    const infoAuxiliar = document.getElementById('info-auxiliar');
     
-    if (instaladorSelect && auxiliarSelect) {
+    if (instaladorSelect && infoAuxiliar) {
         instaladorSelect.addEventListener('change', function() {
             const instaladorId = this.value;
             
-            // Limpar opções atuais, manter apenas a primeira opção vazia
-            auxiliarSelect.innerHTML = '<option value="">Selecione um auxiliar...</option>';
-            
             if (instaladorId) {
-                // Simular carregamento de auxiliares para demonstração
-                // Em produção, fazer uma requisição AJAX para buscar os auxiliares
-                // Aqui estamos usando dados estáticos para demonstração
-                const auxiliares = {
-                    '1': [
-                        { id: 1, nome: 'Pedro Santos' },
-                        { id: 2, nome: 'João Costa' }
-                    ],
-                    '2': [
-                        { id: 3, nome: 'Rafael Lima' }
-                    ]
-                };
-                
-                // Adicionar opções de auxiliares para o instalador selecionado
-                if (auxiliares[instaladorId]) {
-                    auxiliares[instaladorId].forEach(auxiliar => {
-                        const option = document.createElement('option');
-                        option.value = auxiliar.id;
-                        option.textContent = auxiliar.nome;
-                        auxiliarSelect.appendChild(option);
-                    });
-                    
-                    // Habilitar o select de auxiliares
-                    auxiliarSelect.disabled = false;
-                } else {
-                    // Mensagem quando não há auxiliares para o instalador
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'Nenhum auxiliar disponível';
-                    auxiliarSelect.appendChild(option);
-                    auxiliarSelect.disabled = true;
-                }
+                infoAuxiliar.innerHTML = '<div class="d-flex align-items-center"><span class="badge bg-secondary me-2">Auxiliar do instalador selecionado</span></div>';
             } else {
-                // Desabilitar o select de auxiliares quando nenhum instalador está selecionado
-                auxiliarSelect.disabled = true;
+                infoAuxiliar.innerHTML = '<span class="text-muted">O auxiliar será atribuído automaticamente</span>';
             }
         });
-        
-        // Disparar o evento change para carregar os auxiliares iniciais se houver um instalador selecionado
-        if (instaladorSelect.value) {
-            const event = new Event('change');
-            instaladorSelect.dispatchEvent(event);
-        }
     }
     
     // Iniciar o carregamento dos horários disponíveis se há uma data selecionada
