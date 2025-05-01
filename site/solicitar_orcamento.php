@@ -172,16 +172,51 @@ $fim_almoco_minutos = $hora_fim_almoco * 60 + $minuto_fim_almoco;
 // Calcular fim do período indisponível após abertura
 $fim_indisponivel_entrada = $inicio_minutos + $tempo_indisponivel_entrada;
 
-// Gerar horários disponíveis baseados no intervalo configurado
+// Gerar horários disponíveis baseados no intervalo configurado e indisponibilidades globais
 $horarios_possiveis = [];
+
+// Buscar indisponibilidades recorrentes da tabela colaborador_agenda para todos os colaboradores
+// Isso permite que bloqueios cadastrados para todos os colaboradores afetem a disponibilidade geral
+$stmt_indisponibilidades = $pdo->prepare("SELECT DISTINCT hora_inicio, hora_fim FROM colaborador_agenda 
+                                       WHERE recorrente = TRUE AND disponivel = FALSE AND dia_semana = :dia_semana");
+$dia_semana = date('w', strtotime($data_selecionada)); // 0 (domingo) até 6 (sábado)
+$stmt_indisponibilidades->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
+$stmt_indisponibilidades->execute();
+$indisponibilidades_recorrentes = $stmt_indisponibilidades->fetchAll(PDO::FETCH_ASSOC);
+
+// Converter indisponibilidades para minutos para fácil comparação
+$periodos_indisponiveis = [];
+foreach ($indisponibilidades_recorrentes as $indisponibilidade) {
+    $inicio_hora = (int)substr($indisponibilidade['hora_inicio'], 0, 2);
+    $inicio_min = (int)substr($indisponibilidade['hora_inicio'], 3, 2);
+    $fim_hora = (int)substr($indisponibilidade['hora_fim'], 0, 2);
+    $fim_min = (int)substr($indisponibilidade['hora_fim'], 3, 2);
+    
+    $inicio_indisponivel = $inicio_hora * 60 + $inicio_min;
+    $fim_indisponivel = $fim_hora * 60 + $fim_min;
+    
+    $periodos_indisponiveis[] = ['inicio' => $inicio_indisponivel, 'fim' => $fim_indisponivel];
+}
+
+// Adicionar período de almoço como indisponibilidade
+$periodos_indisponiveis[] = ['inicio' => $inicio_almoco_minutos, 'fim' => $fim_almoco_minutos];
+
+// Adicionar período de entrada como indisponibilidade
+$periodos_indisponiveis[] = ['inicio' => $inicio_minutos, 'fim' => $fim_indisponivel_entrada];
+
+// Gerar horários disponíveis, ignorando períodos indisponíveis
 for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_minutos) {
-    // Verificar se está no período de almoço (pular)
-    if ($minuto >= $inicio_almoco_minutos && $minuto < $fim_almoco_minutos) {
-        continue;
+    // Verificar se o minuto atual está em algum período indisponível
+    $indisponivel = false;
+    foreach ($periodos_indisponiveis as $periodo) {
+        if ($minuto >= $periodo['inicio'] && $minuto < $periodo['fim']) {
+            $indisponivel = true;
+            break;
+        }
     }
     
-    // Verificar se está no período indisponível de entrada (pular)
-    if ($minuto < $fim_indisponivel_entrada) {
+    // Pular este horário se estiver em período indisponível
+    if ($indisponivel) {
         continue;
     }
     

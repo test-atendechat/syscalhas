@@ -917,12 +917,40 @@ if (!$acesso_interno) {
                                 option.text = colaborador.nome;
                                 colaboradorSelect.appendChild(option);
                             });
+                            
+                            // Verificar se existe uma mensagem informativa sobre almoço
+                            if (data.mensagem_info) {
+                                // Criar div para mensagem informativa se não existir
+                                let infoMsgDiv = document.getElementById('info-agendamento');
+                                if (!infoMsgDiv) {
+                                    infoMsgDiv = document.createElement('div');
+                                    infoMsgDiv.id = 'info-agendamento';
+                                    infoMsgDiv.className = 'alert alert-info mt-2';
+                                    colaboradorSelect.parentNode.appendChild(infoMsgDiv);
+                                }
+                                
+                                // Mostrar mensagem
+                                infoMsgDiv.textContent = data.mensagem_info;
+                                infoMsgDiv.style.display = 'block';
+                            } else {
+                                // Esconder mensagem se existir
+                                const infoMsgDiv = document.getElementById('info-agendamento');
+                                if (infoMsgDiv) {
+                                    infoMsgDiv.style.display = 'none';
+                                }
+                            }
                         } else {
                             // Se não há colaboradores disponíveis
                             const naoDisponivelOption = document.createElement('option');
                             naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
                             naoDisponivelOption.disabled = true;
                             colaboradorSelect.appendChild(naoDisponivelOption);
+                            
+                            // Esconder mensagem de info se existir
+                            const infoMsgDiv = document.getElementById('info-agendamento');
+                            if (infoMsgDiv) {
+                                infoMsgDiv.style.display = 'none';
+                            }
                         }
                     } else {
                         // Exibir mensagem de erro

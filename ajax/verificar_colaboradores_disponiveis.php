@@ -223,9 +223,7 @@ try {
         $inicio_almoco = new DateTime($data . ' ' . $horario_inicio_almoco);
         $fim_almoco = new DateTime($data . ' ' . $horario_fim_almoco);
         
-        // Verificar apenas se o horário de início coincide com o período de almoço
-        // pois o comportamento desejado é mostrar instaladores disponíveis fora do horário de almoço,
-        // independentemente da duração do serviço
+        // Verificar se o horário de início coincide com o período de almoço
         $conflito_almoco = ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco);
         
         // Verificar conflito com tempo indisponível após chegada
@@ -235,15 +233,16 @@ try {
         
         $conflito_entrada = ($data_hora_inicio < $hora_disponivel);
         
-        // Se houver conflito com almoço ou entrada, não há colaboradores disponíveis
+        // Se o horário de início for durante o almoço, não permitir
         if ($conflito_almoco) {
             $resposta['status'] = 'erro';
-            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . '). Caso o serviço seja longo, considere a duração completa depois do período de almoço.';
+            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . '). Por favor, escolha um horário antes ou depois do almoço.';
             $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
         }
         
+        // Se o horário for antes do período disponível após abertura, não permitir
         if ($conflito_entrada) {
             $hora_disponivel_formatada = $hora_disponivel->format('H:i');
             $resposta['status'] = 'erro';
@@ -252,19 +251,26 @@ try {
             echo json_encode($resposta);
             exit;
         }
-
-        // Calcular tempo restante de serviço após o almoço (se o serviço comecer antes e terminar depois do almoço)
-        if ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $fim_almoco) {
-            // Calcular quanto tempo do serviço será antes do almoço
+        
+        // Verificar se o serviço cruza com o período de almoço e adicionar o tempo de almoço
+        if ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $inicio_almoco) {
+            // Tempo do serviço antes do almoço
             $tempo_antes_almoco = $inicio_almoco->getTimestamp() - $data_hora_inicio->getTimestamp();
-            // Calcular o tempo restante que deve ser adicionado após o almoço
-            $tempo_apos_almoco = $data_hora_fim->getTimestamp() - $fim_almoco->getTimestamp();
             
-            // Calcular novo horário de fim considerando a pausa para almoço
+            // Tempo restante após o almoço
+            $tempo_total_segundos = $data_hora_fim->getTimestamp() - $data_hora_inicio->getTimestamp();
+            $tempo_apos_almoco = $tempo_total_segundos - $tempo_antes_almoco;
+            
+            // Calcular novo horário de fim: horário de fim do almoço + tempo restante
             $novo_data_hora_fim = clone $fim_almoco;
-            $novo_data_hora_fim->add(new DateInterval('PT' . (int)($tempo_apos_almoco / 60) . 'M'));
+            $novo_data_hora_fim->add(new DateInterval('PT' . (int)($tempo_apos_almoco) . 'S'));
             
-            $resposta['mensagem'] = 'Atenção: O serviço com duração de ' . $duracao_minutos . ' minutos será interrompido pelo almoço e irá terminar às ' . $novo_data_hora_fim->format('H:i') . '.';
+            // Calcular tempo total em horas (incluindo pausa)
+            $tempo_total_com_pausa = ($novo_data_hora_fim->getTimestamp() - $data_hora_inicio->getTimestamp()) / 3600;
+            $tempo_total_com_pausa = round($tempo_total_com_pausa, 1); // Arredondar para 1 casa decimal
+            
+            // Adicionar informação sobre a pausa para almoço na resposta
+            $resposta['mensagem_info'] = 'O serviço de ' . round($duracao_minutos/60, 1) . ' horas terá uma pausa durante o almoço e terminará às ' . $novo_data_hora_fim->format('H:i') . '. Tempo total com pausa: ' . $tempo_total_com_pausa . ' horas.';
         }
     }
     
@@ -306,6 +312,14 @@ try {
         'status' => 'sucesso',
         'colaboradores' => $colaboradores
     ];
+    
+    // Se tiver mensagem de info sobre almoço, adicionar
+    if (isset($resposta['mensagem_info'])) {
+        // Manter a mensagem de info que foi adicionada anteriormente
+    } else {
+        // Remover a chave se não existe
+        unset($resposta['mensagem_info']);
+    }
     
 } catch (Exception $e) {
     $resposta['mensagem'] = 'Erro ao verificar disponibilidade: ' . $e->getMessage();
