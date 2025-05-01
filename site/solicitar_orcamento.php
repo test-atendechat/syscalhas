@@ -116,11 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             // Formatar o número do orçamento (ANO-MES-SEQUENCIAL)
             $numero_orcamento = $ano_atual . $mes_atual . '-' . str_pad($sequencial, 3, '0', STR_PAD_LEFT);
             
-            $stmt_orcamento = $pdo->prepare("INSERT INTO orcamentos (numero, cliente_id, data_criacao, data_validade, status) 
-                                         VALUES (:numero, :cliente_id, NOW(), :data_validade, 'em_analise')");
+            // Gerar código de acesso único para acompanhamento externo do orçamento
+            $codigo_acesso = md5(uniqid(rand(), true));
+            
+            $stmt_orcamento = $pdo->prepare("INSERT INTO orcamentos (numero, cliente_id, data_criacao, data_validade, status, codigo_acesso) 
+                                         VALUES (:numero, :cliente_id, NOW(), :data_validade, 'em_analise', :codigo_acesso)");
             $stmt_orcamento->bindParam(':numero', $numero_orcamento);
             $stmt_orcamento->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
             $stmt_orcamento->bindParam(':data_validade', $data_validade);
+            $stmt_orcamento->bindParam(':codigo_acesso', $codigo_acesso);
             $stmt_orcamento->execute();
             $orcamento_id = $pdo->lastInsertId();
 
