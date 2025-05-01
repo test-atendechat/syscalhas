@@ -8,94 +8,88 @@ require_once('includes/auth.php');
 verificarAutenticacao();
 
 // Verificar permissão
-if (!verificarPermissao('gerenciar_colaboradores') && $_SESSION['usuario']['nivel'] !== 'admin') {
+if (!verificarPermissao('gerenciar_colaboradores')) {
     header('Location: dashboard.php?erro=sempermissao');
     exit;
 }
 
 // Inicialização de variáveis
 $mensagem = '';
-$filtro_tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
-$filtro_status = isset($_GET['status']) ? $_GET['status'] : 'ativo';
+$filtro_nome = '';
+$filtro_tipo = 'todos';
+$filtro_status = 'ativo';
 
-// Processar exclusão se for POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir']) && $_POST['excluir'] == 1) {
-    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+// Processar ações do usuário
+if (isset($_GET['acao'])) {
+    $acao = $_GET['acao'];
+    $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
     
-    // Verificar se o colaborador está associado a orçamentos
-    $stmt = $db->prepare("SELECT COUNT(*) FROM orcamentos WHERE colaborador_id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
-    $count = $stmt->fetchColumn();
+    // Excluir colaborador (marca como inativo)
+    if ($acao === 'excluir' && $id > 0) {
+        try {
+            $stmt = $db->prepare("UPDATE colaboradores SET status = 'inativo', ultima_atualizacao = NOW() WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $mensagem = alerta('Colaborador marcado como inativo com sucesso!', 'success');
+        } catch (PDOException $e) {
+            $mensagem = alerta('Erro ao excluir colaborador: ' . $e->getMessage(), 'danger');
+        }
+    }
     
-    if ($count > 0) {
-        // Não excluir, apenas marcar como inativo
-        $stmt = $db->prepare("UPDATE colaboradores SET status = 'inativo' WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $mensagem = alerta('Colaborador possui orçamentos associados. Status alterado para inativo.', 'warning');
-    } else {
-        // Remover associações de equipe
-        $stmt = $db->prepare("DELETE FROM colaborador_equipe WHERE instalador_id = :id OR auxiliar_id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        // Excluir colaborador
-        $stmt = $db->prepare("DELETE FROM colaboradores WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        
-        if ($stmt->execute()) {
-            $mensagem = alerta('Colaborador excluído com sucesso!', 'success');
-        } else {
-            $mensagem = alerta('Erro ao excluir colaborador.', 'danger');
+    // Reativar colaborador
+    if ($acao === 'reativar' && $id > 0) {
+        try {
+            $stmt = $db->prepare("UPDATE colaboradores SET status = 'ativo', ultima_atualizacao = NOW() WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $mensagem = alerta('Colaborador reativado com sucesso!', 'success');
+        } catch (PDOException $e) {
+            $mensagem = alerta('Erro ao reativar colaborador: ' . $e->getMessage(), 'danger');
         }
     }
 }
 
-// Consultar lista de colaboradores com filtros
+// Processar filtros
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['filtrar'])) {
+    $filtro_nome = isset($_GET['nome']) ? limpaString($_GET['nome']) : '';
+    $filtro_tipo = isset($_GET['tipo']) ? limpaString($_GET['tipo']) : 'todos';
+    $filtro_status = isset($_GET['status']) ? limpaString($_GET['status']) : 'ativo';
+}
+
+// Buscar colaboradores com filtros
 $sql = "SELECT * FROM colaboradores WHERE 1=1";
-if ($filtro_tipo) {
+$params = [];
+
+if (!empty($filtro_nome)) {
+    $sql .= " AND nome ILIKE :nome";
+    $params[':nome'] = "%{$filtro_nome}%";
+}
+
+if ($filtro_tipo !== 'todos') {
     $sql .= " AND tipo = :tipo";
+    $params[':tipo'] = $filtro_tipo;
 }
-if ($filtro_status) {
+
+if ($filtro_status !== 'todos') {
     $sql .= " AND status = :status";
+    $params[':status'] = $filtro_status;
 }
+
 $sql .= " ORDER BY nome ASC";
 
-$stmt = $db->prepare($sql);
-if ($filtro_tipo) {
-    $stmt->bindParam(':tipo', $filtro_tipo);
-}
-if ($filtro_status) {
-    $stmt->bindParam(':status', $filtro_status);
-}
-$stmt->execute();
-$colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Contagem de auxiliares por instalador
-$auxiliares_por_instalador = [];
-if (!empty($colaboradores)) {
-    $stmt = $db->prepare("SELECT instalador_id, COUNT(*) as total FROM colaborador_equipe 
-                         WHERE data_fim IS NULL GROUP BY instalador_id");
-    $stmt->execute();
-    $contar_auxiliares = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    
-    foreach ($contar_auxiliares as $instalador_id => $total) {
-        $auxiliares_por_instalador[$instalador_id] = $total;
+try {
+    $stmt = $db->prepare($sql);
+    foreach ($params as $param => $value) {
+        $stmt->bindValue($param, $value);
     }
+    $stmt->execute();
+    $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $mensagem = alerta('Erro ao buscar colaboradores: ' . $e->getMessage(), 'danger');
+    $colaboradores = [];
 }
-
-// Buscar estatísticas
-$stmt = $db->prepare("SELECT COUNT(*) FROM colaboradores WHERE tipo = 'instalador' AND status = 'ativo'");
-$stmt->execute();
-$total_instaladores = $stmt->fetchColumn();
-
-$stmt = $db->prepare("SELECT COUNT(*) FROM colaboradores WHERE tipo = 'auxiliar' AND status = 'ativo'");
-$stmt->execute();
-$total_auxiliares = $stmt->fetchColumn();
-
-// Definir título da página
-$titulo = "Colaboradores";
 
 // Incluir cabeçalho
 require_once('includes/header.php');
@@ -104,85 +98,42 @@ require_once('includes/header.php');
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-hard-hat me-2"></i>Colaboradores</h1>
     <a href="colaborador_form.php" class="btn btn-primary">
-        <i class="fas fa-plus-circle me-2"></i>Novo Colaborador
+        <i class="fas fa-plus me-2"></i>Novo Colaborador
     </a>
 </div>
 
 <?php echo $mensagem; ?>
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-primary text-white">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="card-title mb-0">Total de Colaboradores</h6>
-                    <h2 class="mt-2 mb-0"><?php echo count($colaboradores); ?></h2>
-                </div>
-                <div>
-                    <i class="fas fa-users fa-3x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-success text-white">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="card-title mb-0">Instaladores Ativos</h6>
-                    <h2 class="mt-2 mb-0"><?php echo $total_instaladores; ?></h2>
-                </div>
-                <div>
-                    <i class="fas fa-user-hard-hat fa-3x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-info text-white">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="card-title mb-0">Auxiliares Ativos</h6>
-                    <h2 class="mt-2 mb-0"><?php echo $total_auxiliares; ?></h2>
-                </div>
-                <div>
-                    <i class="fas fa-toolbox fa-3x opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="card mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
     </div>
     <div class="card-body">
-        <form method="get" id="filtroForm">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="tipo" class="form-label">Tipo de Colaborador</label>
-                    <select name="tipo" id="tipo" class="form-select" onchange="document.getElementById('filtroForm').submit();">
-                        <option value="" <?php echo $filtro_tipo === '' ? 'selected' : ''; ?>>Todos</option>
-                        <option value="instalador" <?php echo $filtro_tipo === 'instalador' ? 'selected' : ''; ?>>Instaladores</option>
-                        <option value="auxiliar" <?php echo $filtro_tipo === 'auxiliar' ? 'selected' : ''; ?>>Auxiliares</option>
-                    </select>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select" onchange="document.getElementById('filtroForm').submit();">
-                        <option value="" <?php echo $filtro_status === '' ? 'selected' : ''; ?>>Todos</option>
-                        <option value="ativo" <?php echo $filtro_status === 'ativo' ? 'selected' : ''; ?>>Ativos</option>
-                        <option value="inativo" <?php echo $filtro_status === 'inativo' ? 'selected' : ''; ?>>Inativos</option>
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex align-items-end mb-3">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-2"></i>Filtrar
-                    </button>
-                    <a href="colaboradores.php" class="btn btn-secondary">
-                        <i class="fas fa-eraser me-2"></i>Limpar Filtros
-                    </a>
-                </div>
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="nome" class="form-label">Nome</label>
+                <input type="text" class="form-control" id="nome" name="nome" value="<?php echo $filtro_nome; ?>">
+            </div>
+            <div class="col-md-3">
+                <label for="tipo" class="form-label">Tipo</label>
+                <select class="form-select" id="tipo" name="tipo">
+                    <option value="todos" <?php echo $filtro_tipo === 'todos' ? 'selected' : ''; ?>>Todos</option>
+                    <option value="instalador" <?php echo $filtro_tipo === 'instalador' ? 'selected' : ''; ?>>Instalador</option>
+                    <option value="auxiliar" <?php echo $filtro_tipo === 'auxiliar' ? 'selected' : ''; ?>>Auxiliar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="ativo" <?php echo $filtro_status === 'ativo' ? 'selected' : ''; ?>>Ativo</option>
+                    <option value="inativo" <?php echo $filtro_status === 'inativo' ? 'selected' : ''; ?>>Inativo</option>
+                    <option value="todos" <?php echo $filtro_status === 'todos' ? 'selected' : ''; ?>>Todos</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" name="filtrar" value="1" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Filtrar
+                </button>
             </div>
         </form>
     </div>
@@ -190,19 +141,20 @@ require_once('includes/header.php');
 
 <div class="card">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Lista de Colaboradores</h5>
+        <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Lista de Colaboradores</h5>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0 align-middle">
+            <table class="table table-striped table-hover">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Nome</th>
                         <th>Tipo</th>
+                        <th>CPF</th>
                         <th>Telefone</th>
+                        <th>Data Admissão</th>
                         <th>Status</th>
-                        <th>Admissão</th>
-                        <th>Auxiliares</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -210,49 +162,49 @@ require_once('includes/header.php');
                     <?php if (count($colaboradores) > 0): ?>
                         <?php foreach ($colaboradores as $colaborador): ?>
                             <tr>
+                                <td><?php echo $colaborador['id']; ?></td>
                                 <td><?php echo $colaborador['nome']; ?></td>
                                 <td>
-                                    <?php if ($colaborador['tipo'] == 'instalador'): ?>
-                                        <span class="badge bg-success">Instalador</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-info">Auxiliar</span>
-                                    <?php endif; ?>
+                                    <span class="badge bg-<?php echo $colaborador['tipo'] === 'instalador' ? 'primary' : 'info'; ?>">
+                                        <?php echo ucfirst($colaborador['tipo']); ?>
+                                    </span>
                                 </td>
+                                <td><?php echo $colaborador['cpf'] ?? '-'; ?></td>
                                 <td><?php echo $colaborador['telefone'] ?? '-'; ?></td>
+                                <td><?php echo dataBr($colaborador['data_admissao']); ?></td>
                                 <td>
-                                    <?php if ($colaborador['status'] == 'ativo'): ?>
-                                        <span class="badge bg-success">Ativo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger">Inativo</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo dataParaBr($colaborador['data_admissao']); ?></td>
-                                <td>
-                                    <?php if ($colaborador['tipo'] == 'instalador'): ?>
-                                        <?php echo isset($auxiliares_por_instalador[$colaborador['id']]) ? $auxiliares_por_instalador[$colaborador['id']] : 0; ?>
-                                        <a href="colaborador_equipe.php?instalador_id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-outline-primary ms-2" title="Gerenciar Auxiliares">
-                                            <i class="fas fa-users-cog"></i>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
+                                    <span class="badge bg-<?php echo $colaborador['status'] === 'ativo' ? 'success' : 'danger'; ?>">
+                                        <?php echo ucfirst($colaborador['status']); ?>
+                                    </span>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a href="colaborador_form.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-danger" title="Excluir" 
-                                            onclick="confirmarExclusao(<?php echo $colaborador['id']; ?>, '<?php echo $colaborador['nome']; ?>', 'colaboradores.php')">
+                                        
+                                        <?php if ($colaborador['tipo'] === 'instalador'): ?>
+                                        <a href="colaborador_equipe.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-info" title="Gerenciar Equipe">
+                                            <i class="fas fa-users"></i>
+                                        </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($colaborador['status'] === 'ativo'): ?>
+                                        <a href="javascript:void(0)" onclick="confirmarExclusao(<?php echo $colaborador['id']; ?>, '<?php echo addslashes($colaborador['nome']); ?>')" class="btn btn-sm btn-danger" title="Excluir">
                                             <i class="fas fa-trash"></i>
-                                        </button>
+                                        </a>
+                                        <?php else: ?>
+                                        <a href="javascript:void(0)" onclick="confirmarReativacao(<?php echo $colaborador['id']; ?>, '<?php echo addslashes($colaborador['nome']); ?>')" class="btn btn-sm btn-success" title="Reativar">
+                                            <i class="fas fa-undo"></i>
+                                        </a>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="text-center py-3">Nenhum colaborador encontrado.</td>
+                            <td colspan="8" class="text-center">Nenhum colaborador encontrado.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -260,6 +212,63 @@ require_once('includes/header.php');
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalConfirmacao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja marcar o colaborador <strong id="nomeColaborador"></strong> como inativo?</p>
+                <p class="text-muted small">O colaborador não será excluído permanentemente, apenas marcado como inativo.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="#" id="btnConfirmarExclusao" class="btn btn-danger">Confirmar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmação de reativação -->
+<div class="modal fade" id="modalReativacao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Confirmar Reativação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja reativar o colaborador <strong id="nomeColaboradorReativar"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="#" id="btnConfirmarReativacao" class="btn btn-success">Confirmar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarExclusao(id, nome) {
+    document.getElementById('nomeColaborador').textContent = nome;
+    document.getElementById('btnConfirmarExclusao').href = 'colaboradores.php?acao=excluir&id=' + id;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmacao'));
+    modal.show();
+}
+
+function confirmarReativacao(id, nome) {
+    document.getElementById('nomeColaboradorReativar').textContent = nome;
+    document.getElementById('btnConfirmarReativacao').href = 'colaboradores.php?acao=reativar&id=' + id;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modalReativacao'));
+    modal.show();
+}
+</script>
 
 <?php
 require_once('includes/footer.php');
