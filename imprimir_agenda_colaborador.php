@@ -33,10 +33,22 @@ if ($stmt->rowCount() == 0) {
 
 $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Determinar qual coluna usar de acordo com o tipo de colaborador
+$tipo_colaborador = $colaborador['tipo'];
+$where_condition = "";
+
+if ($tipo_colaborador === 'instalador') {
+    $where_condition = "a.instalador_id = :colaborador_id";
+} elseif ($tipo_colaborador === 'orcamentista') {
+    $where_condition = "a.orcamentista_id = :colaborador_id";
+} else {
+    // Se não for nem instalador nem orçamentista, mostra uma lista vazia
+    $where_condition = "1=0";
+}
+
 // Buscar todos os agendamentos do dia para o colaborador
 $stmt = $pdo->prepare("SELECT a.*, 
                           o.numero as orcamento_numero, 
-                          o.valor_total as orcamento_valor, 
                           c.nome as cliente_nome, 
                           c.telefone as cliente_telefone, 
                           c.endereco as cliente_endereco,
@@ -46,7 +58,7 @@ $stmt = $pdo->prepare("SELECT a.*,
                      FROM agendamentos a
                      JOIN orcamentos o ON a.orcamento_id = o.id
                      JOIN clientes c ON o.cliente_id = c.id
-                     WHERE a.instalador_id = :colaborador_id 
+                     WHERE {$where_condition}
                        AND a.data_agendamento = :data
                        AND a.status = 'agendado'
                      ORDER BY a.hora_inicio ASC");
@@ -223,7 +235,13 @@ $data_formatada = date('d/m/Y', strtotime($data));
                         </div>
                         
                         <div class="servico-info">
-                            <h5 class="mb-3"><i class="fas fa-tools me-2"></i>SERVIÇO AGENDADO</h5>
+                            <h5 class="mb-3">
+                                <?php if ($tipo_colaborador === 'instalador'): ?>
+                                <i class="fas fa-tools me-2"></i>SERVIÇO DE INSTALAÇÃO
+                                <?php else: ?>
+                                <i class="fas fa-search me-2"></i>VISITA TÉCNICA
+                                <?php endif; ?>
+                            </h5>
                             <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Data:</strong> <?php echo $data_formatada; ?></p>
@@ -231,7 +249,6 @@ $data_formatada = date('d/m/Y', strtotime($data));
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Profissional:</strong> <?php echo $colaborador['nome']; ?></p>
-                                    <p><strong>Valor do Orçamento:</strong> <?php echo formataValor($agendamento['orcamento_valor']); ?></p>
                                 </div>
                             </div>
                             

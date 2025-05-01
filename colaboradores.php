@@ -198,6 +198,9 @@ require_once('includes/header.php');
                                         <a href="colaborador_equipe.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-info" title="Gerenciar Equipe">
                                             <i class="fas fa-users"></i>
                                         </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($colaborador['tipo'] === 'instalador' || $colaborador['tipo'] === 'orcamentista'): ?>
                                         <a href="imprimir_agenda_colaborador.php?id=<?php echo $colaborador['id']; ?>&imprimir=true" class="btn btn-sm btn-outline-dark" title="Imprimir Agenda do Dia" target="_blank">
                                             <i class="fas fa-print"></i>
                                         </a>
