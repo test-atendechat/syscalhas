@@ -35,6 +35,13 @@ if (!empty($status)) {
     $params[':status'] = $status;
 }
 
+// Filtro de status de execução
+$status_execucao = isset($_GET['status_execucao']) ? limpaString($_GET['status_execucao']) : '';
+if (!empty($status_execucao)) {
+    $where .= " AND o.status_execucao = :status_execucao";
+    $params[':status_execucao'] = $status_execucao;
+}
+
 // Filtro de período
 $data_inicio = isset($_GET['data_inicio']) ? limpaString($_GET['data_inicio']) : '';
 $data_fim = isset($_GET['data_fim']) ? limpaString($_GET['data_fim']) : '';
@@ -246,6 +253,7 @@ require_once('includes/header.php');
                         <th>Validade</th>
                         <th class="text-end">Valor</th>
                         <th>Status</th>
+                        <th>Execução</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -262,6 +270,15 @@ require_once('includes/header.php');
                                     <span class="status-box status-<?php echo $orcamento['status']; ?>">
                                         <?php echo ucfirst($orcamento['status']); ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                                    <span class="status-box status-<?php echo $orcamento['status_execucao']; ?>">
+                                        <?php echo ucfirst($orcamento['status_execucao']); ?>
+                                    </span>
+                                    <?php else: ?>
+                                    <span class="text-muted small">Pendente</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="btn-group">
