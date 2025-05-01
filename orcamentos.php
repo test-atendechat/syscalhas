@@ -302,7 +302,7 @@ require_once('includes/header.php');
                                         <?php echo ucfirst($orcamento['status_execucao']); ?>
                                     </span>
                                     <?php else: ?>
-                                    <span class="text-muted small">Pendente</span>
+                                    <span class="status-box status-pendente">Pendente</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
