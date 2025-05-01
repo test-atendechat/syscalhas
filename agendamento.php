@@ -461,8 +461,8 @@ require_once('includes/header.php');
                         <?php foreach ($agendamentos as $agendamento): ?>
                             <tr>
                                 <td><?php echo $agendamento['id']; ?></td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($agendamento['data_inicio'])); ?></td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($agendamento['data_fim'])); ?></td>
+                                <td><?php echo $agendamento['data_inicio'] ? date('d/m/Y H:i', strtotime($agendamento['data_inicio'])) : 'Não definido'; ?></td>
+                                <td><?php echo $agendamento['data_fim'] ? date('d/m/Y H:i', strtotime($agendamento['data_fim'])) : 'Não definido'; ?></td>
                                 <td><?php echo $agendamento['colaborador_nome']; ?></td>
                                 <td>
                                     <span class="badge bg-<?php 
