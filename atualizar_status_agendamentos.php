@@ -60,7 +60,7 @@ try {
     if ($total_concluidos > 0) {
         $log .= "\nAgendamentos atualizados para 'Concluído': {$total_concluidos}\n";
         foreach ($atualizados_concluidos as $agenda) {
-            $log .= "- ID: {$agenda['id']}, Hora de Fim: {$agenda['hora_fim']}\n";
+            $log .= "- ID: {$agenda['id']}, Data/Hora de Fim: {$agenda['data_fim']}\n";
         }
     } else {
         $log .= "\nNenhum agendamento atualizado para 'Concluído'.\n";
