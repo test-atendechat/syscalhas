@@ -229,8 +229,8 @@ require_once('includes/header.php');
                     <option value="pendente" <?php echo ($status_execucao == 'pendente') ? 'selected' : ''; ?>>Pendente</option>
                     <option value="orcamento_agendado" <?php echo ($status_execucao == 'orcamento_agendado') ? 'selected' : ''; ?>>Orçamento Agendado</option>
                     <option value="agendado" <?php echo ($status_execucao == 'agendado') ? 'selected' : ''; ?>>Instalação Agendada</option>
-                    <option value="andamento" <?php echo ($status_execucao == 'andamento') ? 'selected' : ''; ?>>Em andamento</option>
-                    <option value="finalizado" <?php echo ($status_execucao == 'finalizado') ? 'selected' : ''; ?>>Finalizado</option>
+                    <option value="andamento" <?php echo ($status_execucao == 'andamento') ? 'selected' : ''; ?>>Instalação em Andamento</option>
+                    <option value="finalizado" <?php echo ($status_execucao == 'finalizado') ? 'selected' : ''; ?>>Instalação Finalizada</option>
                 </select>
             </div>
             
@@ -308,11 +308,11 @@ require_once('includes/header.php');
                                             break;
                                         case 'andamento':
                                             $status_class = 'status-andamento';
-                                            $texto_status = 'Em Andamento';
+                                            $texto_status = 'Instalação em Andamento';
                                             break;
                                         case 'finalizado':
                                             $status_class = 'status-finalizado';
-                                            $texto_status = 'Finalizado';
+                                            $texto_status = 'Instalação Finalizada';
                                             break;
                                         default:
                                             $texto_status = ucfirst($orcamento['status_execucao']);
@@ -447,10 +447,10 @@ require_once('includes/header.php');
                     <span class="badge" style="background-color: #0dcaf0;">Inst. Agendada:</span> <?php echo isset($totais_execucao['agendado']) ? $totais_execucao['agendado'] : 0; ?>
                 </div>
                 <div class="col-md-2">
-                    <span class="badge" style="background-color: #fd7e14;">Em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
+                    <span class="badge" style="background-color: #fd7e14;">Inst. em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
                 </div>
                 <div class="col-md-2">
-                    <span class="badge" style="background-color: #6610f2;">Finalizados:</span> <?php echo isset($totais_execucao['finalizado']) ? $totais_execucao['finalizado'] : 0; ?>
+                    <span class="badge" style="background-color: #6610f2;">Inst. Finalizadas:</span> <?php echo isset($totais_execucao['finalizado']) ? $totais_execucao['finalizado'] : 0; ?>
                 </div>
             </div>
         </div>

@@ -616,11 +616,11 @@ if (!$acesso_interno) {
                             break;
                         case 'andamento':
                             $status_class = 'status-andamento';
-                            $texto_status = 'Em Andamento';
+                            $texto_status = 'Instalação em Andamento';
                             break;
                         case 'finalizado':
                             $status_class = 'status-finalizado';
-                            $texto_status = 'Finalizado';
+                            $texto_status = 'Instalação Finalizada';
                             break;
                         default:
                             $texto_status = ucfirst($orcamento['status_execucao']);
