@@ -503,7 +503,7 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['forma_pagamento'] == 'vista'): 
                     // Buscar a configuração do percentual de desconto à vista
                     $desconto_vista = 10; // Valor padrão de 10%
-                    $stmt = $db->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
+                    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
                     $stmt->execute();
                     if ($stmt->rowCount() > 0) {
                         $config = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -167,12 +167,15 @@ try {
     }
     
     // Buscar colaboradores disponíveis (instaladores)
-    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome";
+    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
         $sql .= " AND id NOT IN (" . implode(',', $colaboradores_ocupados) . ")";
     }
+    
+    // Adicionar a cláusula ORDER BY depois de todas as condições
+    $sql .= " ORDER BY nome";
     
     $stmt = $pdo->query($sql);
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
