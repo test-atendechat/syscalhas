@@ -16,16 +16,46 @@ if (!$_SESSION['usuario']['nivel'] === 'admin' && !verificarPermissao('gerenciar
 // Inicialização de variáveis
 $mensagem = '';
 $orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
+$agendamento_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $orcamento = null;
 $agendamentos = [];
 $colaboradores = [];
+$agendamento_atual = null;
 
 // Buscar colaboradores instaladores
-$stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+$stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
 $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Se temos um orçamento específico, vamos carregar seus dados
-if ($orcamento_id > 0) {
+// Verificar se estamos acessando um agendamento específico pelo seu ID
+if ($agendamento_id > 0) {
+    // Buscar o agendamento pelo seu ID
+    $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome, a.orcamento_id
+                        FROM agendamentos a 
+                        JOIN colaboradores c ON a.colaborador_id = c.id 
+                        WHERE a.id = :agendamento_id");
+    $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $agendamento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($agendamento_atual) {
+        // Definir o orcamento_id a partir do agendamento
+        $orcamento_id = $agendamento_atual['orcamento_id'];
+        // Buscar o orçamento
+        $orcamento = buscarOrcamento($orcamento_id);
+        
+        // Buscar todos os agendamentos relacionados a este orçamento
+        $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome 
+                            FROM agendamentos a 
+                            JOIN colaboradores c ON a.colaborador_id = c.id 
+                            WHERE a.orcamento_id = :orcamento_id 
+                            ORDER BY a.data_inicio DESC");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+// Se temos um orçamento específico (direto ou via agendamento), vamos carregar seus dados
+else if ($orcamento_id > 0) {
     $orcamento = buscarOrcamento($orcamento_id);
     
     // Buscar agendamentos relacionados a este orçamento
@@ -207,9 +237,15 @@ require_once('includes/header.php');
     </h1>
     <div>
         <?php if ($orcamento): ?>
-            <a href="orcamento_visualizar.php?id=<?php echo $orcamento_id; ?>" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Voltar para Orçamento
-            </a>
+            <?php if (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'relatorio_agendamentos.php') !== false): ?>
+                <a href="relatorio_agendamentos.php" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar para Relatório
+                </a>
+            <?php else: ?>
+                <a href="orcamento_visualizar.php?id=<?php echo $orcamento_id; ?>" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar para Orçamento
+                </a>
+            <?php endif; ?>
         <?php else: ?>
             <a href="dashboard.php" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Voltar
@@ -399,9 +435,15 @@ require_once('includes/header.php');
     </div>
 </div>
 <?php else: ?>
-<div class="alert alert-info">
-    <i class="fas fa-info-circle me-2"></i>Selecione um orçamento para gerenciar seus agendamentos.
-</div>
+    <?php if ($agendamento_id > 0 && !$agendamento_atual): ?>
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>Agendamento não encontrado ou não disponível. Verifique se o ID é válido.
+    </div>
+    <?php else: ?>
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>Selecione um orçamento para gerenciar seus agendamentos.
+    </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <!-- JavaScript para carregar colaboradores disponíveis -->

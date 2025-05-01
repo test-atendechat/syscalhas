@@ -1,14 +1,14 @@
 <?php
 // Configurações do sistema
-define('APP_NAME', 'Sandro Calhas LTDA');
+define('APP_NAME', 'SANDRO CALHAS LTDA');
 define('APP_VERSION', '1.0.0');
 define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
 
 // Dados da empresa
-define('EMPRESA_TELEFONE', '');
-define('EMPRESA_EMAIL', '');
-define('EMPRESA_ENDERECO', '');
-define('EMPRESA_CNPJ', '');
+define('EMPRESA_TELEFONE', '(19) 99262-0970');
+define('EMPRESA_EMAIL', 'contato@sandrocalhas.com.br');
+define('EMPRESA_ENDERECO', 'Rua Carlos Pulici, 387, Vila Franco, Descalvado - SP');
+define('EMPRESA_CNPJ', '48.998.641/0001-03');
 
 // Iniciar sessão se ainda não foi iniciada
 if (session_status() === PHP_SESSION_NONE) {
