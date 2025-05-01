@@ -4,6 +4,9 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/auth.php');
 
+// Garantir acesso às variáveis globais
+global $db, $pdo;
+
 // Verificar autenticação
 verificarAutenticacao();
 
@@ -194,6 +197,9 @@ require_once('includes/header.php');
                                         <?php if ($colaborador['tipo'] === 'instalador'): ?>
                                         <a href="colaborador_equipe.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-info" title="Gerenciar Equipe">
                                             <i class="fas fa-users"></i>
+                                        </a>
+                                        <a href="imprimir_agenda_colaborador.php?id=<?php echo $colaborador['id']; ?>&imprimir=true" class="btn btn-sm btn-outline-dark" title="Imprimir Agenda do Dia" target="_blank">
+                                            <i class="fas fa-print"></i>
                                         </a>
                                         <?php endif; ?>
                                         
