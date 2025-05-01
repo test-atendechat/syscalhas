@@ -408,6 +408,10 @@ try {
                             <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i>Estoque Baixo</a></li>
                             <?php endif; ?>
                             
+                            <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
+                            <li><a class="dropdown-item" href="relatorio_colaboradores.php"><i class="fas fa-user-hard-hat me-1"></i>Ranking de Colaboradores</a></li>
+                            <?php endif; ?>
+                            
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_financeiros')): ?>
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_contas')): ?>
                             <li><a class="dropdown-item" href="relatorios_contas.php"><i class="fas fa-money-check-alt me-1"></i>Contas a Pagar</a></li>
@@ -415,6 +419,14 @@ try {
                             <li><a class="dropdown-item" href="relatorio_financeiro.php"><i class="fas fa-chart-pie me-1"></i>Relatório Financeiro</a></li>
                             <?php endif; ?>
                         </ul>
+                    </li>
+                    <?php endif; ?>
+                    
+                    <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_colaboradores')): ?>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (strpos($pagina_atual, 'colaborador') !== false) ? 'active' : ''; ?>" href="colaboradores.php">
+                            <i class="fas fa-hard-hat me-1"></i>Colaboradores
+                        </a>
                     </li>
                     <?php endif; ?>
                     
