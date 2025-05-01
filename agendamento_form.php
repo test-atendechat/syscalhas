@@ -30,8 +30,8 @@ $agendamento = [
     'observacoes' => '',
     'usuario_id' => $_SESSION['usuario']['id'],
     'cliente_agendou' => false,
-    'instalador_id' => 0,
-    'auxiliar_id' => 0
+    'instalador_id' => [], // Agora é um array de instaladores
+    'auxiliar_id' => null // Não usado mais diretamente
 ];
 
 // Verificar se é edição
@@ -56,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agendamento['status'] = $_POST['status'];
     $agendamento['observacoes'] = $_POST['observacoes'] ?? '';
     $agendamento['usuario_id'] = $_SESSION['usuario']['id'];
-    $agendamento['instalador_id'] = !empty($_POST['instalador_id']) ? intval($_POST['instalador_id']) : null;
-    $agendamento['auxiliar_id'] = !empty($_POST['auxiliar_id']) ? intval($_POST['auxiliar_id']) : null;
+    $agendamento['instalador_id'] = !empty($_POST['instaladores']) ? $_POST['instaladores'] : [];
+    // Auxiliar não é mais selecionado diretamente, é associado automaticamente ao instalador
     
     // Validar campos obrigatórios
     $erros = [];
@@ -183,59 +183,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Se não houver erros, salvar no banco de dados
     if (empty($erros)) {
-        if ($agendamento['id'] > 0) {
-            // Atualizar agendamento existente
-            $stmt = $db->prepare("UPDATE agendamentos SET 
-                                orcamento_id = :orcamento_id,
-                                data_agendamento = :data_agendamento,
-                                hora_inicio = :hora_inicio,
-                                hora_fim = :hora_fim,
-                                status = :status,
-                                previsao_tempo = :previsao_tempo,
-                                temperatura = :temperatura,
-                                umidade = :umidade,
-                                previsao_chuva = :previsao_chuva,
-                                observacoes = :observacoes,
-                                usuario_id = :usuario_id,
-                                instalador_id = :instalador_id,
-                                auxiliar_id = :auxiliar_id,
-                                atualizado_em = CURRENT_TIMESTAMP
-                                WHERE id = :id");
-            $stmt->bindParam(':id', $agendamento['id'], PDO::PARAM_INT);
-        } else {
-            // Inserir novo agendamento
-            $stmt = $db->prepare("INSERT INTO agendamentos (
-                                orcamento_id, data_agendamento, hora_inicio, hora_fim, 
-                                status, previsao_tempo, temperatura, umidade, previsao_chuva, 
-                                observacoes, usuario_id, cliente_agendou, instalador_id, auxiliar_id
-                                ) VALUES (
-                                :orcamento_id, :data_agendamento, :hora_inicio, :hora_fim, 
-                                :status, :previsao_tempo, :temperatura, :umidade, :previsao_chuva, 
-                                :observacoes, :usuario_id, :cliente_agendou, :instalador_id, :auxiliar_id
-                                )");
-            $stmt->bindParam(':cliente_agendou', $agendamento['cliente_agendou'], PDO::PARAM_BOOL);
-        }
+        // Nova abordagem: excluir associações anteriores de instaladores (se houver) e inserir as novas
+        $transaction_success = true;
         
-        // Bind parameters comuns para inserção e atualização
-        $stmt->bindParam(':orcamento_id', $agendamento['orcamento_id'], PDO::PARAM_INT);
-        $stmt->bindParam(':data_agendamento', $agendamento['data_agendamento']);
-        $stmt->bindParam(':hora_inicio', $agendamento['hora_inicio']);
-        $stmt->bindParam(':hora_fim', $agendamento['hora_fim']);
-        $stmt->bindParam(':status', $agendamento['status']);
-        $stmt->bindParam(':previsao_tempo', $agendamento['previsao_tempo']);
-        $stmt->bindParam(':temperatura', $agendamento['temperatura']);
-        $stmt->bindParam(':umidade', $agendamento['umidade']);
-        $stmt->bindParam(':previsao_chuva', $agendamento['previsao_chuva'], PDO::PARAM_BOOL);
-        $stmt->bindParam(':observacoes', $agendamento['observacoes']);
-        $stmt->bindParam(':usuario_id', $agendamento['usuario_id'], PDO::PARAM_INT);
+        // Iniciar transação para garantir consistência dos dados
+        $db->beginTransaction();
         
-        if ($stmt->execute()) {
+        try {
+            // Primeiro, inserir ou atualizar o agendamento principal
+            if ($agendamento['id'] > 0) {
+                // Atualizar agendamento existente
+                $stmt = $db->prepare("UPDATE agendamentos SET 
+                                    orcamento_id = :orcamento_id,
+                                    data_agendamento = :data_agendamento,
+                                    hora_inicio = :hora_inicio,
+                                    hora_fim = :hora_fim,
+                                    status = :status,
+                                    previsao_tempo = :previsao_tempo,
+                                    temperatura = :temperatura,
+                                    umidade = :umidade,
+                                    previsao_chuva = :previsao_chuva,
+                                    observacoes = :observacoes,
+                                    usuario_id = :usuario_id,
+                                    atualizado_em = CURRENT_TIMESTAMP
+                                    WHERE id = :id");
+                $stmt->bindParam(':id', $agendamento['id'], PDO::PARAM_INT);
+                $agendamento_id = $agendamento['id'];
+            } else {
+                // Inserir novo agendamento
+                $stmt = $db->prepare("INSERT INTO agendamentos (
+                                    orcamento_id, data_agendamento, hora_inicio, hora_fim, 
+                                    status, previsao_tempo, temperatura, umidade, previsao_chuva, 
+                                    observacoes, usuario_id, cliente_agendou
+                                    ) VALUES (
+                                    :orcamento_id, :data_agendamento, :hora_inicio, :hora_fim, 
+                                    :status, :previsao_tempo, :temperatura, :umidade, :previsao_chuva, 
+                                    :observacoes, :usuario_id, :cliente_agendou
+                                    )");
+                $stmt->bindParam(':cliente_agendou', $agendamento['cliente_agendou'], PDO::PARAM_BOOL);
+            }
+            
+            // Bind parameters comuns para inserção e atualização do agendamento principal
+            $stmt->bindParam(':orcamento_id', $agendamento['orcamento_id'], PDO::PARAM_INT);
+            $stmt->bindParam(':data_agendamento', $agendamento['data_agendamento']);
+            $stmt->bindParam(':hora_inicio', $agendamento['hora_inicio']);
+            $stmt->bindParam(':hora_fim', $agendamento['hora_fim']);
+            $stmt->bindParam(':status', $agendamento['status']);
+            $stmt->bindParam(':previsao_tempo', $agendamento['previsao_tempo']);
+            $stmt->bindParam(':temperatura', $agendamento['temperatura']);
+            $stmt->bindParam(':umidade', $agendamento['umidade']);
+            $stmt->bindParam(':previsao_chuva', $agendamento['previsao_chuva'], PDO::PARAM_BOOL);
+            $stmt->bindParam(':observacoes', $agendamento['observacoes']);
+            $stmt->bindParam(':usuario_id', $agendamento['usuario_id'], PDO::PARAM_INT);
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Erro ao salvar agendamento principal");
+            }
+            
+            // Obter o ID do agendamento se for uma inserção
+            if (!$agendamento['id'] > 0) {
+                $agendamento_id = $db->lastInsertId();
+            }
+            
+            // Agora lidamos com os instaladores e auxiliares numa tabela relacionada
+            // Primeiro, excluir quaisquer relacionamentos existentes para este agendamento
+            $stmt = $db->prepare("DELETE FROM agendamento_instaladores WHERE agendamento_id = :agendamento_id");
+            $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+            if (!$stmt->execute()) {
+                throw new Exception("Erro ao limpar instaladores anteriores");
+            }
+            
+            // Agora inserir os novos instaladores selecionados
+            if (!empty($agendamento['instalador_id']) && is_array($agendamento['instalador_id'])) {
+                foreach ($agendamento['instalador_id'] as $instalador_id) {
+                    $stmt = $db->prepare("INSERT INTO agendamento_instaladores 
+                                          (agendamento_id, instalador_id) 
+                                          VALUES (:agendamento_id, :instalador_id)");
+                    $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                    $stmt->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+                    
+                    if (!$stmt->execute()) {
+                        throw new Exception("Erro ao vincular instalador ao agendamento");
+                    }
+                    
+                    // Verificar se o instalador tem auxiliar e vinculá-lo automaticamente
+                    $stmt_auxiliar = $db->prepare("SELECT auxiliar_id FROM instaladores WHERE id = :instalador_id AND auxiliar_id IS NOT NULL");
+                    $stmt_auxiliar->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+                    $stmt_auxiliar->execute();
+                    
+                    if ($stmt_auxiliar->rowCount() > 0) {
+                        $auxiliar_info = $stmt_auxiliar->fetch(PDO::FETCH_ASSOC);
+                        if (!empty($auxiliar_info['auxiliar_id'])) {
+                            $stmt = $db->prepare("INSERT INTO agendamento_auxiliares 
+                                                  (agendamento_id, instalador_id, auxiliar_id) 
+                                                  VALUES (:agendamento_id, :instalador_id, :auxiliar_id)");
+                            $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                            $stmt->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+                            $stmt->bindParam(':auxiliar_id', $auxiliar_info['auxiliar_id'], PDO::PARAM_INT);
+                            
+                            if (!$stmt->execute()) {
+                                throw new Exception("Erro ao vincular auxiliar automaticamente");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Se chegou até aqui, confirmar transação
+            $db->commit();
+            
             // Redirecionar para página de agendamentos
-            $id = $agendamento['id'] > 0 ? $agendamento['id'] : $db->lastInsertId();
             header("Location: agendamentos.php?mensagem=Agendamento " . ($agendamento['id'] > 0 ? 'atualizado' : 'criado') . " com sucesso!");
             exit;
-        } else {
-            $erros[] = "Erro ao salvar o agendamento.";
+            
+        } catch (Exception $e) {
+            // Se ocorrer um erro, reverter transação
+            $db->rollBack();
+            $erros[] = "Erro ao salvar o agendamento: " . $e->getMessage();
         }
     }
 }
@@ -343,36 +407,59 @@ if (!empty($erros)) {
                     </select>
                     <div class="invalid-feedback">Por favor, selecione um horário de fim.</div>
                 </div>
-                <div class="col-md-3">
-                    <label for="instalador_id" class="form-label">Instalador</label>
-                    <select class="form-select" id="instalador_id" name="instalador_id">
-                        <option value="">Selecione um instalador...</option>
-                        <?php
-                        // Listar instaladores ativos
-                        $stmt = $db->prepare("SELECT id, nome FROM instaladores WHERE ativo = true ORDER BY nome ASC");
-                        $stmt->execute();
-                        $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                        
-                        foreach ($instaladores as $instalador) {
-                            $selected = (isset($agendamento['instalador_id']) && $agendamento['instalador_id'] == $instalador['id']) ? 'selected' : '';
-                            echo "<option value=\"{$instalador['id']}\" {$selected}>{$instalador['nome']}</option>";
-                        }
-                        ?>
-                    </select>
-                    <div class="form-text">Selecione o instalador responsável por este serviço.</div>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Auxiliar</label>
-                    <div id="info-auxiliar" class="form-control-plaintext">
-                        <?php if ($agendamento['instalador_id']): ?>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-secondary me-2">Auxiliar do instalador selecionado</span>
-                            </div>
-                        <?php else: ?>
-                            <span class="text-muted">O auxiliar será atribuído automaticamente</span>
+                <div class="col-md-6">
+                    <label class="form-label">Instaladores</label>
+                    <div class="mb-2">
+                        <div class="input-group">
+                            <select class="form-select" id="instalador_select">
+                                <option value="">Selecione um instalador...</option>
+                                <?php
+                                // Listar instaladores ativos
+                                $stmt = $db->prepare("SELECT id, nome FROM instaladores WHERE ativo = true ORDER BY nome ASC");
+                                $stmt->execute();
+                                $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                
+                                // Converter string de IDs para array se necessário
+                                $instaladores_selecionados = [];
+                                if (isset($agendamento['instalador_id']) && !empty($agendamento['instalador_id'])) {
+                                    if (is_array($agendamento['instalador_id'])) {
+                                        $instaladores_selecionados = $agendamento['instalador_id'];
+                                    } else {
+                                        $instaladores_selecionados = [$agendamento['instalador_id']];
+                                    }
+                                }
+                                
+                                foreach ($instaladores as $instalador) {
+                                    echo "<option value=\"{$instalador['id']}\">{$instalador['nome']}</option>";
+                                }
+                                ?>
+                            </select>
+                            <button type="button" class="btn btn-primary" id="adicionar_instalador">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="instaladores_selecionados" class="list-group">
+                        <?php if (!empty($instaladores_selecionados)): ?>
+                            <?php foreach ($instaladores_selecionados as $instalador_id): ?>
+                                <?php 
+                                // Buscar dados do instalador
+                                foreach ($instaladores as $instalador) {
+                                    if ($instalador['id'] == $instalador_id) {
+                                        echo '<div class="list-group-item d-flex justify-content-between align-items-center">';
+                                        echo '<div><i class="fas fa-hard-hat me-2"></i>' . $instalador['nome'] . '</div>';
+                                        echo '<input type="hidden" name="instaladores[]" value="' . $instalador_id . '">';
+                                        echo '<button type="button" class="btn btn-sm btn-danger remover-instalador"><i class="fas fa-times"></i></button>';
+                                        echo '</div>';
+                                        break;
+                                    }
+                                }
+                                ?>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
-                    <div class="form-text">O auxiliar é associado automaticamente ao instalador.</div>
+                    <div class="form-text">Adicione um ou mais instaladores. Auxiliares serão atribuídos automaticamente.</div>
                 </div>
                 
                 <div class="col-md-4">
