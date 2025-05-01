@@ -192,7 +192,7 @@ require_once('includes/header.php');
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <input type="text" class="form-control form-control-sm" name="horarios[<?php echo $horario['id']; ?>][observacao]" value="<?php echo htmlspecialchars($horario['observacao']); ?>" placeholder="Observação opcional">
+                                                    <input type="text" class="form-control form-control-sm" name="horarios[<?php echo $horario['id']; ?>][observacao]" value="<?php echo htmlspecialchars($horario['observacao'] ?? ''); ?>" placeholder="Observação opcional">
                                                 </td>
                                                 <td>
                                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmarExclusaoHorario(<?php echo $horario['id']; ?>, '<?php echo substr($horario['hora_inicio'], 0, 5) . ' - ' . substr($horario['hora_fim'], 0, 5); ?>')">
