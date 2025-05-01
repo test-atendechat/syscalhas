@@ -208,6 +208,8 @@ try {
     }
     
     // 4. Verificar indisponibilidades automáticas (horário de almoço e tempo após chegada)
+    // Forçar aplicar_indisponibilidade para true, pois é importante bloquear horário de almoço
+    $aplicar_indisponibilidade = true;
     if ($aplicar_indisponibilidade) {
         // Verificar conflito com horário de almoço
         $inicio_almoco = new DateTime($data . ' ' . $horario_inicio_almoco);

@@ -204,6 +204,8 @@ try {
     }
     
     // 4. Verificar indisponibilidades automáticas (horário de almoço e tempo após chegada)
+    // Forçar aplicar_indisponibilidade para true, pois é importante bloquear horário de almoço
+    $aplicar_indisponibilidade = true;
     if ($aplicar_indisponibilidade) {
         // Converter horários para objetos DateTime para comparação
         $hora_inicio_servico = $data_hora_inicio->format('H:i:s');
