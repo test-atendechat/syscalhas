@@ -5,6 +5,11 @@ require_once('includes/functions.php');
 require_once('includes/notificacoes.php');
 require_once('notificacao_orcamento.php');
 
+// Garantir que todas as funções personalizadas estejam disponíveis
+if (!function_exists('buscarAgendamentoAtivo')) {
+    require_once('includes/functions.php');
+}
+
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
 
@@ -766,6 +771,34 @@ if (!$acesso_interno) {
             <div class="card">
                 <div class="card-body bg-light">
                     <?php echo nl2br($orcamento['observacoes']); ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+    
+    <?php if ($orcamento['status_execucao'] == 'agendado' && isset($_SESSION['agendamento_info'])): ?>
+        <div class="mt-4 agendamento-info">
+            <h5><i class="fas fa-calendar-check me-2"></i>Informações de Agendamento</h5>
+            <div class="card">
+                <div class="card-body bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Data:</strong> <?php echo $_SESSION['agendamento_info']['data']; ?></p>
+                            <p><strong>Horário:</strong> <?php echo $_SESSION['agendamento_info']['hora']; ?></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Profissional:</strong> <?php echo $_SESSION['agendamento_info']['colaborador_nome']; ?></p>
+                            <p><strong>Contato:</strong> <?php echo $_SESSION['agendamento_info']['colaborador_telefone']; ?></p>
+                        </div>
+                    </div>
+                    <?php if (!empty($_SESSION['agendamento_info']['observacoes'])): ?>
+                        <div class="mt-2">
+                            <p><strong>Observações do agendamento:</strong></p>
+                            <div class="ps-3">
+                                <?php echo nl2br($_SESSION['agendamento_info']['observacoes']); ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
