@@ -22,6 +22,7 @@ $hora_inicio = $_POST['hora_inicio'] ?? '';
 $colaborador_id = intval($_POST['colaborador_id'] ?? 0);
 $tempo_previsto = intval($_POST['tempo_previsto'] ?? 60);
 $unidade_tempo = $_POST['unidade_tempo'] ?? 'minutos';
+$reagendamento = isset($_POST['reagendamento']) && $_POST['reagendamento'] == '1';
 
 // Obter configurações de horário de funcionamento
 $stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
@@ -181,7 +182,30 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Gerar código de confirmação
             $codigo_confirmacao = md5(uniqid(rand(), true));
             
-            // Inserir agendamento
+            // Verificar se é um reagendamento
+            if ($reagendamento) {
+                // Obter agendamentos ativos para este orçamento
+                $stmt = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+                $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+                $stmt->execute();
+                $agendamentos_existentes = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                // Marcar agendamentos antigos como reagendados
+                if (count($agendamentos_existentes) > 0) {
+                    $placeholders = implode(',', array_fill(0, count($agendamentos_existentes), '?'));
+                    $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'reagendado', atualizado_em = NOW() WHERE id IN ($placeholders)");
+                    foreach ($agendamentos_existentes as $index => $agendamento_id) {
+                        $stmt->bindValue($index + 1, $agendamento_id, PDO::PARAM_INT);
+                    }
+                    $stmt->execute();
+                }
+                
+                $mensagem_adicional = "Reagendamento";
+            } else {
+                $mensagem_adicional = "Agendamento";
+            }
+            
+            // Inserir novo agendamento
             $stmt = $pdo->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
                                 status, codigo_confirmacao, cliente_agendou, criado_em, data_agendamento,
@@ -215,7 +239,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Commit da transação
             $pdo->commit();
             
-            $mensagem = 'Agendamento realizado com sucesso!';
+            $mensagem = $mensagem_adicional . ' realizado com sucesso!';
             $tipo = 'success';
         }
     } catch (Exception $e) {
