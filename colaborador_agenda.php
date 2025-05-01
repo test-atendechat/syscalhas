@@ -38,38 +38,11 @@ if ($colaborador_id > 0) {
     // Inicializar a conexão com o banco de dados
     global $pdo;
     
-    // Buscar disponibilidades manuais do colaborador (excluindo entradas automaticas)
+    // Buscar disponibilidades do colaborador (excluindo entradas automaticas)
     $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id AND (observacao NOT LIKE '%(automático)%' OR observacao IS NULL) ORDER BY data_disponibilidade, hora_inicio");
     $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $disponibilidades_manuais = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Buscar indisponibilidades automáticas
-    $stmt_auto = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id AND observacao LIKE '%(automático)%' ORDER BY hora_inicio");
-    $stmt_auto->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-    $stmt_auto->execute();
-    $indisponibilidades_automaticas = $stmt_auto->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Informações para as entradas "Todos os dias"
-    $horario_entrada = '';
-    $horario_almoco = '';
-    $encontrou_entrada = false;
-    $encontrou_almoco = false;
-    
-    // Extrair horários de indisponibilidades automáticas
-    foreach ($indisponibilidades_automaticas as $auto) {
-        if (isset($auto['observacao']) && $auto['observacao'] !== null) {
-            if (strpos($auto['observacao'], 'Indisponibilidade de entrada') !== false && !$encontrou_entrada) {
-                $encontrou_entrada = true;
-                $horario_entrada = date('H:i', strtotime($auto['hora_inicio'])) . ' até ' . 
-                                   date('H:i', strtotime($auto['hora_fim']));
-            } elseif (strpos($auto['observacao'], 'Horário de almoço') !== false && !$encontrou_almoco) {
-                $encontrou_almoco = true;
-                $horario_almoco = date('H:i', strtotime($auto['hora_inicio'])) . ' até ' . 
-                                 date('H:i', strtotime($auto['hora_fim']));
-            }
-        }
-    }
     
     // Buscar agendamentos feitos por clientes para este colaborador
     $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome, 
@@ -369,7 +342,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
         <h5 class="mb-0"><i class="fas fa-list me-2"></i>Disponibilidades Cadastradas</h5>
     </div>
     <div class="card-body">
-        <?php if ($encontrou_entrada || $encontrou_almoco || !empty($disponibilidades_manuais)): ?>
+        <?php if (!empty($disponibilidades_manuais)): ?>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -383,33 +356,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Exibir indisponibilidades automáticas agrupadas em uma única linha -->
-                    <?php if ($encontrou_entrada || $encontrou_almoco): ?>
-                    <tr class="table-info">
-                        <td><strong>Todos os dias</strong></td>
-                        <td>
-                            <?php 
-                            // Se tiver ambos almoço e entrada, exibir os horários juntos
-                            if($encontrou_entrada && $encontrou_almoco) {
-                                echo $horario_entrada . ' e ' . $horario_almoco;
-                            } elseif ($encontrou_entrada) {
-                                echo $horario_entrada;
-                            } elseif ($encontrou_almoco) {
-                                echo $horario_almoco;
-                            }
-                            ?>
-                        </td>
-                        <td>
-                            <span class="badge bg-warning">Indisponível</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-primary">Automático</span>
-                        </td>
-                        <td colspan="2">Indisponibilidades automáticas do sistema (gerenciadas nas <a href="configuracoes.php">Configurações</a>)</td>
-                    </tr>
-                    <?php endif; ?>
-                    
-                    <!-- Exibir indisponibilidades manuais normalmente -->
+                    <!-- Exibir apenas indisponibilidades manuais -->
                     <?php foreach ($disponibilidades_manuais as $disponibilidade): ?>
                         <tr data-id="<?php echo $disponibilidade['id']; ?>" class="<?php echo $disponibilidade['disponivel'] ? '' : 'table-warning'; ?>">
                             <td>
