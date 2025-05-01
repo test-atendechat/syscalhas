@@ -21,8 +21,8 @@ $disponibilidades = [];
 
 // Incluir arquivo de conexão
 require_once 'includes/db.php';
-// Usar a variável $db definida em includes/db.php
-$pdo = $db;
+// Usar a variável $db definida em includes/db.php como $pdo para consistência
+$pdo = $db; // Alias para manter o código consistente
 
 // Buscar dados do colaborador
 if ($colaborador_id > 0) {
@@ -48,11 +48,11 @@ if ($colaborador_id > 0) {
     
     // Buscar agendamentos feitos por clientes para este colaborador
     $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome 
-                                 FROM agendamentos a
-                                 JOIN orcamentos o ON a.orcamento_id = o.id
-                                 JOIN clientes c ON o.cliente_id = c.id
-                                 WHERE a.instalador_id = :colaborador_id
-                                 ORDER BY a.data_agendamento, a.hora_inicio");
+                             FROM agendamentos a
+                             JOIN orcamentos o ON a.orcamento_id = o.id
+                             JOIN clientes c ON o.cliente_id = c.id
+                             WHERE a.instalador_id = :colaborador_id
+                             ORDER BY a.data_agendamento, a.hora_inicio");
     $stmt_agendamentos->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt_agendamentos->execute();
     $agendamentos_clientes = $stmt_agendamentos->fetchAll(PDO::FETCH_ASSOC);
@@ -95,14 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             if ($registro_id > 0) {
                 // Atualizar registro existente
                 $stmt = $pdo->prepare("UPDATE colaborador_agenda SET 
-                                    data_disponibilidade = :data_disponibilidade,
-                                    hora_inicio = :hora_inicio,
-                                    hora_fim = :hora_fim,
-                                    disponivel = :disponivel,
-                                    observacao = :observacao,
-                                    recorrente = :recorrente,
-                                    dia_semana = :dia_semana
-                                    WHERE id = :id AND colaborador_id = :colaborador_id");
+                                data_disponibilidade = :data_disponibilidade,
+                                hora_inicio = :hora_inicio,
+                                hora_fim = :hora_fim,
+                                disponivel = :disponivel,
+                                observacao = :observacao,
+                                recorrente = :recorrente,
+                                dia_semana = :dia_semana
+                                WHERE id = :id AND colaborador_id = :colaborador_id");
                 $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 $stmt->bindParam(':data_disponibilidade', $data_disponibilidade);
@@ -118,11 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             } else {
                 // Inserir novo registro
                 $stmt = $pdo->prepare("INSERT INTO colaborador_agenda (
-                                    colaborador_id, data_disponibilidade, hora_inicio, hora_fim,
-                                    disponivel, observacao, recorrente, dia_semana)
-                                    VALUES (
-                                    :colaborador_id, :data_disponibilidade, :hora_inicio, :hora_fim,
-                                    :disponivel, :observacao, :recorrente, :dia_semana)");
+                                colaborador_id, data_disponibilidade, hora_inicio, hora_fim,
+                                disponivel, observacao, recorrente, dia_semana)
+                                VALUES (
+                                :colaborador_id, :data_disponibilidade, :hora_inicio, :hora_fim,
+                                :disponivel, :observacao, :recorrente, :dia_semana)");
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 $stmt->bindParam(':data_disponibilidade', $data_disponibilidade);
                 $stmt->bindParam(':hora_inicio', $hora_inicio);
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             }
             
             // Atualizar lista de disponibilidades
-            $stmt = $db->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+            $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->execute();
             $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -162,7 +162,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
             $mensagem = alerta('Registro de disponibilidade excluído com sucesso!', 'success');
             
             // Atualizar lista de disponibilidades
-            $stmt = $db->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+            $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->execute();
             $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -375,23 +375,24 @@ require_once('includes/header.php');
                                 </td>
                                 <td><?php echo $disponibilidade['observacao']; ?></td>
                                 <td>
-                                    <button class="btn btn-sm btn-primary btnEditar" 
-                                            data-id="<?php echo $disponibilidade['id']; ?>"
-                                            data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
-                                            data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
-                                            data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
-                                            data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
-                                            data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
-                                            data-dia-semana="<?php echo $disponibilidade['dia_semana']; ?>"
-                                            data-observacao="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    
-                                    <a href="colaborador_agenda.php?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
-                                       class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('Tem certeza que deseja excluir este registro?')">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-primary edit-disponibilidade" 
+                                                data-id="<?php echo $disponibilidade['id']; ?>"
+                                                data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
+                                                data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
+                                                data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
+                                                data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
+                                                data-obs="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>"
+                                                data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
+                                                data-dia="<?php echo $disponibilidade['dia_semana']; ?>">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <a href="?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
+                                           class="btn btn-outline-danger" 
+                                           onclick="return confirm('Tem certeza que deseja excluir este registro de disponibilidade?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -399,253 +400,193 @@ require_once('includes/header.php');
                 </table>
             </div>
         <?php else: ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>Nenhuma disponibilidade cadastrada para este colaborador.
-            </div>
+            <p class="text-muted">Nenhum registro de disponibilidade cadastrado para este colaborador.</p>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Agendamentos feitos pelos clientes -->
+<!-- Exibir Agendamentos de Clientes -->
+<?php if (isset($agendamentos_clientes) && count($agendamentos_clientes) > 0): ?>
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Agendamentos de Clientes</h5>
     </div>
     <div class="card-body">
-        <?php if (!empty($agendamentos_clientes)): ?>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Horário</th>
-                            <th>Cliente</th>
-                            <th>Orçamento</th>
-                            <th>Status</th>
-                            <th>Observações</th>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Cliente</th>
+                        <th>Orçamento</th>
+                        <th>Detalhes</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($agendamentos_clientes as $agendamento): ?>
+                        <tr class="<?php echo $agendamento['status'] == 'concluido' ? 'table-success' : ($agendamento['status'] == 'cancelado' ? 'table-danger' : ''); ?>">
+                            <td><?php echo date('d/m/Y', strtotime($agendamento['data_agendamento'])); ?></td>
+                            <td>
+                                <?php 
+                                echo date('H:i', strtotime($agendamento['hora_inicio'])) . ' até ' . 
+                                     date('H:i', strtotime($agendamento['hora_fim'])); 
+                                ?>
+                            </td>
+                            <td>
+                                <a href="clientes.php?id=<?php echo $agendamento['cliente_id']; ?>">
+                                    <?php echo $agendamento['cliente_nome']; ?>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="orcamento_visualizar.php?id=<?php echo $agendamento['orcamento_id']; ?>">
+                                    #<?php echo $agendamento['numero']; ?>
+                                </a>
+                            </td>
+                            <td><?php echo $agendamento['detalhes']; ?></td>
+                            <td>
+                                <span class="badge bg-<?php 
+                                    echo $agendamento['status'] == 'agendado' ? 'primary' : 
+                                        ($agendamento['status'] == 'concluido' ? 'success' : 
+                                        ($agendamento['status'] == 'cancelado' ? 'danger' : 'secondary')); 
+                                ?>">
+                                    <?php echo ucfirst($agendamento['status']); ?>
+                                </span>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($agendamentos_clientes as $agendamento): ?>
-                            <tr>
-                                <td><?php echo dataParaBr($agendamento['data_agendamento']); ?></td>
-                                <td>
-                                    <?php 
-                                    echo date('H:i', strtotime($agendamento['hora_inicio'])) . ' até ' . 
-                                         date('H:i', strtotime($agendamento['hora_fim'])); 
-                                    ?>
-                                </td>
-                                <td><?php echo $agendamento['cliente_nome']; ?></td>
-                                <td>
-                                    <a href="orcamento_visualizar.php?id=<?php echo $agendamento['orcamento_id']; ?>" class="btn btn-sm btn-outline-primary">
-                                        <?php echo $agendamento['numero']; ?>
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php 
-                                        if ($agendamento['status'] == 'agendado') echo 'primary';
-                                        elseif ($agendamento['status'] == 'concluido') echo 'success';
-                                        elseif ($agendamento['status'] == 'cancelado') echo 'danger';
-                                        else echo 'secondary';
-                                    ?>">
-                                        <?php echo ucfirst($agendamento['status']); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo $agendamento['observacoes']; ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php else: ?>
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>Nenhum agendamento de cliente para este colaborador.
-            </div>
-        <?php endif; ?>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+<?php endif; ?>
+
+<?php endif; ?>
 
 <script>
-// Função para alternar entre disponibilidade e indisponibilidade
-function toggleIndisponivel() {
-    const indisponivelCheck = document.getElementById('indisponivel');
-    const disponivelCheck = document.getElementById('disponivel');
-    const motivoDiv = document.getElementById('motivo_indisponibilidade');
-    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
-    const observacaoInput = document.getElementById('observacao');
-    const btnSalvar = document.getElementById('btnSalvar');
-    const btnSalvarIndisponibilidade = document.getElementById('btnSalvarIndisponibilidade');
-    
-    if (indisponivelCheck.checked) {
-        disponivelCheck.checked = false;
-        disponivelCheck.disabled = true;
-        motivoDiv.style.display = 'block';
-        btnSalvar.style.display = 'none';
-        btnSalvarIndisponibilidade.style.display = 'inline-block';
-        
-        // Pre-preencher o campo de observações
-        const motivo = tipoIndisponibilidade.options[tipoIndisponibilidade.selectedIndex].value;
-        if (!observacaoInput.value.includes(motivo)) {
-            observacaoInput.value = motivo + (observacaoInput.value ? ': ' + observacaoInput.value : '');
-        }
-    } else {
-        disponivelCheck.disabled = false;
-        motivoDiv.style.display = 'none';
-        btnSalvar.style.display = 'inline-block';
-        btnSalvarIndisponibilidade.style.display = 'none';
-    }
-}
-
-// Atualiza o campo de observações quando o tipo de indisponibilidade muda
-function atualizarMotivoIndisponibilidade() {
-    const indisponivelCheck = document.getElementById('indisponivel');
-    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
-    const observacaoInput = document.getElementById('observacao');
-    
-    if (indisponivelCheck.checked) {
-        const motivo = tipoIndisponibilidade.options[tipoIndisponibilidade.selectedIndex].value;
-        // Limpar o motivo anterior se existir
-        const partes = observacaoInput.value.split(': ');
-        if (partes.length > 1) {
-            observacaoInput.value = motivo + ': ' + partes[1];
-        } else {
-            observacaoInput.value = motivo;
-        }
-    }
-}
-
+// JavaScript para manipulação do formulário de disponibilidade
 document.addEventListener('DOMContentLoaded', function() {
-    // Mostrar/ocultar seleção de dia da semana quando recorrente for marcado
     const recorrenteCheckbox = document.getElementById('recorrente');
     const diaSemanaGroup = document.getElementById('dia_semana_group');
-    const indisponivelCheck = document.getElementById('indisponivel');
-    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
+    const indisponivelCheckbox = document.getElementById('indisponivel');
+    const disponivelCheckbox = document.getElementById('disponivel');
+    const motivoIndisponibilidade = document.getElementById('motivo_indisponibilidade');
+    const btnSalvar = document.getElementById('btnSalvar');
     const btnSalvarIndisponibilidade = document.getElementById('btnSalvarIndisponibilidade');
+    const btnCancelar = document.getElementById('btnCancelar');
+    const registroIdInput = document.getElementById('registro_id');
     
+    // Mostrar/ocultar campo de dia da semana quando a opção recorrente for marcada
     recorrenteCheckbox.addEventListener('change', function() {
         diaSemanaGroup.style.display = this.checked ? 'block' : 'none';
+        
+        // Se for recorrente, preencher com o dia da semana correspondente à data selecionada
+        if (this.checked) {
+            const dataDisponibilidade = document.getElementById('data_disponibilidade').value;
+            if (dataDisponibilidade) {
+                const data = new Date(dataDisponibilidade);
+                const diaSemana = data.getDay(); // 0=Domingo, 1=Segunda, ...
+                document.getElementById('dia_semana').value = diaSemana;
+            }
+        }
     });
     
-    // Inicializar o botão de indisponibilidade
-    btnSalvarIndisponibilidade.style.display = 'none';
+    // Quando uma data for selecionada e a opção recorrente estiver marcada, atualizar o dia da semana
+    document.getElementById('data_disponibilidade').addEventListener('change', function() {
+        if (recorrenteCheckbox.checked && this.value) {
+            const data = new Date(this.value);
+            const diaSemana = data.getDay();
+            document.getElementById('dia_semana').value = diaSemana;
+        }
+    });
     
-    // Configurar eventos para o tipo de indisponibilidade
-    tipoIndisponibilidade.addEventListener('change', atualizarMotivoIndisponibilidade);
-    
-    // Configurar botões de edição
-    const botoesEditar = document.querySelectorAll('.btnEditar');
-    const formRegistro = document.querySelector('form');
-    const registroIdInput = document.getElementById('registro_id');
-    const dataInput = document.getElementById('data_disponibilidade');
-    const horaInicioInput = document.getElementById('hora_inicio');
-    const horaFimInput = document.getElementById('hora_fim');
-    const disponivelCheckbox = document.getElementById('disponivel');
-    const recorrenteInput = document.getElementById('recorrente');
-    const diaSemanaSelect = document.getElementById('dia_semana');
-    const observacaoInput = document.getElementById('observacao');
-    const btnSalvar = document.getElementById('btnSalvar');
-    const btnCancelar = document.getElementById('btnCancelar');
-    
-    botoesEditar.forEach(botao => {
-        botao.addEventListener('click', function() {
+    // Configurar botões de edição de disponibilidade
+    document.querySelectorAll('.edit-disponibilidade').forEach(button => {
+        button.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
             const data = this.getAttribute('data-data');
             const inicio = this.getAttribute('data-inicio');
             const fim = this.getAttribute('data-fim');
             const disponivel = this.getAttribute('data-disponivel') === '1';
+            const observacao = this.getAttribute('data-obs');
             const recorrente = this.getAttribute('data-recorrente') === '1';
-            const diaSemana = this.getAttribute('data-dia-semana');
-            const observacao = this.getAttribute('data-observacao');
+            const diaSemana = this.getAttribute('data-dia');
             
-            // Preencher formulário com dados do registro
+            // Preencher formulário
             registroIdInput.value = id;
-            dataInput.value = data;
-            horaInicioInput.value = inicio.substring(0, 5); // Remover segundos
-            horaFimInput.value = fim.substring(0, 5); // Remover segundos
-            disponivelCheckbox.checked = disponivel;
-            recorrenteInput.checked = recorrente;
-            diaSemanaGroup.style.display = recorrente ? 'block' : 'none';
-            diaSemanaSelect.value = diaSemana;
-            observacaoInput.value = observacao;
+            document.getElementById('data_disponibilidade').value = data;
+            document.getElementById('hora_inicio').value = inicio;
+            document.getElementById('hora_fim').value = fim;
+            document.getElementById('disponivel').checked = disponivel;
+            document.getElementById('indisponivel').checked = !disponivel;
+            document.getElementById('observacao').value = observacao;
+            recorrenteCheckbox.checked = recorrente;
             
-            // Atualizar botões
-            btnSalvar.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Disponibilidade';
+            if (recorrente) {
+                diaSemanaGroup.style.display = 'block';
+                document.getElementById('dia_semana').value = diaSemana;
+            } else {
+                diaSemanaGroup.style.display = 'none';
+            }
+            
+            // Ajustar display dos botões
             btnCancelar.style.display = 'block';
             
-            // Scroll para o formulário
-            window.scrollTo({
-                top: formRegistro.offsetTop - 100,
-                behavior: 'smooth'
-            });
+            // Se for indisponibilidade, mostrar o motivo
+            if (!disponivel) {
+                toggleIndisponivel(true);
+            } else {
+                toggleIndisponivel(false);
+            }
+            
+            // Rolar até o formulário
+            document.querySelector('.card-header').scrollIntoView({ behavior: 'smooth' });
         });
     });
     
-    // Botão cancelar
+    // Botão de cancelar edição
     btnCancelar.addEventListener('click', function() {
-        // Limpar formulário
-        formRegistro.reset();
+        // Resetar formulário
         registroIdInput.value = 0;
+        document.getElementById('data_disponibilidade').value = '';
+        document.getElementById('hora_inicio').value = '';
+        document.getElementById('hora_fim').value = '';
+        document.getElementById('disponivel').checked = true;
+        document.getElementById('indisponivel').checked = false;
+        document.getElementById('observacao').value = '';
+        recorrenteCheckbox.checked = false;
         diaSemanaGroup.style.display = 'none';
-        
-        // Resetar botões
-        btnSalvar.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Disponibilidade';
+        motivoIndisponibilidade.style.display = 'none';
+        btnSalvar.style.display = 'inline-block';
+        btnSalvarIndisponibilidade.style.display = 'none';
         btnCancelar.style.display = 'none';
     });
 });
-</script>
-<?php else: ?>
-<div class="alert alert-info">
-    <i class="fas fa-info-circle me-2"></i>Selecione um colaborador para gerenciar sua agenda.
-</div>
 
-<div class="row">
-    <?php
-    // Listar todos os colaboradores instaladores
-    global $pdo;
-    $query = "SELECT id, nome, telefone, tipo, status FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome";
-    $stmt = $pdo->query($query);
-    $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Função para alternar entre disponibilidade e indisponibilidade
+function toggleIndisponivel(forceShow = null) {
+    const indisponivelCheckbox = document.getElementById('indisponivel');
+    const disponivelCheckbox = document.getElementById('disponivel');
+    const motivoIndisponibilidade = document.getElementById('motivo_indisponibilidade');
+    const btnSalvar = document.getElementById('btnSalvar');
+    const btnSalvarIndisponibilidade = document.getElementById('btnSalvarIndisponibilidade');
     
-    foreach ($colaboradores as $colab):
-    ?>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 border-<?php echo $colab['status'] == 'ativo' ? 'primary' : 'secondary'; ?>">
-            <div class="card-header bg-<?php echo $colab['status'] == 'ativo' ? 'primary' : 'secondary'; ?> text-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-user me-2"></i><?php echo $colab['nome']; ?>
-                    <?php if ($colab['status'] != 'ativo'): ?>
-                        <span class="badge bg-danger ms-2"><?php echo ucfirst($colab['status']); ?></span>
-                    <?php endif; ?>
-                </h5>
-            </div>
-            <div class="card-body">
-                <p><i class="fas fa-phone me-2"></i><?php echo $colab['telefone'] ?: 'Telefone não cadastrado'; ?></p>
-                <p><i class="fas fa-user-tag me-2"></i><?php echo ucfirst($colab['tipo']); ?></p>
-                <?php
-                // Contar agendamentos deste colaborador
-                $stmtCount = $db->prepare("SELECT COUNT(*) FROM colaborador_agenda WHERE colaborador_id = :id");
-                $stmtCount->bindParam(':id', $colab['id'], PDO::PARAM_INT);
-                $stmtCount->execute();
-                $agenda_count = $stmtCount->fetchColumn();
-                ?>
-                <p class="mb-0">
-                    <i class="fas fa-calendar-check me-2"></i>
-                    <?php if ($agenda_count > 0): ?>
-                        <span class="text-success"><?php echo $agenda_count; ?> horários cadastrados</span>
-                    <?php else: ?>
-                        <span class="text-muted">Nenhum horário cadastrado</span>
-                    <?php endif; ?>
-                </p>
-            </div>
-            <div class="card-footer">
-                <a href="colaborador_agenda.php?id=<?php echo $colab['id']; ?>" class="btn btn-primary w-100">
-                    <i class="fas fa-calendar-alt me-2"></i>Gerenciar Agenda
-                </a>
-            </div>
-        </div>
-    </div>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
-<?php require_once('includes/footer.php'); ?>
+    // Se forceShow for definido, usar esse valor; senão, usar o estado atual do checkbox
+    const isIndisponivel = forceShow !== null ? forceShow : indisponivelCheckbox.checked;
+    
+    if (isIndisponivel) {
+        disponivelCheckbox.checked = false;
+        motivoIndisponibilidade.style.display = 'block';
+        btnSalvar.style.display = 'none';
+        btnSalvarIndisponibilidade.style.display = 'inline-block';
+    } else {
+        disponivelCheckbox.checked = true;
+        indisponivelCheckbox.checked = false;
+        motivoIndisponibilidade.style.display = 'none';
+        btnSalvar.style.display = 'inline-block';
+        btnSalvarIndisponibilidade.style.display = 'none';
+    }
+}
+</script>
