@@ -21,16 +21,14 @@ try {
     global $pdo;
     
     // Buscar agendamentos que estão com status 'agendado' e já chegou a hora de início
+    // Consulta baseada em data_inicio (timestamp) para a nova estrutura de dados
     $stmt = $pdo->prepare("UPDATE agendamentos 
-                        SET status = 'em_andamento', 
-                            ultima_atualizacao = :datetime_atual 
+                        SET status = 'em_andamento'
                         WHERE status = 'agendado' 
-                        AND data_agendamento = :data_atual 
-                        AND hora_inicio <= :hora_atual
-                        RETURNING id, hora_inicio");
+                        AND data_inicio <= :datetime_atual 
+                        AND data_fim >= :datetime_atual
+                        RETURNING id, data_inicio");
                         
-    $stmt->bindParam(':data_atual', $data_atual);
-    $stmt->bindParam(':hora_atual', $hora_atual);
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
     
@@ -40,7 +38,7 @@ try {
     if ($total_em_andamento > 0) {
         $log .= "Agendamentos atualizados para 'Em Andamento': {$total_em_andamento}\n";
         foreach ($atualizados_em_andamento as $agenda) {
-            $log .= "- ID: {$agenda['id']}, Hora de Início: {$agenda['hora_inicio']}\n";
+            $log .= "- ID: {$agenda['id']}, Data/Hora de Início: {$agenda['data_inicio']}\n";
         }
     } else {
         $log .= "Nenhum agendamento atualizado para 'Em Andamento'.\n";
@@ -48,15 +46,11 @@ try {
     
     // Buscar agendamentos que estão com status 'em_andamento' e já passou da hora de fim
     $stmt = $pdo->prepare("UPDATE agendamentos 
-                        SET status = 'concluido', 
-                            ultima_atualizacao = :datetime_atual 
+                        SET status = 'concluido'
                         WHERE status = 'em_andamento' 
-                        AND data_agendamento = :data_atual 
-                        AND hora_fim <= :hora_atual
-                        RETURNING id, hora_fim");
+                        AND data_fim <= :datetime_atual
+                        RETURNING id, data_fim");
                         
-    $stmt->bindParam(':data_atual', $data_atual);
-    $stmt->bindParam(':hora_atual', $hora_atual);
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
     

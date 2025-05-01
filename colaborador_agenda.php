@@ -51,7 +51,7 @@ if ($colaborador_id > 0) {
                              JOIN orcamentos o ON a.orcamento_id = o.id
                              JOIN clientes c ON o.cliente_id = c.id
                              WHERE a.instalador_id = :colaborador_id
-                             ORDER BY a.data_agendamento, a.hora_inicio");
+                             ORDER BY a.data_inicio");
     $stmt_agendamentos->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt_agendamentos->execute();
     $agendamentos_clientes = $stmt_agendamentos->fetchAll(PDO::FETCH_ASSOC);
