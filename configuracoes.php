@@ -42,8 +42,23 @@ $configuracoes = [
 ];
 
 // Buscar configurações atuais do banco de dados
-$stmt = $db->query("SELECT chave, valor FROM configuracoes");
-$config_db = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+global $pdo;
+try {
+    // Verifica se a tabela existe primeiro
+    $stmt = $pdo->prepare("SELECT to_regclass('configuracoes')");
+    $stmt->execute();
+    $existe_tabela = $stmt->fetchColumn();
+    
+    if ($existe_tabela) {
+        $stmt = $pdo->query("SELECT chave, valor FROM configuracoes");
+        $config_db = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    } else {
+        $config_db = [];
+    }
+} catch (Exception $e) {
+    // Se ocorrer algum erro (tabela não existe, etc), inicia com array vazio
+    $config_db = [];
+}
 
 // Mesclar configurações do banco com valores padrão
 foreach ($config_db as $chave => $valor) {
@@ -53,7 +68,7 @@ foreach ($config_db as $chave => $valor) {
 // Processar formulário quando enviado
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
-        $db->beginTransaction();
+        $pdo->beginTransaction();
         
         // Processar cada configuração
         foreach ($configuracoes as $chave => $valor) {
@@ -61,17 +76,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $novo_valor = trim($_POST[$chave]);
                 
                 // Verificar se a configuração já existe
-                $stmt = $db->prepare("SELECT COUNT(*) FROM configuracoes WHERE chave = :chave");
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM configuracoes WHERE chave = :chave");
                 $stmt->bindParam(':chave', $chave);
                 $stmt->execute();
                 $existe = $stmt->fetchColumn();
                 
                 if ($existe) {
                     // Atualizar
-                    $stmt = $db->prepare("UPDATE configuracoes SET valor = :valor WHERE chave = :chave");
+                    $stmt = $pdo->prepare("UPDATE configuracoes SET valor = :valor WHERE chave = :chave");
                 } else {
                     // Inserir
-                    $stmt = $db->prepare("INSERT INTO configuracoes (chave, valor) VALUES (:chave, :valor)");
+                    $stmt = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (:chave, :valor)");
                 }
                 
                 $stmt->bindParam(':chave', $chave);
@@ -92,11 +107,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         
         // Confirmar transação
-        $db->commit();
+        $pdo->commit();
         $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
     } catch (Exception $e) {
         // Reverter em caso de erro
-        $db->rollback();
+        $pdo->rollback();
         $mensagem = alerta('Erro ao atualizar configurações: ' . $e->getMessage(), 'danger');
     }
 }

@@ -23,6 +23,13 @@ try {
     
     // Define $pdo como alias para $db para compatibilidade com código existente
     $pdo = $db;
+    
+    // Verificar se deve executar a atualização automática
+    if (isset($verificar_atualizacao_automatica) && $verificar_atualizacao_automatica) {
+        if (function_exists('verificarAtualizacaoAutomatica')) {
+            verificarAtualizacaoAutomatica();
+        }
+    }
 } catch (PDOException $e) {
     // Em ambiente de produção, evite exibir detalhes do erro
     die('Erro de conexão com o banco de dados: ' . $e->getMessage());
