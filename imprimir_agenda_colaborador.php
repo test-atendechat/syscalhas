@@ -79,7 +79,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de <?php echo $colaborador['nome']; ?> - <?php echo $data_formatada; ?></title>
+    <title>Agenda de <?php echo $tipo_colaborador === 'instalador' ? 'Instalações' : 'Orçamentos'; ?> - <?php echo $colaborador['nome']; ?> - <?php echo $data_formatada; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
@@ -160,7 +160,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
 <body>
     <div class="container mt-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-            <h1><i class="fas fa-calendar-day me-2"></i>Agenda de Serviços</h1>
+            <h1><i class="fas fa-calendar-day me-2"></i>Agenda de <?php echo $tipo_colaborador === 'instalador' ? 'Instalações' : 'Orçamentos'; ?></h1>
             <div>
                 <a href="colaboradores.php" class="btn btn-outline-secondary me-2">
                     <i class="fas fa-arrow-left me-2"></i>Voltar
@@ -195,8 +195,8 @@ $data_formatada = date('d/m/Y', strtotime($data));
         </form>
         
         <div class="agenda-header">
-            <h2>Agenda de <?php echo $colaborador['nome']; ?></h2>
-            <p class="lead">Data: <?php echo $data_formatada; ?></p>
+            <h2>Agenda de <?php echo $tipo_colaborador === 'instalador' ? 'Instalações' : 'Orçamentos'; ?></h2>
+            <p class="lead">Profissional: <?php echo $colaborador['nome']; ?> | Data: <?php echo $data_formatada; ?></p>
         </div>
         
         <?php if (count($agendamentos) > 0): ?>
@@ -237,9 +237,9 @@ $data_formatada = date('d/m/Y', strtotime($data));
                         <div class="servico-info">
                             <h5 class="mb-3">
                                 <?php if ($tipo_colaborador === 'instalador'): ?>
-                                <i class="fas fa-tools me-2"></i>SERVIÇO DE INSTALAÇÃO
+                                <i class="fas fa-tools me-2"></i>AGENDA DE INSTALAÇÃO
                                 <?php else: ?>
-                                <i class="fas fa-search me-2"></i>VISITA TÉCNICA
+                                <i class="fas fa-search me-2"></i>AGENDA DE ORÇAMENTO
                                 <?php endif; ?>
                             </h5>
                             <div class="row">
@@ -267,7 +267,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
         <?php else: ?>
             <div class="no-agendamentos">
                 <h3 class="text-muted"><i class="fas fa-calendar-times me-2"></i>Sem agendamentos para esta data</h3>
-                <p>Não há serviços agendados para <?php echo $colaborador['nome']; ?> na data de <?php echo $data_formatada; ?>.</p>
+                <p>Não há <?php echo $tipo_colaborador === 'instalador' ? 'instalações' : 'orçamentos'; ?> agendados para <?php echo $colaborador['nome']; ?> na data de <?php echo $data_formatada; ?>.</p>
             </div>
         <?php endif; ?>
     </div>
