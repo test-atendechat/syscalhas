@@ -209,8 +209,48 @@ foreach ($config_db as $chave => $valor) {
     $configuracoes[$chave] = $valor;
 }
 
-// Processar formulário quando enviado
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Processar botão atualizar indisponibilidades
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['atualizar_indisponibilidades'])) {
+    try {
+        $pdo->beginTransaction();
+        
+        // Buscar configurações atuais para usar na função
+        $config_atual = [];
+        $stmt = $pdo->query("SELECT chave, valor FROM configuracoes");
+        $config_atual = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        // Adicionar valores padrão se não existirem no banco
+        $campos_necessarios = [
+            'horario_inicio' => '07:00',
+            'horario_fim' => '17:00',
+            'horario_inicio_almoco' => '11:00',
+            'horario_fim_almoco' => '12:00',
+            'tempo_indisponivel_entrada' => '30'
+        ];
+        
+        foreach ($campos_necessarios as $campo => $valor_padrao) {
+            if (!isset($config_atual[$campo])) {
+                $config_atual[$campo] = $valor_padrao;
+            }
+        }
+        
+        // Executar a função de atualização
+        $resultado = atualizarIndisponibilidadesColaboradores($pdo, $config_atual);
+        
+        if ($resultado) {
+            $mensagem = alerta('Indisponibilidades atualizadas com sucesso para todos os colaboradores!', 'success');
+        } else {
+            $mensagem = alerta('Houve um problema ao atualizar as indisponibilidades automáticas.', 'warning');
+        }
+        
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollback();
+        $mensagem = alerta('Erro ao atualizar indisponibilidades: ' . $e->getMessage(), 'danger');
+    }
+}
+// Processar formulário geral quando enviado
+else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $pdo->beginTransaction();
         
