@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     $orcamentista_id = intval($_POST['colaborador_id']);
     
     // Calcular hora de fim (1 hora após a hora de início)
-    $hora_fim = date('H:i:s', strtotime($hora_inicio . ' + 1 hour'));
+    $hora_fim = date('H:i:s', strtotime($hora_inicio . ' + ' . $tempo_previsto_visita . ' minutes'));
     
     // Validar campos obrigatórios
     if (empty($nome) || empty($telefone) || empty($endereco) || empty($cidade) || empty($data_servico) || empty($hora_inicio) || $orcamentista_id <= 0) {
@@ -224,7 +224,7 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
             $fim = date('H:i:s', strtotime($agendamento['hora_fim']));
             
             foreach ($horarios_possiveis as $horario) {
-                $horario_fim = date('H:i:s', strtotime($horario . ' + 1 hour'));
+                $horario_fim = date('H:i:s', strtotime($horario . ' + ' . $tempo_previsto_visita . ' minutes'));
                 
                 // Verificar se há sobreposição
                 if (($inicio <= $horario && $fim > $horario) || 
@@ -399,7 +399,7 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Informação:</strong> Um profissional especializado irá até o local para avaliar o serviço. A consulta tem duração estimada de 1 hora.
+                    <strong>Informação:</strong> Um profissional especializado irá até o local para avaliar o serviço. A consulta tem duração estimada de <?php echo intval($tempo_previsto_visita/60); ?> hora<?php echo ($tempo_previsto_visita != 60) ? 's' : ''; ?> e <?php echo $tempo_previsto_visita % 60; ?> minutos.
                 </div>
                 
                 <div class="row mb-3">
@@ -427,8 +427,8 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                             $minutos_total_inicio = $horas_inicio * 60 + $minutos_inicio;
                             $minutos_total_fim = $horas_fim * 60 + $minutos_fim;
                             
-                            // Duração da visita em minutos (1 hora)
-                            $duracao_minutos = 60;
+                            // Duração da visita em minutos (configurada no sistema)
+                            $duracao_minutos = (int)$tempo_previsto_visita;
                             
                             // O último horário possível é o horário final menos a duração da visita
                             $hora_maxima_minutos = $minutos_total_fim - $duracao_minutos;
@@ -478,7 +478,7 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                             }
                             ?>
                         </select>
-                        <small class="text-muted">Tempo previsto para esta visita: 1 hora.</small>
+                        <small class="text-muted">Tempo previsto para esta visita: <?php echo intval($tempo_previsto_visita/60); ?> hora<?php echo ($tempo_previsto_visita != 60) ? 's' : ''; ?> e <?php echo $tempo_previsto_visita % 60; ?> minutos.</small>
                     </div>
                 </div>
                 
@@ -600,8 +600,8 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
         const dataServico = document.getElementById('data_servico');
         const horaInicio = document.getElementById('hora_inicio');
         const colaboradorSelect = document.getElementById('colaborador_id');
-        const tempoPrevisto = 1; // 1 hora para visita de orçamento
-        const unidadeTempo = 'horas';
+        const tempoPrevisto = <?php echo $tempo_previsto_visita; ?>; // Usa o tempo configurado no sistema
+        const unidadeTempo = 'minutos';
         
         // Converter tempo previsto para minutos
         let duracaoMinutos = tempoPrevisto;
