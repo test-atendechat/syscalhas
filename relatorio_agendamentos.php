@@ -2,15 +2,20 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
-require_once('includes/header.php');
+require_once('includes/auth.php');
+
+// Verificar autenticação
+verificarAutenticacao();
 
 // Verificar permissão
-if (!verificar_permissao('visualizar_relatorios')) {
+if ($_SESSION['usuario']['nivel'] !== 'admin' && !verificarPermissao('visualizar_relatorios')) {
     $_SESSION['mensagem'] = "Você não tem permissão para acessar esta funcionalidade.";
     $_SESSION['tipo_mensagem'] = 'danger';
     header('Location: index.php');
     exit;
 }
+
+require_once('includes/header.php');
 
 // Obter parâmetros de filtro
 $colaborador_id = isset($_GET['colaborador_id']) ? (int)$_GET['colaborador_id'] : 0;

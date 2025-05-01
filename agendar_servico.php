@@ -168,5 +168,18 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
 // Redirecionar de volta para a página de visualização com a mensagem
 // Codificar a mensagem para evitar problemas no header
 $mensagem_codificada = urlencode($mensagem);
-header("Location: orcamento_visualizar.php?codigo={$codigo}&mensagem_agendamento={$mensagem_codificada}&tipo={$tipo}");
+
+// Recuperar o código de acesso do orçamento para gerar o link correto
+try {
+    $stmt = $db->prepare("SELECT codigo_acesso FROM orcamentos WHERE id = :id");
+    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+    $codigo_acesso = $resultado['codigo_acesso'];
+    
+    header("Location: orcamento_visualizar.php?codigo={$codigo_acesso}&mensagem_agendamento={$mensagem_codificada}&tipo={$tipo}");
+} catch (Exception $e) {
+    // Em caso de falha, usar o código enviado pelo formulário
+    header("Location: orcamento_visualizar.php?codigo={$codigo}&mensagem_agendamento={$mensagem_codificada}&tipo={$tipo}");
+}
 exit;
