@@ -297,6 +297,28 @@ if (!$acesso_interno) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?></title>
+        
+        <!-- Meta tags para SEO -->
+        <meta name="description" content="Orçamento #<?php echo $orcamento['numero']; ?> para <?php echo $cliente['nome']; ?> - Serviços de calhas e rufos com qualidade e preço justo.">
+        <meta name="keywords" content="orçamento, calhas, rufos, serviços, construção">
+        
+        <!-- Open Graph / Facebook / WhatsApp -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="<?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+        <meta property="og:title" content="Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?>">
+        <meta property="og:description" content="Clique para visualizar seu orçamento completo. Válido até <?php echo dataParaBr($orcamento['data_validade']); ?>">
+        <meta property="og:image" content="<?php echo BASE_URL; ?>img/social/orcamento_share.svg">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="<?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+        <meta property="twitter:title" content="Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?>">
+        <meta property="twitter:description" content="Clique para visualizar seu orçamento completo. Válido até <?php echo dataParaBr($orcamento['data_validade']); ?>">
+        <meta property="twitter:image" content="<?php echo BASE_URL; ?>img/social/orcamento_share.svg">
+        
+        <!-- CSS -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
         <link href="css/styles.css" rel="stylesheet">

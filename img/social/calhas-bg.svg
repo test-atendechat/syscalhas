@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo do background -->
+  <rect width="1200" height="600" fill="#f8f9fa" />
+  
+  <!-- Padrão de calhas estilizado -->
+  <g fill="#e9ecef">
+    <!-- Calha horizontal superior -->
+    <rect x="50" y="100" width="1100" height="40" rx="20" />
+    
+    <!-- Calha horizontal meio -->
+    <rect x="50" y="300" width="1100" height="40" rx="20" />
+    
+    <!-- Calha horizontal inferior -->
+    <rect x="50" y="500" width="1100" height="40" rx="20" />
+    
+    <!-- Calhas verticais de descida -->
+    <rect x="200" y="100" width="30" height="400" rx="15" />
+    <rect x="600" y="100" width="30" height="400" rx="15" />
+    <rect x="1000" y="100" width="30" height="400" rx="15" />
+    
+    <!-- Conexões em T -->
+    <circle cx="200" cy="100" r="25" />
+    <circle cx="600" cy="100" r="25" />
+    <circle cx="1000" cy="100" r="25" />
+    
+    <circle cx="200" cy="300" r="25" />
+    <circle cx="600" cy="300" r="25" />
+    <circle cx="1000" cy="300" r="25" />
+    
+    <circle cx="200" cy="500" r="25" />
+    <circle cx="600" cy="500" r="25" />
+    <circle cx="1000" cy="500" r="25" />
+  </g>
+</svg>
