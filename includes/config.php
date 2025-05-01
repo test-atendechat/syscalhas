@@ -4,6 +4,12 @@ define('APP_NAME', 'Sandro Calhas LTDA');
 define('APP_VERSION', '1.0.0');
 define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
 
+// Dados da empresa
+define('EMPRESA_TELEFONE', '');
+define('EMPRESA_EMAIL', '');
+define('EMPRESA_ENDERECO', '');
+define('EMPRESA_CNPJ', '');
+
 // Iniciar sessão se ainda não foi iniciada
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

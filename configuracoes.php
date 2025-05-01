@@ -93,32 +93,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':valor', $novo_valor);
                 $stmt->execute();
                 
-                // Se estivermos atualizando o nome da empresa, atualizar o arquivo config.php
-                if ($chave === 'empresa_nome') {
-                    // Armazenar o novo nome na sessão para atualizar a exibição sem precisar reiniciar
-                    $_SESSION['nome_empresa_temp'] = $novo_valor;
+                // Atualizar dados da empresa no config.php e salvar no banco simultaneamente
+                if (in_array($chave, ['empresa_nome', 'empresa_telefone', 'empresa_email', 'empresa_endereco', 'empresa_cnpj'])) {
+                    // Armazenar os dados na sessão para atualização imediata da interface
+                    if ($chave === 'empresa_nome') {
+                        $_SESSION['nome_empresa_temp'] = $novo_valor;
+                    } else {
+                        $_SESSION['empresa_' . str_replace('empresa_', '', $chave)] = $novo_valor;
+                    }
                     
                     // Atualizar o arquivo config.php
                     $config_file = 'includes/config.php';
                     if (file_exists($config_file) && is_writable($config_file)) {
                         try {
-                            // Escapar caracteres especiais no nome da empresa para evitar problemas com aspas
+                            // Escapar caracteres especiais no valor para evitar problemas com aspas
                             $novo_valor_escapado = str_replace("'", "\'", $novo_valor);
                             
-                            // Ler o arquivo linha por linha para atualizar apenas a linha correta
-                            $lines = file($config_file);
-                            $new_lines = [];
-                            foreach ($lines as $line) {
-                                // Substituir apenas a linha que contém a definição de APP_NAME
-                                if (strpos($line, "define('APP_NAME'") !== false) {
-                                    $new_lines[] = "define('APP_NAME', '{$novo_valor_escapado}');\n";
-                                } else {
-                                    $new_lines[] = $line;
-                                }
+                            // Ler o conteúdo do arquivo
+                            $content = file_get_contents($config_file);
+                            
+                            // Determinar qual constante atualizar com base no campo
+                            $constante = '';
+                            if ($chave === 'empresa_nome') {
+                                $constante = "APP_NAME";
+                            } else if ($chave === 'empresa_telefone') {
+                                $constante = "EMPRESA_TELEFONE";
+                            } else if ($chave === 'empresa_email') {
+                                $constante = "EMPRESA_EMAIL";
+                            } else if ($chave === 'empresa_endereco') {
+                                $constante = "EMPRESA_ENDERECO";
+                            } else if ($chave === 'empresa_cnpj') {
+                                $constante = "EMPRESA_CNPJ";
                             }
                             
-                            // Escrever o conteúdo atualizado no arquivo
-                            file_put_contents($config_file, implode('', $new_lines));
+                            // Substituir o valor da constante
+                            if (!empty($constante)) {
+                                $pattern = "/define\('$constante', '.*?'\);/";
+                                $replacement = "define('$constante', '{$novo_valor_escapado}');";
+                                $content = preg_replace($pattern, $replacement, $content);
+                                
+                                // Escrever o conteúdo atualizado no arquivo
+                                file_put_contents($config_file, $content);
+                            }
                         } catch (Exception $e) {
                             error_log('Erro ao atualizar config.php: ' . $e->getMessage());
                             throw new Exception('Não foi possível atualizar o arquivo de configuração: ' . $e->getMessage());
@@ -168,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="col-md-6 mb-3">
                         <label for="empresa_nome" class="form-label">Nome da Empresa</label>
                         <input type="text" class="form-control" id="empresa_nome" name="empresa_nome" value="<?php echo $configuracoes['empresa_nome']; ?>">
-                        <div class="form-text"><i class="fas fa-info-circle me-1"></i> O nome da empresa será atualizado imediatamente na interface, mas será aplicado permanentemente após um reinicio do sistema.</div>
+                        <div class="form-text"><i class="fas fa-info-circle me-1"></i> As informações da empresa são salvas tanto no banco de dados quanto no arquivo de configuração para uso em todo o sistema.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="empresa_cnpj" class="form-label">CNPJ</label>
