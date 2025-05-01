@@ -201,8 +201,8 @@ try {
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
     }
     
-    // Buscar instaladores disponíveis da tabela instaladores
-    $sql = "SELECT id, nome FROM instaladores WHERE ativo = TRUE";
+    // Buscar colaboradores do tipo instalador
+    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' AND status = 'ativo'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {

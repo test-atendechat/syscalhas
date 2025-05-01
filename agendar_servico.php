@@ -85,9 +85,9 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             
             // Verificar se o colaborador selecionado (instalador) existe na tabela instaladores
             if ($colaborador_id > 0) {
-                // Primeiro verificar se o instalador existe
-                $stmt = $db->prepare("SELECT COUNT(*) FROM instaladores WHERE id = :instalador_id AND ativo = TRUE");
-                $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
+                // Verificar se o colaborador instalador existe
+                $stmt = $db->prepare("SELECT COUNT(*) FROM colaboradores WHERE id = :colaborador_id AND tipo = 'instalador' AND status = 'ativo'");
+                $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 $stmt->execute();
                 
                 if ($stmt->fetchColumn() == 0) {
@@ -135,8 +135,8 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 }
             } else {
                 // Se não foi selecionado um colaborador, buscar qualquer um disponível
-                $stmt = $db->prepare("SELECT id FROM instaladores 
-                                     WHERE ativo = TRUE 
+                $stmt = $db->prepare("SELECT id FROM colaboradores 
+                                     WHERE tipo = 'instalador' AND status = 'ativo' 
                                      AND id NOT IN (
                                          SELECT DISTINCT instalador_id FROM agendamentos 
                                          WHERE status = 'agendado' 

@@ -800,22 +800,13 @@ if (!$acesso_interno) {
                         // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
                         $selected_id = $orcamento['colaborador_id'] ?? 0;
                         if ($selected_id > 0) {
-                            // Tentar encontrar o id correspondente na tabela instaladores
-                            $stmt = $pdo->prepare("SELECT id, nome FROM instaladores WHERE id = :id AND ativo = TRUE");
+                            // Buscar o colaborador diretamente na tabela de colaboradores
+                            $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id AND tipo = 'instalador' AND status = 'ativo'");
                             $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
                             $stmt->execute();
                             
                             if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
-                            } else {
-                                // Se não encontrar na tabela instaladores, verificar na tabela colaboradores
-                                // (para compatibilidade com registros antigos)
-                                $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id AND tipo = 'instalador'");
-                                $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
-                                $stmt->execute();
-                                if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
-                                }
                             }
                         }
                         ?>
