@@ -778,12 +778,24 @@ document.addEventListener('DOMContentLoaded', function() {
             instaladores: instaladoresSelecionados
         };
         
-        // Simulando o envio do agendamento (em produção, usar AJAX para enviar ao backend)
-        alert('Dados do agendamento capturados com sucesso! Em uma implementação real, estes dados seriam enviados ao servidor.');
-        console.log('Dados do agendamento:', agendamentoData);
+        // Preparar os dados para URL e formatar data para apresentação
+        const dataFormatada = new Date(dataAgendamento).toLocaleDateString('pt-BR');
+        const horaFormatada = horaInicio.substring(0, 5);
         
-        // Redirecionamento para o formulário de agendamento completo para concluir o processo
-        window.location.href = `agendamento_form.php?orcamento_id=${orcamentoId}&data=${dataAgendamento}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`;
+        // O ideal seria enviar via AJAX, mas vamos fazer o redirecionamento simples
+        if (clienteView) {
+            // Se for visualização do cliente, redirecionar para o orçamento com mensagem de sucesso
+            const codigo = new URLSearchParams(window.location.search).get('codigo_acesso');
+            if (codigo) {
+                window.location.href = `orcamento_visualizar.php?codigo=${codigo}&mensagem=agendado&data=${dataFormatada}&hora=${horaFormatada}`;
+            } else {
+                // Redirecionar para o formulário de agendamento completo
+                window.location.href = `agendamento_form.php?orcamento_id=${orcamentoId}&data=${dataAgendamento}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`;
+            }
+        } else {
+            // Se for acesso interno (admin), redirecionar para o formulário de agendamento completo
+            window.location.href = `agendamento_form.php?orcamento_id=${orcamentoId}&data=${dataAgendamento}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`;
+        }
     });
 });
 </script>

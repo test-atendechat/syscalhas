@@ -337,9 +337,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Se chegou até aqui, confirmar transação
             $db->commit();
             
-            // Redirecionar para página de agendamentos
-            header("Location: agendamentos.php?mensagem=Agendamento " . ($agendamento['id'] > 0 ? 'atualizado' : 'criado') . " com sucesso!");
-            exit;
+            // Formatar data e hora para exibição
+            $data_formatada = date('d/m/Y', strtotime($agendamento['data_agendamento']));
+            $hora_formatada = substr($agendamento['hora_inicio'], 0, 5);
+            
+            // Se veio do link direto do orçamento, redirecionar de volta para visualização do orçamento
+            if ($agendamento['orcamento_id'] > 0) {
+                // Obter o ID do orçamento
+                $orcamento_id = $agendamento['orcamento_id'];
+                
+                // Redirecionar para a visualização do orçamento com mensagem de sucesso
+                header("Location: orcamento_visualizar.php?id={$orcamento_id}&mensagem=agendado&data={$data_formatada}&hora={$hora_formatada}");
+                exit;
+            } else {
+                // Redirecionar para página de agendamentos
+                header("Location: agendamentos.php?mensagem=Agendamento " . ($agendamento['id'] > 0 ? 'atualizado' : 'criado') . " com sucesso!");
+                exit;
+            }
             
         } catch (Exception $e) {
             // Se ocorrer um erro, reverter transação

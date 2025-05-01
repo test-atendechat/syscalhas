@@ -277,6 +277,11 @@ if (!$acesso_interno) {
                         <?php endif; ?>
                         <?php if ($orcamento['status_execucao'] == 'pendente'): ?>
                             <li>
+                                <a class="dropdown-item" href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-check me-2"></i>Agendar Instalação
+                                </a>
+                            </li>
+                            <li>
                                 <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=finalizar">
                                     <i class="fas fa-check-circle me-2"></i>Marcar como Finalizado
                                 </a>
