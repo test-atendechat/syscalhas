@@ -209,6 +209,31 @@ if (isset($_GET['id'])) {
         foreach ($pagamentos as $pagamento) {
             $total_pago += $pagamento['valor'];
         }
+        
+        // Buscar dados de agendamento se o status de execução for 'agendado'
+        $agendamento = null;
+        if ($orcamento['status_execucao'] == 'agendado') {
+            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome, c.tipo as colaborador_tipo, c.telefone as colaborador_telefone
+                              FROM agendamentos a 
+                              LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                              WHERE a.orcamento_id = :orcamento_id AND a.status = 'agendado'
+                              ORDER BY a.data_inicio DESC LIMIT 1");
+            $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Guardar os dados de agendamento na sessão para uso imediato
+            if ($agendamento) {
+                $_SESSION['agendamento_info'] = [
+                    'data' => date('d/m/Y', strtotime($agendamento['data_agendamento'])),
+                    'hora' => $agendamento['hora_inicio'],
+                    'colaborador_nome' => $agendamento['colaborador_nome'],
+                    'colaborador_tipo' => $agendamento['colaborador_tipo'],
+                    'colaborador_telefone' => $agendamento['colaborador_telefone'],
+                    'observacoes' => $agendamento['observacoes']
+                ];
+            }
+        }
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
     }
@@ -599,7 +624,18 @@ if (!$acesso_interno) {
                 <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
                 <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
                 <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
-
+                
+                <?php if (isset($agendamento) && $agendamento): ?>
+                    <div class="dados-agendamento">
+                        <p class="mb-0 mt-3"><strong class="text-success"><i class="fas fa-calendar-check me-1"></i> SERVIÇO AGENDADO</strong></p>
+                        <p class="mb-0"><strong>Data:</strong> <?php echo date('d/m/Y', strtotime($agendamento['data_agendamento'])); ?></p>
+                        <p class="mb-0"><strong>Horário:</strong> <?php echo substr($agendamento['hora_inicio'], 0, 5); ?></p>
+                        <p class="mb-0"><strong>Profissional:</strong> <?php echo $agendamento['colaborador_nome']; ?></p>
+                        <?php if (!empty($agendamento['colaborador_telefone'])): ?>
+                            <p class="mb-0"><strong>Contato:</strong> <?php echo $agendamento['colaborador_telefone']; ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

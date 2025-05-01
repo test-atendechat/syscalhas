@@ -39,6 +39,27 @@
         font-size: 14pt;
     }
     
+    /* Estilos para a seção de agendamento */
+    .dados-agendamento {
+        border: 2px solid #198754;
+        border-radius: 5px;
+        padding: 8px;
+        margin-top: 15px;
+        background-color: #f8f9fa;
+    }
+    
+    .dados-agendamento p.mb-0.mt-3 {
+        background-color: #198754;
+        color: white !important;
+        padding: 4px 8px;
+        border-radius: 3px;
+        margin-bottom: 5px !important;
+    }
+    
+    .dados-agendamento strong {
+        color: #198754 !important;
+    }
+    
     /* Ajuste de cartões */
     .card {
         border: 1px solid #ddd;
