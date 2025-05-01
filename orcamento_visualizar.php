@@ -142,7 +142,9 @@ if (isset($_GET['id'])) {
         $cliente = buscarCliente($orcamento['cliente_id']);
         
         // Buscar histórico de pagamentos do orçamento
-        $stmt = $db->prepare("SELECT c.*, 
+        // Usar a variável $db definida em includes/db.php
+        $pdo = $db; // Alias para manter o código consistente
+        $stmt = $pdo->prepare("SELECT c.*, 
                          (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
                          FROM caixa c 
                          WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
@@ -200,14 +202,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
     if ($decisao == 'aprovar' || $decisao == 'rejeitar') {
         $novo_status = ($decisao == 'aprovar') ? 'aprovado' : 'rejeitado';
 
-        $stmt = $db->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
+        $stmt = $pdo->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->bindParam(':status', $novo_status);
         $stmt->execute();
 
         // Se aprovado, processar baixa no estoque
         if ($novo_status == 'aprovado') {
-            $db->beginTransaction();
+            $pdo->beginTransaction();
             try {
                 // Buscar itens atualizados
                 $itens = buscarItensOrcamento($id);
@@ -215,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                 foreach ($itens as $item) {
                     if ($item['produto_id'] > 0) {
                         // Registrar movimentação no estoque
-                        $stmt = $db->prepare("INSERT INTO estoque_movimentacoes 
+                        $stmt = $pdo->prepare("INSERT INTO estoque_movimentacoes 
                                         (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id)
                                         VALUES 
                                         (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id)");
@@ -229,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                         $stmt->execute();
 
                         // Atualizar estoque do produto
-                        $stmt = $db->prepare("UPDATE produtos 
+                        $stmt = $pdo->prepare("UPDATE produtos 
                                         SET estoque_atual = estoque_atual - :quantidade 
                                         WHERE id = :produto_id");
                         $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
@@ -238,10 +240,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                     }
                 }
 
-                $db->commit();
+                $pdo->commit();
                 $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
             } catch (Exception $e) {
-                $db->rollback();
+                $pdo->rollback();
                 $mensagem = alerta('Erro ao processar baixa no estoque: ' . $e->getMessage(), 'danger');
             }
         } else {
