@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 'forma_pagamento' => $forma_pagamento,
                 'tempo_previsto' => $tempo_previsto,
                 'unidade_tempo' => $unidade_tempo,
-                'colaborador_id' => $colaborador_id
+                'colaborador_id' => ($colaborador_id > 0) ? $colaborador_id : null
             ];
 
             if ($acao_form == 'cadastrar') {

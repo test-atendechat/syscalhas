@@ -27,6 +27,10 @@ $configuracoes = [
     'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
     'max_parcelas' => 12, // Número máximo de parcelas permitidas
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
+    // Horário de funcionamento
+    'horario_inicio' => '07:00', // Horário de início do expediente
+    'horario_fim' => '17:00', // Horário de término do expediente
+    'dias_funcionamento' => '1,2,3,4,5', // Dias da semana (1=Segunda, 7=Domingo)
     // Cores padrão do sistema
     'cor_principal' => '#0d6efd', // Azul bootstrap
     'cor_secundaria' => '#6c757d', // Secondary bootstrap
