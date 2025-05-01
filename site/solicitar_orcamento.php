@@ -14,28 +14,8 @@ $data_selecionada = isset($_GET['data']) ? $_GET['data'] : date('Y-m-d');
 $hora_selecionada = isset($_GET['hora']) ? $_GET['hora'] : '';
 $orcamentista_id = isset($_POST['orcamentista_id']) ? intval($_POST['orcamentista_id']) : 0;
 
-// Carregar orçamentistas disponíveis apenas se uma data e hora forem selecionadas
-if (!empty($data_selecionada) && !empty($hora_selecionada)) {
-    try {
-        // Requisitar orçamentistas disponíveis na data/hora selecionada
-        $data_hora = $data_selecionada . ' ' . $hora_selecionada;
-        $timestamp = strtotime($data_hora);
-        $hora_formatada = date('H:i:s', $timestamp);
-        
-        // Consultar API para obter orçamentistas disponíveis
-        $url_api = "../ajax/verificar_orcamentistas_disponiveis.php?data={$data_selecionada}&hora={$hora_formatada}";
-        $json_response = file_get_contents($url_api);
-        $resposta = json_decode($json_response, true);
-        
-        if (isset($resposta['status']) && $resposta['status'] === 'sucesso') {
-            $orcamentistas = $resposta['orcamentistas'];
-        } else {
-            $mensagem = alerta('Erro ao verificar orçamentistas disponíveis: ' . ($resposta['mensagem'] ?? 'Erro desconhecido'), 'danger');
-        }
-    } catch (Exception $e) {
-        $mensagem = alerta('Erro ao carregar orçamentistas: ' . $e->getMessage(), 'danger');
-    }
-}
+// Não buscaremos mais os orçamentistas via PHP. Isso será feito via AJAX no frontend.
+// O código JavaScript irá fazer a chamada para 'ajax/verificar_orcamentistas_disponiveis.php'
 
 // Processar formulário de agendamento
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
@@ -299,24 +279,8 @@ for ($hora = 8; $hora < 18; $hora++) {
                     <label for="orcamentista_id" class="form-label fw-bold">Orçamentista Disponível*</label>
                     <select name="orcamentista_id" id="orcamentista_id" class="form-select" required>
                         <option value="">Selecione data e horário para ver os orçamentistas disponíveis</option>
-                        <?php if (!empty($data_selecionada) && !empty($hora_selecionada)): ?>
-                            <?php if (count($orcamentistas) > 0): ?>
-                                <?php foreach ($orcamentistas as $orcamentista): ?>
-                                    <option value="<?php echo $orcamentista['id']; ?>" <?php echo ($orcamentista_id == $orcamentista['id']) ? 'selected' : ''; ?>>
-                                        <?php echo $orcamentista['nome']; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="">Não há orçamentistas disponíveis neste horário</option>
-                            <?php endif; ?>
-                        <?php endif; ?>
                     </select>
-                    
-                    <?php if (!empty($data_selecionada) && !empty($hora_selecionada) && empty($orcamentistas)): ?>
-                        <div class="alert alert-warning mt-2">
-                            <i class="fas fa-exclamation-triangle me-2"></i>Não há orçamentistas disponíveis para a data e horário selecionados. Por favor, escolha outro horário ou data.
-                        </div>
-                    <?php endif; ?>
+                    <div id="mensagem-orcamentistas" class="alert alert-info mt-2" style="display: none;"></div>
                 </div>
                 
                 <div class="d-grid gap-2">
@@ -383,35 +347,128 @@ for ($hora = 8; $hora < 18; $hora++) {
             });
         }
         
-        // Selecionar horário e atualizar orçamentistas disponíveis
+        // Selecionar horário e atualizar orçamentistas disponíveis via AJAX
         const selecionarHoraSelect = document.getElementById('selecionar_hora');
         const dataAgendamentoInput = document.getElementById('data_agendamento');
         const horaInicioInput = document.getElementById('hora_inicio');
+        const orcamentistaSelect = document.getElementById('orcamentista_id');
+        const mensagemOrcamentistas = document.getElementById('mensagem-orcamentistas');
         
-        function verificarOrcamentistas() {
-            if (dataAgendamentoInput.value && selecionarHoraSelect.value) {
-                horaInicioInput.value = selecionarHoraSelect.value; // Atualizar hora_inicio oculto
-                window.location.href = 'solicitar_orcamento.php?data=' + dataAgendamentoInput.value + '&hora=' + selecionarHoraSelect.value;
+        // Função para carregar orçamentistas disponíveis via AJAX
+        function carregarOrcamentistasDisponiveis() {
+            // Verificar se data e hora foram selecionadas
+            if (!dataAgendamentoInput.value || !selecionarHoraSelect.value) {
+                return;
             }
+            
+            // Atualizar campo oculto de hora
+            horaInicioInput.value = selecionarHoraSelect.value;
+            
+            // Limpar select de orçamentistas
+            orcamentistaSelect.innerHTML = '';
+            
+            // Adicionar opção de carregamento
+            const loadingOption = document.createElement('option');
+            loadingOption.text = 'Carregando orçamentistas disponíveis...';
+            loadingOption.disabled = true;
+            orcamentistaSelect.appendChild(loadingOption);
+            orcamentistaSelect.selectedIndex = 0;
+            
+            // Exibir mensagem de carregamento
+            mensagemOrcamentistas.textContent = 'Verificando orçamentistas disponíveis...';
+            mensagemOrcamentistas.className = 'alert alert-info mt-2';
+            mensagemOrcamentistas.style.display = 'block';
+            
+            // Fazer requisição AJAX
+            fetch(`../ajax/verificar_orcamentistas_disponiveis.php?data=${dataAgendamentoInput.value}&hora=${selecionarHoraSelect.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remover opção de carregamento
+                    orcamentistaSelect.removeChild(loadingOption);
+                    
+                    // Adicionar opção padrão
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.text = 'Selecione um orçamentista disponível';
+                    orcamentistaSelect.appendChild(defaultOption);
+                    
+                    if (data.status === 'sucesso') {
+                        mensagemOrcamentistas.style.display = 'none';
+                        
+                        // Preencher select com orçamentistas disponíveis
+                        if (data.orcamentistas && data.orcamentistas.length > 0) {
+                            data.orcamentistas.forEach(orcamentista => {
+                                const option = document.createElement('option');
+                                option.value = orcamentista.id;
+                                option.text = orcamentista.nome;
+                                orcamentistaSelect.appendChild(option);
+                            });
+                        } else {
+                            // Se não há orçamentistas disponíveis
+                            mensagemOrcamentistas.textContent = 'Não há orçamentistas disponíveis neste horário. Por favor, selecione outro horário ou data.';
+                            mensagemOrcamentistas.className = 'alert alert-warning mt-2';
+                            mensagemOrcamentistas.style.display = 'block';
+                        }
+                    } else {
+                        // Exibir mensagem de erro
+                        mensagemOrcamentistas.textContent = 'Erro ao verificar orçamentistas disponíveis: ' + (data.mensagem || 'Erro desconhecido');
+                        mensagemOrcamentistas.className = 'alert alert-danger mt-2';
+                        mensagemOrcamentistas.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    // Remover opção de carregamento
+                    if (loadingOption.parentNode) {
+                        orcamentistaSelect.removeChild(loadingOption);
+                    }
+                    
+                    // Adicionar opção padrão
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.text = 'Erro ao carregar orçamentistas';
+                    orcamentistaSelect.appendChild(defaultOption);
+                    
+                    // Exibir mensagem de erro de conexão
+                    mensagemOrcamentistas.textContent = 'Erro de conexão ao buscar orçamentistas disponíveis.';
+                    mensagemOrcamentistas.className = 'alert alert-danger mt-2';
+                    mensagemOrcamentistas.style.display = 'block';
+                    
+                    console.error('Erro:', error);
+                });
         }
         
+        // Configuração dos eventos para carregar orçamentistas disponíveis
         if (selecionarHoraSelect) {
-            selecionarHoraSelect.addEventListener('change', verificarOrcamentistas);
+            selecionarHoraSelect.addEventListener('change', carregarOrcamentistasDisponiveis);
         }
         
         if (dataAgendamentoInput) {
             dataAgendamentoInput.addEventListener('change', function() {
-                // Resetar o select de horário ao mudar a data
+                // Resetar o select de horário e orçamentista ao mudar a data
                 if (selecionarHoraSelect) {
                     selecionarHoraSelect.selectedIndex = 0;
                 }
-                horaInicioInput.value = ''; // Limpar horário selecionado
+                horaInicioInput.value = '';
+                
+                // Limpar orçamentistas
+                orcamentistaSelect.innerHTML = '';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.text = 'Selecione data e horário para ver os orçamentistas disponíveis';
+                orcamentistaSelect.appendChild(defaultOption);
+                
+                // Esconder mensagem
+                mensagemOrcamentistas.style.display = 'none';
             });
+        }
+        
+        // Se já temos data e hora selecionadas na página, carregar orçamentistas
+        if (dataAgendamentoInput.value && horaInicioInput.value) {
+            carregarOrcamentistasDisponiveis();
         }
         
         // Validar formulário antes de enviar
         const form = document.getElementById('formAgendamento');
-        const orcamentistaSelect = document.getElementById('orcamentista_id');
         
         if (form) {
             form.addEventListener('submit', function(e) {
