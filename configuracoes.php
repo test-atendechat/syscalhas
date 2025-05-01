@@ -150,6 +150,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
             
+            <!-- Configurações de Agendamentos -->
+            <div class="mb-4">
+                <h5><i class="fas fa-calendar-alt me-2"></i>Configurações de Agendamentos</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <div class="d-grid">
+                            <a href="configurar_atualizacao_automatica.php" class="btn btn-primary">
+                                <i class="fas fa-clock me-2"></i>Configurar Atualização Automática de Status
+                            </a>
+                        </div>
+                        <div class="form-text mt-2">Configure a atualização automática de status de agendamentos com base no horário.</div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Configurações de Orçamentos -->
             <div class="mb-4">
                 <h5><i class="fas fa-file-invoice-dollar me-2"></i>Configurações de Orçamentos</h5>

@@ -48,7 +48,7 @@ if ($colaborador_id > 0) {
     
     // Buscar agendamentos feitos por clientes para este colaborador
     $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome, 
-                             o.descricao as detalhes
+                             o.observacoes as detalhes
                              FROM agendamentos a
                              JOIN orcamentos o ON a.orcamento_id = o.id
                              JOIN clientes c ON o.cliente_id = c.id
