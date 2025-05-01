@@ -76,50 +76,6 @@ function marcarNotificacaoComoLida($notificacao_id) {
 }
 
 /**
- * Marcar todas as notificações como lidas para o usuário atual
- * 
- * @return bool Sucesso ou falha
- */
-function marcarTodasNotificacoesComoLidas() {
-    global $db;
-    
-    // Verificar usuário atual
-    $usuario_id = $_SESSION['usuario']['id'];
-    
-    try {
-        // Obter todas as notificações não lidas para o usuário
-        $notificacoes = obterNotificacoesNaoLidas();
-        
-        if (empty($notificacoes)) {
-            return true; // Não há notificações para marcar
-        }
-        
-        // Iniciar transação
-        $db->beginTransaction();
-        
-        // Marcar cada notificação como lida
-        $stmt = $db->prepare("INSERT INTO notificacoes_lidas (notificacao_id, usuario_id) VALUES (:notificacao_id, :usuario_id)");
-        
-        foreach ($notificacoes as $notificacao) {
-            $stmt->bindParam(':notificacao_id', $notificacao['id']);
-            $stmt->bindParam(':usuario_id', $usuario_id);
-            $stmt->execute();
-        }
-        
-        // Confirmar transação
-        return $db->commit();
-    } catch (PDOException $e) {
-        // Reverter em caso de erro
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        
-        error_log("Erro ao marcar todas notificações como lidas: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
  * Obter notificações para o usuário atual
  * 
  * @param int $limite Número máximo de notificações (0 = sem limite)
@@ -177,6 +133,50 @@ function obterNotificacoes($limite = 0, $apenas_nao_lidas = false) {
  */
 function obterNotificacoesNaoLidas() {
     return obterNotificacoes(0, true);
+}
+
+/**
+ * Marcar todas as notificações como lidas para o usuário atual
+ * 
+ * @return bool Sucesso ou falha
+ */
+function marcarTodasNotificacoesComoLidas() {
+    global $db;
+    
+    // Verificar usuário atual
+    $usuario_id = $_SESSION['usuario']['id'];
+    
+    try {
+        // Obter todas as notificações não lidas para o usuário
+        $notificacoes = obterNotificacoesNaoLidas();
+        
+        if (empty($notificacoes)) {
+            return true; // Não há notificações para marcar
+        }
+        
+        // Iniciar transação
+        $db->beginTransaction();
+        
+        // Marcar cada notificação como lida
+        $stmt = $db->prepare("INSERT INTO notificacoes_lidas (notificacao_id, usuario_id) VALUES (:notificacao_id, :usuario_id)");
+        
+        foreach ($notificacoes as $notificacao) {
+            $stmt->bindParam(':notificacao_id', $notificacao['id']);
+            $stmt->bindParam(':usuario_id', $usuario_id);
+            $stmt->execute();
+        }
+        
+        // Confirmar transação
+        return $db->commit();
+    } catch (PDOException $e) {
+        // Reverter em caso de erro
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        
+        error_log("Erro ao marcar todas notificações como lidas: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**

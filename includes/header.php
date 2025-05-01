@@ -504,6 +504,9 @@ try {
     <div class="container mt-4 mb-5">
         <!-- Conteúdo da página será incluído aqui -->
 
+    <!-- Scripts do sistema -->
+    <script src="js/notificacoes.js"></script>
+    
     <!-- Script para alternar tema -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
