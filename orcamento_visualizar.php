@@ -901,7 +901,8 @@ if (!$acesso_interno) {
             colaboradorSelect.selectedIndex = 1;
             
             // Buscar colaboradores disponíveis via AJAX
-            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+            const orcamentoId = <?php echo $orcamento['id']; ?>;
+            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}&orcamento_id=${orcamentoId}`)
                 .then(response => response.json())
                 .then(data => {
                     // Remover opção de carregamento
