@@ -23,17 +23,18 @@ $filtro_data_inicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : date(
 $filtro_data_fim = isset($_GET['data_fim']) ? $_GET['data_fim'] : date('Y-m-d', strtotime('+7 days'));
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : '';
 
-// Se o relatório está sendo chamado com id específico, mostrar apenas esse instalador
+// Se o relatório está sendo chamado com id específico, mostrar apenas esse orçamentista
 $titulo_relatorio = "Relatório de Agendamentos por Período";
 if ($colaborador_id > 0) {
     // Buscar nome do colaborador
-    $stmt = $db->prepare("SELECT nome FROM colaboradores WHERE id = :id");
+    $stmt = $db->prepare("SELECT nome, tipo FROM colaboradores WHERE id = :id");
     $stmt->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($colaborador) {
-        $titulo_relatorio = "Agenda do Instalador: " . $colaborador['nome'];
+        $tipo_texto = ($colaborador['tipo'] == 'orcamentista') ? 'Orçamentista' : 'Instalador';
+        $titulo_relatorio = "Agenda do {$tipo_texto}: " . $colaborador['nome'];
     }
 }
 
@@ -85,8 +86,8 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt_status = $db->query("SELECT DISTINCT status FROM agendamentos ORDER BY status");
 $status_disponiveis = $stmt_status->fetchAll(PDO::FETCH_COLUMN);
 
-// Buscar colaboradores
-$stmt_colaboradores = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+// Buscar colaboradores (tanto orçamentistas quanto instaladores)
+$stmt_colaboradores = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
 $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -111,9 +112,9 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
         <div class="card-body">
             <form action="" method="GET" class="row g-3">
                 <div class="col-md-4">
-                    <label for="colaborador_id" class="form-label">Instalador</label>
+                    <label for="colaborador_id" class="form-label">Colaborador</label>
                     <select name="colaborador_id" id="colaborador_id" class="form-select">
-                        <option value="0">Todos os instaladores</option>
+                        <option value="0">Todos os colaboradores</option>
                         <?php foreach ($colaboradores as $c): ?>
                             <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
                                 <?php echo $c['nome']; ?>
@@ -217,7 +218,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>Data/Hora Início</th>
                                 <th>Data/Hora Fim</th>
-                                <th>Instalador</th>
+                                <th>Responsável</th>
                                 <th>Cliente</th>
                                 <th>Orçamento</th>
                                 <th>Status</th>

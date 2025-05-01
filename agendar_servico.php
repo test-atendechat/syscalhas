@@ -98,11 +98,11 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 $stmt->execute();
                 
                 if ($stmt->fetchColumn() == 0) {
-                    // Se o instalador não existir ou não estiver ativo, lançar erro
-                    throw new Exception('O instalador selecionado não existe ou está inativo. Por favor, selecione outro instalador.');
+                    // Se o orçamentista não existir ou não estiver ativo, lançar erro
+                    throw new Exception('O orçamentista selecionado não existe ou está inativo. Por favor, selecione outro orçamentista.');
                 }
                 
-                // Agora verificar se o instalador está disponível no horário
+                // Agora verificar se o orçamentista está disponível no horário
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                      WHERE instalador_id = :colaborador_id 
                                      AND status = 'agendado' 
@@ -141,9 +141,9 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                     throw new Exception('O colaborador selecionado não está disponível neste horário. Por favor, selecione outro colaborador ou horário.');
                 }
             } else {
-                // Se não foi selecionado um colaborador, buscar qualquer um disponível
+                // Se não foi selecionado um colaborador, buscar qualquer orçamentista disponível
                 $stmt = $pdo->prepare("SELECT id FROM colaboradores 
-                                     WHERE tipo = 'instalador' AND status = 'ativo' 
+                                     WHERE tipo = 'orcamentista' AND status = 'ativo' 
                                      AND id NOT IN (
                                          SELECT DISTINCT instalador_id FROM agendamentos 
                                          WHERE status = 'agendado' 
