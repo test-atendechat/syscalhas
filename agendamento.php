@@ -6,6 +6,10 @@ require_once('includes/notificacoes.php');
 require_once('notificacao_agendamento.php');
 require_once('includes/auth.php');
 
+// Compatibilidade com nome da variável de conexão
+global $db;
+$pdo = $db;
+
 // Verificar se o usuário está logado
 verificarAutenticacao();
 
@@ -142,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Verificar se o colaborador está disponível no horário
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                  WHERE instalador_id = :colaborador_id 
-                                 AND status = 'agendado' 
+                                 AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada' OR status = 'agendado') 
                                  AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                                  OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
                                  OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
@@ -279,7 +283,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             
             // Verificar se há outros agendamentos ativos para este orçamento
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
-                               WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+                               WHERE orcamento_id = :orcamento_id AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada' OR status = 'agendado')");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
@@ -534,14 +538,24 @@ require_once('includes/header.php');
                                 <td><?php echo $agendamento['colaborador_nome']; ?></td>
                                 <td>
                                     <span class="badge bg-<?php 
-                                        echo $agendamento['status'] == 'agendado' ? 'success' : 
-                                             ($agendamento['status'] == 'cancelado' ? 'danger' : 'warning'); ?>">
-                                        <?php echo ucfirst($agendamento['status']); ?>
+                                        echo $agendamento['status'] == 'orcamento_agendado' ? 'info' : 
+                                             ($agendamento['status'] == 'instalacao_agendada' ? 'success' : 
+                                             ($agendamento['status'] == 'agendado' ? 'success' : 
+                                             ($agendamento['status'] == 'cancelado' ? 'danger' : 'warning'))); ?>">
+                                        <?php 
+                                        if ($agendamento['status'] == 'orcamento_agendado') {
+                                            echo "Orçamento Agendado";
+                                        } else if ($agendamento['status'] == 'instalacao_agendada') {
+                                            echo "Instalação Agendada";
+                                        } else {
+                                            echo ucfirst($agendamento['status']);
+                                        }
+                                        ?>
                                     </span>
                                 </td>
                                 <td><?php echo $agendamento['observacoes']; ?></td>
                                 <td>
-                                    <?php if ($agendamento['status'] == 'agendado'): ?>
+                                    <?php if ($agendamento['status'] == 'agendado' || $agendamento['status'] == 'orcamento_agendado' || $agendamento['status'] == 'instalacao_agendada'): ?>
                                         <a href="agendamento.php?orcamento_id=<?php echo $orcamento_id; ?>&acao=cancelar&id=<?php echo $agendamento['id']; ?>" 
                                            class="btn btn-sm btn-danger" 
                                            onclick="return confirm('Tem certeza que deseja cancelar este agendamento?')">
@@ -549,7 +563,16 @@ require_once('includes/header.php');
                                         </a>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-secondary" disabled>
-                                            <i class="fas fa-ban"></i> <?php echo ucfirst($agendamento['status']); ?>
+                                            <i class="fas fa-ban"></i> 
+                                            <?php 
+                                            if ($agendamento['status'] == 'orcamento_agendado') {
+                                                echo "Orçamento Agendado";
+                                            } else if ($agendamento['status'] == 'instalacao_agendada') {
+                                                echo "Instalação Agendada";
+                                            } else {
+                                                echo ucfirst($agendamento['status']);
+                                            }
+                                            ?>
                                         </button>
                                     <?php endif; ?>
                                 </td>
