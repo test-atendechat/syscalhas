@@ -29,9 +29,9 @@ $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Verificar se estamos acessando um agendamento específico pelo seu ID
 if ($agendamento_id > 0) {
     // Buscar o agendamento pelo seu ID
-    $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome, a.orcamento_id
+    $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome, a.orcamento_id
                         FROM agendamentos a 
-                        JOIN colaboradores c ON a.colaborador_id = c.id 
+                        LEFT JOIN colaboradores c ON a.instalador_id = c.id 
                         WHERE a.id = :agendamento_id");
     $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
     $stmt->execute();
@@ -44,9 +44,9 @@ if ($agendamento_id > 0) {
         $orcamento = buscarOrcamento($orcamento_id);
         
         // Buscar todos os agendamentos relacionados a este orçamento
-        $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome 
+        $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
                             FROM agendamentos a 
-                            JOIN colaboradores c ON a.colaborador_id = c.id 
+                            LEFT JOIN colaboradores c ON a.instalador_id = c.id 
                             WHERE a.orcamento_id = :orcamento_id 
                             ORDER BY a.data_inicio DESC");
         $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
@@ -59,9 +59,9 @@ else if ($orcamento_id > 0) {
     $orcamento = buscarOrcamento($orcamento_id);
     
     // Buscar agendamentos relacionados a este orçamento
-    $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome 
+    $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
                          FROM agendamentos a 
-                         JOIN colaboradores c ON a.colaborador_id = c.id 
+                         LEFT JOIN colaboradores c ON a.instalador_id = c.id 
                          WHERE a.orcamento_id = :orcamento_id 
                          ORDER BY a.data_inicio DESC");
     $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
@@ -107,11 +107,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $data_hora_fim->add(new DateInterval('PT' . $duracao_minutos . 'M'));
             
             // Iniciar transação
-            $db->beginTransaction();
+            $pdo->beginTransaction();
             
             // Verificar se o colaborador está disponível no horário
-            $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
-                                 WHERE colaborador_id = :colaborador_id 
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
+                                 WHERE instalador_id = :colaborador_id 
                                  AND status = 'agendado' 
                                  AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                                  OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
@@ -129,12 +129,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $codigo_confirmacao = md5(uniqid(rand(), true));
             
             // Inserir agendamento
-            $stmt = $db->prepare("INSERT INTO agendamentos (
-                                orcamento_id, colaborador_id, data_inicio, data_fim, 
-                                status, observacoes, codigo_confirmacao, usuario_id, cliente_confirmou, data_cadastro)
+            $stmt = $pdo->prepare("INSERT INTO agendamentos (
+                                orcamento_id, instalador_id, data_inicio, data_fim, 
+                                status, observacoes, codigo_confirmacao, usuario_id, cliente_agendou)
                                 VALUES (
                                 :orcamento_id, :colaborador_id, :data_inicio, :data_fim, 
-                                'agendado', :observacoes, :codigo_confirmacao, :usuario_id, TRUE, NOW())");
+                                'agendado', :observacoes, :codigo_confirmacao, :usuario_id, TRUE)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
@@ -145,19 +145,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt->execute();
             
             // Atualizar status de execução do orçamento
-            $stmt = $db->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
             // Commit da transação
-            $db->commit();
+            $pdo->commit();
             
             $mensagem = alerta('Agendamento realizado com sucesso!', 'success');
             
             // Recarregar agendamentos
-            $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome 
+            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
                              FROM agendamentos a 
-                             JOIN colaboradores c ON a.colaborador_id = c.id 
+                             LEFT JOIN colaboradores c ON a.instalador_id = c.id 
                              WHERE a.orcamento_id = :orcamento_id 
                              ORDER BY a.data_inicio DESC");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
@@ -166,8 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             
         } catch (Exception $e) {
             // Rollback em caso de erro
-            if ($db->inTransaction()) {
-                $db->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
             $mensagem = alerta('Erro ao processar agendamento: ' . $e->getMessage(), 'danger');
         }
@@ -180,7 +180,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
     
     try {
         // Verificar se o agendamento existe
-        $stmt = $db->prepare("SELECT orcamento_id FROM agendamentos WHERE id = :id");
+        $stmt = $pdo->prepare("SELECT orcamento_id FROM agendamentos WHERE id = :id");
         $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
         $stmt->execute();
         
@@ -188,19 +188,19 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             $orcamento_id = $resultado['orcamento_id'];
             
             // Cancelar agendamento
-            $stmt = $db->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
             $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
             // Verificar se há outros agendamentos ativos para este orçamento
-            $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
             // Se não houver outros agendamentos, volta para pendente
             if ($stmt->fetchColumn() == 0) {
-                $stmt = $db->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
+                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
                 $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
                 $stmt->execute();
             }
@@ -208,9 +208,9 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
             
             // Recarregar agendamentos
-            $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome 
+            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
                              FROM agendamentos a 
-                             JOIN colaboradores c ON a.colaborador_id = c.id 
+                             LEFT JOIN colaboradores c ON a.instalador_id = c.id 
                              WHERE a.orcamento_id = :orcamento_id 
                              ORDER BY a.data_inicio DESC");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
