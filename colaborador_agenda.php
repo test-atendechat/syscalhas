@@ -19,9 +19,12 @@ $colaborador_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $colaborador = null;
 $disponibilidades = [];
 
+// Incluir arquivo de conexão
+require_once 'includes/db.php';
+
 // Buscar dados do colaborador
 if ($colaborador_id > 0) {
-    $stmt = $db->prepare("SELECT * FROM colaboradores WHERE id = :id");
+    $stmt = $pdo->prepare("SELECT * FROM colaboradores WHERE id = :id");
     $stmt->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -86,9 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                 throw new Exception('A hora de início deve ser anterior à hora de fim.');
             }
             
+            global $pdo;
             if ($registro_id > 0) {
                 // Atualizar registro existente
-                $stmt = $db->prepare("UPDATE colaborador_agenda SET 
+                $stmt = $pdo->prepare("UPDATE colaborador_agenda SET 
                                     data_disponibilidade = :data_disponibilidade,
                                     hora_inicio = :hora_inicio,
                                     hora_fim = :hora_fim,
@@ -111,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                 $mensagem = alerta('Registro de disponibilidade atualizado com sucesso!', 'success');
             } else {
                 // Inserir novo registro
-                $stmt = $db->prepare("INSERT INTO colaborador_agenda (
+                $stmt = $pdo->prepare("INSERT INTO colaborador_agenda (
                                     colaborador_id, data_disponibilidade, hora_inicio, hora_fim,
                                     disponivel, observacao, recorrente, dia_semana)
                                     VALUES (
@@ -595,8 +599,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="row">
     <?php
     // Listar todos os colaboradores instaladores
+    global $pdo;
     $query = "SELECT id, nome, telefone, tipo, status FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome";
-    $stmt = $db->query($query);
+    $stmt = $pdo->query($query);
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($colaboradores as $colab):
