@@ -44,6 +44,22 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     if ($stmt->rowCount() > 0) {
         $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
         $titulo = "Editar Agendamento #" . $agendamento['id'];
+        
+        // Buscar instaladores selecionados na tabela relacionada
+        $stmt = $db->prepare("SELECT instalador_id FROM agendamento_instaladores WHERE agendamento_id = :agendamento_id");
+        $stmt->bindParam(':agendamento_id', $agendamento['id'], PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $agendamento['instalador_id'] = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'instalador_id');
+        } else {
+            // Se não houver registros na tabela relacionada, usar o instalador_id antigo como fallback
+            if (!empty($agendamento['instalador_id'])) {
+                $agendamento['instalador_id'] = [$agendamento['instalador_id']];
+            } else {
+                $agendamento['instalador_id'] = [];
+            }
+        }
     }
 }
 

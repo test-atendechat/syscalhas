@@ -111,6 +111,7 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <th>Cliente</th>
                         <th>Data</th>
                         <th>Horário</th>
+                        <th>Instaladores</th>
                         <th>Status</th>
                         <th>Previsão</th>
                         <th>Agendado por</th>
@@ -133,6 +134,45 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td><?php echo $agendamento['cliente_nome']; ?></td>
                                 <td><?php echo dataParaBr($agendamento['data_agendamento']); ?></td>
                                 <td><?php echo substr($agendamento['hora_inicio'], 0, 5) . ' - ' . substr($agendamento['hora_fim'], 0, 5); ?></td>
+                                <td>
+                                    <?php
+                                    // Buscar instaladores associados a este agendamento
+                                    $stmt_instaladores = $db->prepare("SELECT i.nome FROM agendamento_instaladores ai 
+                                                                   INNER JOIN instaladores i ON ai.instalador_id = i.id 
+                                                                   WHERE ai.agendamento_id = :agendamento_id");
+                                    $stmt_instaladores->bindParam(':agendamento_id', $agendamento['id'], PDO::PARAM_INT);
+                                    $stmt_instaladores->execute();
+                                    $instaladores = $stmt_instaladores->fetchAll(PDO::FETCH_ASSOC);
+                                    
+                                    if (count($instaladores) > 0) {
+                                        echo '<div class="small">';
+                                        foreach ($instaladores as $index => $instalador) {
+                                            echo '<span class="badge bg-secondary mb-1 me-1">';
+                                            echo '<i class="fas fa-hard-hat me-1"></i>' . $instalador['nome'];
+                                            echo '</span>';
+                                        }
+                                        echo '</div>';
+                                    } else {
+                                        // Verificar instalador antigo (para compatibilidade)
+                                        if (!empty($agendamento['instalador_id'])) {
+                                            $stmt_old = $db->prepare("SELECT nome FROM instaladores WHERE id = :id");
+                                            $stmt_old->bindParam(':id', $agendamento['instalador_id'], PDO::PARAM_INT);
+                                            $stmt_old->execute();
+                                            $old_instalador = $stmt_old->fetch(PDO::FETCH_ASSOC);
+                                            
+                                            if ($old_instalador) {
+                                                echo '<span class="badge bg-secondary mb-1">';
+                                                echo '<i class="fas fa-hard-hat me-1"></i>' . $old_instalador['nome'];
+                                                echo '</span>';
+                                            } else {
+                                                echo '<span class="text-muted">Não definido</span>';
+                                            }
+                                        } else {
+                                            echo '<span class="text-muted">Não definido</span>';
+                                        }
+                                    }
+                                    ?>
+                                </td>
                                 <td>
                                     <?php 
                                     $status_class = 'secondary';
@@ -194,7 +234,7 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="9" class="text-center py-3">Nenhum agendamento encontrado.</td>
+                            <td colspan="10" class="text-center py-3">Nenhum agendamento encontrado.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
