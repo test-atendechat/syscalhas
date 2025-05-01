@@ -157,46 +157,75 @@ if ($stmt->rowCount() > 0) {
     ];
     
     // Verificar se há pagamentos registrados
-    $stmt = $db->prepare("SELECT * FROM pagamentos WHERE orcamento_id = :orcamento_id ORDER BY data_pagamento DESC");
-    $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    if ($stmt->rowCount() > 0) {
-        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-    
-    // Verificar se há agendamentos para este orçamento
-    $stmt = $db->prepare("SELECT a.* 
-                         FROM agendamentos a
-                         WHERE a.orcamento_id = :orcamento_id 
-                         AND a.status NOT IN ('cancelado', 'reagendado')
-                         ORDER BY a.data_agendamento DESC, a.hora_inicio ASC");
-    $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
-    
+    $pagamentos = [];
     try {
+        // Primeiro verificar se a tabela existe
+        $stmt = $db->prepare("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pagamentos')");
         $stmt->execute();
-        if ($stmt->rowCount() > 0) {
-            $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $tabela_existe = $stmt->fetchColumn();
+        
+        if ($tabela_existe) {
+            $stmt = $db->prepare("SELECT * FROM pagamentos WHERE orcamento_id = :orcamento_id ORDER BY data_pagamento DESC");
+            $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+            $stmt->execute();
             
-            // Para cada agendamento, buscar os instaladores associados
-            foreach ($agendamentos as $key => $agendamento) {
-                $stmt_inst = $db->prepare("SELECT i.nome 
-                                           FROM agendamento_instaladores ai
-                                           INNER JOIN instaladores i ON ai.instalador_id = i.id
-                                           WHERE ai.agendamento_id = :agendamento_id");
-                $stmt_inst->bindParam(':agendamento_id', $agendamento['id'], PDO::PARAM_INT);
-                $stmt_inst->execute();
-                
-                $instaladores = [];
-                while ($inst = $stmt_inst->fetch(PDO::FETCH_ASSOC)) {
-                    $instaladores[] = $inst['nome'];
-                }
-                
-                $agendamentos[$key]['instaladores'] = implode(', ', $instaladores);
+            if ($stmt->rowCount() > 0) {
+                $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
     } catch (Exception $e) {
-        // Em caso de erro, apenas não exibe os agendamentos
+        // Log do erro, mas continue a execução
+        error_log("Erro ao buscar pagamentos: " . $e->getMessage());
+    }
+    
+    // Verificar se há agendamentos para este orçamento
+    $agendamentos = [];
+    try {
+        // Verificar se a tabela existe
+        $stmt = $db->prepare("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'agendamentos')");
+        $stmt->execute();
+        $tabela_existe = $stmt->fetchColumn();
+        
+        if ($tabela_existe) {
+            $stmt = $db->prepare("SELECT a.* 
+                            FROM agendamentos a
+                            WHERE a.orcamento_id = :orcamento_id 
+                            AND a.status NOT IN ('cancelado', 'reagendado')
+                            ORDER BY a.data_agendamento DESC, a.hora_inicio ASC");
+            $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if ($stmt->rowCount() > 0) {
+                $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Verificar se a tabela de instaladores existe
+                $stmt = $db->prepare("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'agendamento_instaladores')");
+                $stmt->execute();
+                $tabela_instaladores_existe = $stmt->fetchColumn();
+                
+                if ($tabela_instaladores_existe) {
+                    // Para cada agendamento, buscar os instaladores associados
+                    foreach ($agendamentos as $key => $agendamento) {
+                        $stmt_inst = $db->prepare("SELECT i.nome 
+                                                FROM agendamento_instaladores ai
+                                                INNER JOIN instaladores i ON ai.instalador_id = i.id
+                                                WHERE ai.agendamento_id = :agendamento_id");
+                        $stmt_inst->bindParam(':agendamento_id', $agendamento['id'], PDO::PARAM_INT);
+                        $stmt_inst->execute();
+                        
+                        $instaladores = [];
+                        while ($inst = $stmt_inst->fetch(PDO::FETCH_ASSOC)) {
+                            $instaladores[] = $inst['nome'];
+                        }
+                        
+                        $agendamentos[$key]['instaladores'] = implode(', ', $instaladores);
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // Log do erro, mas continue a execução
+        error_log("Erro ao buscar agendamentos: " . $e->getMessage());
     }
 } else {
     echo "<div class='alert alert-danger'>Orçamento não encontrado.</div>";

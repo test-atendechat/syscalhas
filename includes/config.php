@@ -3,6 +3,7 @@
 define('APP_NAME', 'Grupo Sandro Calhas LTDA');
 define('APP_VERSION', '1.0.0');
 define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
+define('LOGO_URL', 'generated-icon.png');
 
 // Iniciar sessão se ainda não foi iniciada
 if (session_status() === PHP_SESSION_NONE) {
