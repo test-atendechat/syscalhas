@@ -594,6 +594,11 @@ if (!$acesso_interno) {
                 <?php endif; ?>
             </div>
         </div>
+        
+        <!-- Validade do orçamento (movida para esta seção) -->
+        <div class="alert alert-info mb-4">
+            <strong><i class="fas fa-calendar-alt me-2"></i>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></strong>
+        </div>
 
         <div class="row mb-4">
             <div class="col-md-6">
@@ -621,7 +626,18 @@ if (!$acesso_interno) {
                 
                 <?php if (isset($agendamento) && $agendamento): ?>
                     <div class="dados-agendamento">
-                        <p class="mb-0 mt-3"><strong class="text-success"><i class="fas fa-calendar-check me-1"></i> SERVIÇO AGENDADO</strong></p>
+                        <?php 
+                        // Verifica se é um orçamento agendado ou instalação agendada com base no status
+                        $tipo_agendamento = "INSTALAÇÃO AGENDADA";
+                        $cor_agendamento = "text-success";
+                        
+                        if ($agendamento['status'] == 'orcamento_agendado' || 
+                            (isset($agendamento['tipo_colaborador']) && $agendamento['tipo_colaborador'] == 'orcamentista')) {
+                            $tipo_agendamento = "ORÇAMENTO AGENDADO";
+                            $cor_agendamento = "text-primary";
+                        }
+                        ?>
+                        <p class="mb-0 mt-3"><strong class="<?php echo $cor_agendamento; ?>"><i class="fas fa-calendar-check me-1"></i> <?php echo $tipo_agendamento; ?></strong></p>
                         <p class="mb-0"><strong>Data:</strong> <?php echo date('d/m/Y', strtotime($agendamento['data_agendamento'])); ?></p>
                         <p class="mb-0"><strong>Horário:</strong> <?php echo substr($agendamento['hora_inicio'], 0, 5); ?></p>
                         <p class="mb-0"><strong>Profissional:</strong> <?php echo $agendamento['colaborador_nome']; ?></p>
