@@ -39,7 +39,7 @@ function notificarSolicitacaoOrcamento($cliente_id, $cliente_nome, $dados_adicio
     }
     
     // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'primary', $link);
+    return adicionarNotificacao($mensagem, 'warning', $link);
 }
 
 /**
@@ -55,5 +55,5 @@ function notificarNovoOrcamento($orcamento_id, $numero, $cliente_nome) {
     $mensagem = "NOVO ORÇAMENTO #{$numero} criado para {$cliente_nome}";
     
     // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'success', $link);
+    return adicionarNotificacao($mensagem, 'primary', $link);
 }

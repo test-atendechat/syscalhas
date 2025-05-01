@@ -282,6 +282,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                     'success', 
                     "orcamento_visualizar.php?id={$id}"
                 );
+                
+                // Usar função especializada para notificação com som
+                notificarOrcamento($id, 'aprovar', ['valor_total' => $orcamento['valor_total']]);
             } catch (Exception $e) {
                 try {
                     $pdo->rollBack(); // Corrigido para rollBack() com B maiúsculo
@@ -299,6 +302,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                 'danger', 
                 "orcamento_visualizar.php?id={$id}"
             );
+            
+            // Usar função especializada para notificação com som
+            notificarOrcamento($id, 'rejeitar');
         }
 
         // Recarregar orçamento com status atualizado
