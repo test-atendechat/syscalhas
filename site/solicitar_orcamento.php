@@ -484,10 +484,8 @@ for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_mi
             orcamentistaSelect.appendChild(loadingOption);
             orcamentistaSelect.selectedIndex = 0;
             
-            // Exibir mensagem de carregamento
-            mensagemOrcamentistas.textContent = 'Verificando orçamentistas disponíveis...';
-            mensagemOrcamentistas.className = 'alert alert-info mt-2';
-            mensagemOrcamentistas.style.display = 'block';
+            // Ocultar mensagem durante o carregamento
+            mensagemOrcamentistas.style.display = 'none';
             
             // Fazer requisição AJAX
             // Garantir que a hora está no formato correto (HH:MM:SS)

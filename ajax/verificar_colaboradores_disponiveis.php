@@ -233,20 +233,9 @@ try {
         
         $conflito_entrada = ($data_hora_inicio < $hora_disponivel);
         
-        // Se o horário de início for durante o almoço, não permitir
-        if ($conflito_almoco) {
-            $resposta['status'] = 'erro';
-            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . '). Por favor, escolha um horário antes ou depois do almoço.';
-            $resposta['colaboradores'] = [];
-            echo json_encode($resposta);
-            exit;
-        }
-        
-        // Se o horário for antes do período disponível após abertura, não permitir
-        if ($conflito_entrada) {
-            $hora_disponivel_formatada = $hora_disponivel->format('H:i');
-            $resposta['status'] = 'erro';
-            $resposta['mensagem'] = 'Este horário coincide com o período indisponível na abertura da empresa. Disponível a partir de ' . $hora_disponivel_formatada . '.';
+        // Se houver conflito com almoço ou entrada, retornar lista vazia sem mostrar mensagem de erro
+        if ($conflito_almoco || $conflito_entrada) {
+            $resposta['status'] = 'sucesso';
             $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
