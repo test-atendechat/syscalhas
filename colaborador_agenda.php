@@ -38,11 +38,38 @@ if ($colaborador_id > 0) {
     // Inicializar a conexão com o banco de dados
     global $pdo;
     
-    // Buscar agenda do colaborador - Disponibilidades cadastradas
-    $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+    // Buscar disponibilidades manuais do colaborador (excluindo entradas automaticas)
+    $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id AND (observacao NOT LIKE '%(automático)%' OR observacao IS NULL) ORDER BY data_disponibilidade, hora_inicio");
     $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
-    $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $disponibilidades_manuais = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Buscar indisponibilidades automáticas
+    $stmt_auto = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id AND observacao LIKE '%(automático)%' ORDER BY hora_inicio");
+    $stmt_auto->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+    $stmt_auto->execute();
+    $indisponibilidades_automaticas = $stmt_auto->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Informações para as entradas "Todos os dias"
+    $horario_entrada = '';
+    $horario_almoco = '';
+    $encontrou_entrada = false;
+    $encontrou_almoco = false;
+    
+    // Extrair horários de indisponibilidades automáticas
+    foreach ($indisponibilidades_automaticas as $auto) {
+        if (isset($auto['observacao']) && $auto['observacao'] !== null) {
+            if (strpos($auto['observacao'], 'Indisponibilidade de entrada') !== false && !$encontrou_entrada) {
+                $encontrou_entrada = true;
+                $horario_entrada = date('H:i', strtotime($auto['hora_inicio'])) . ' até ' . 
+                                   date('H:i', strtotime($auto['hora_fim']));
+            } elseif (strpos($auto['observacao'], 'Horário de almoço') !== false && !$encontrou_almoco) {
+                $encontrou_almoco = true;
+                $horario_almoco = date('H:i', strtotime($auto['hora_inicio'])) . ' até ' . 
+                                 date('H:i', strtotime($auto['hora_fim']));
+            }
+        }
+    }
     
     // Buscar agendamentos feitos por clientes para este colaborador
     $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome, 
@@ -342,141 +369,98 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
         <h5 class="mb-0"><i class="fas fa-list me-2"></i>Disponibilidades Cadastradas</h5>
     </div>
     <div class="card-body">
-        <?php if (count($disponibilidades) > 0): ?>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Horário</th>
-                            <th>Status</th>
-                            <th>Recorrente</th>
-                            <th>Observações</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        // Filtragem para remover duplicatas de registros automáticos
-                        $encontrou_entrada = false;
-                        $encontrou_almoco = false;
-                        $indisponibilidades_automaticas = [];
-                        $indisponibilidades_manuais = [];
-                        $horario_entrada = '';
-                        $horario_almoco = '';
-                        
-                        // Primeiro, separar as indisponibilidades automáticas e manuais
-                        foreach ($disponibilidades as $disponibilidade) {
-                            // Verificar se observacao existe e não é nula antes de usar strpos
-                            if (isset($disponibilidade['observacao']) && $disponibilidade['observacao'] !== null) {
-                                if (strpos($disponibilidade['observacao'], '(automático)') !== false) {
-                                    // Se for indisponibilidade de entrada e ainda não encontramos uma
-                                    if (strpos($disponibilidade['observacao'], 'Indisponibilidade de entrada') !== false && !$encontrou_entrada) {
-                                        $encontrou_entrada = true;
-                                        $horario_entrada = date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
-                                                          date('H:i', strtotime($disponibilidade['hora_fim']));
-                                    }
-                                    // Se for horário de almoço e ainda não encontramos um
-                                    elseif (strpos($disponibilidade['observacao'], 'Horário de almoço') !== false && !$encontrou_almoco) {
-                                        $encontrou_almoco = true;
-                                        $horario_almoco = date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
-                                                        date('H:i', strtotime($disponibilidade['hora_fim']));
-                                    }
-                                } else {
-                                    // Indisponibilidades manuais (não automáticas)
-                                    $indisponibilidades_manuais[] = $disponibilidade;
-                                }
-                            } else {
-                                // Se não tiver observação, considera como manual
-                                $indisponibilidades_manuais[] = $disponibilidade;
+        <?php if ($encontrou_entrada || $encontrou_almoco || !empty($disponibilidades_manuais)): ?>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Status</th>
+                        <th>Recorrente</th>
+                        <th>Observações</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Exibir indisponibilidades automáticas agrupadas em uma única linha -->
+                    <?php if ($encontrou_entrada || $encontrou_almoco): ?>
+                    <tr class="table-info">
+                        <td><strong>Todos os dias</strong></td>
+                        <td>
+                            <?php 
+                            // Se tiver ambos almoço e entrada, exibir os horários juntos
+                            if($encontrou_entrada && $encontrou_almoco) {
+                                echo $horario_entrada . ' e ' . $horario_almoco;
+                            } elseif ($encontrou_entrada) {
+                                echo $horario_entrada;
+                            } elseif ($encontrou_almoco) {
+                                echo $horario_almoco;
                             }
-                        }
-                        
-                        // Exibir apenas duas linhas para indisponibilidades automáticas
-                        ?>
-                        
-                        <!-- Linha para indisponibilidade após abertura -->
-                        <?php if ($encontrou_entrada): ?>
-                        <tr class="table-info">
-                            <td><strong>Todos os dias</strong></td>
-                            <td><?php echo $horario_entrada; ?></td>
+                            ?>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">Indisponível</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">Automático</span>
+                        </td>
+                        <td colspan="2">Indisponibilidades automáticas do sistema (gerenciadas nas <a href="configuracoes.php">Configurações</a>)</td>
+                    </tr>
+                    <?php endif; ?>
+                    
+                    <!-- Exibir indisponibilidades manuais normalmente -->
+                    <?php foreach ($disponibilidades_manuais as $disponibilidade): ?>
+                        <tr data-id="<?php echo $disponibilidade['id']; ?>" class="<?php echo $disponibilidade['disponivel'] ? '' : 'table-warning'; ?>">
                             <td>
-                                <span class="badge bg-warning">Indisponível</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">Automático</span>
-                            </td>
-                            <td colspan="2">Período indisponível após abertura (gerenciado pelo sistema)</td>
-                        </tr>
-                        <?php endif; ?>
-                        
-                        <!-- Linha para horário de almoço -->
-                        <?php if ($encontrou_almoco): ?>
-                        <tr class="table-info">
-                            <td><strong>Todos os dias</strong></td>
-                            <td><?php echo $horario_almoco; ?></td>
-                            <td>
-                                <span class="badge bg-warning">Indisponível</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">Automático</span>
-                            </td>
-                            <td colspan="2">Horário de almoço (gerenciado pelo sistema)</td>
-                        </tr>
-                        <?php endif; ?>
-                        
-                        <!-- Exibir indisponibilidades manuais normalmente -->
-                        <?php foreach ($indisponibilidades_manuais as $disponibilidade): ?>
-                            <tr data-id="<?php echo $disponibilidade['id']; ?>" class="<?php echo $disponibilidade['disponivel'] ? '' : 'table-warning'; ?>">
-                                <td>
-                                    <?php if ($disponibilidade['recorrente']): ?>
-                                        <?php 
-                                        $dias_semana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                                        echo $dias_semana[$disponibilidade['dia_semana']] . 's';
-                                        ?>
-                                    <?php else: ?>
-                                        <?php echo date('d/m/Y', strtotime($disponibilidade['data_disponibilidade'])); ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
+                                <?php if ($disponibilidade['recorrente']): ?>
                                     <?php 
-                                    echo date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
-                                         date('H:i', strtotime($disponibilidade['hora_fim'])); 
+                                    $dias_semana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                                    echo $dias_semana[$disponibilidade['dia_semana']] . 's';
                                     ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $disponibilidade['disponivel'] ? 'success' : 'warning'; ?>">
-                                        <?php echo $disponibilidade['disponivel'] ? 'Disponível' : 'Indisponível'; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $disponibilidade['recorrente'] ? 'info' : 'secondary'; ?>">
-                                        <?php echo $disponibilidade['recorrente'] ? 'Semanal' : 'Não'; ?>
-                                    </span>
-                                </td>
-                                <td><?php echo $disponibilidade['observacao']; ?></td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-primary edit-disponibilidade" 
-                                                data-id="<?php echo $disponibilidade['id']; ?>"
-                                                data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
-                                                data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
-                                                data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
-                                                data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
-                                                data-obs="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>"
-                                                data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
-                                                data-dia="<?php echo $disponibilidade['dia_semana']; ?>">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <a href="?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
-                                           class="btn btn-outline-danger" 
-                                           onclick="return confirm('Tem certeza que deseja excluir este registro de disponibilidade?');">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php echo date('d/m/Y', strtotime($disponibilidade['data_disponibilidade'])); ?>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php 
+                                echo date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
+                                     date('H:i', strtotime($disponibilidade['hora_fim'])); 
+                                ?>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?php echo $disponibilidade['disponivel'] ? 'success' : 'warning'; ?>">
+                                    <?php echo $disponibilidade['disponivel'] ? 'Disponível' : 'Indisponível'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?php echo $disponibilidade['recorrente'] ? 'info' : 'secondary'; ?>">
+                                    <?php echo $disponibilidade['recorrente'] ? 'Semanal' : 'Não'; ?>
+                                </span>
+                            </td>
+                            <td><?php echo $disponibilidade['observacao']; ?></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary edit-disponibilidade" 
+                                            data-id="<?php echo $disponibilidade['id']; ?>"
+                                            data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
+                                            data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
+                                            data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
+                                            data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
+                                            data-obs="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>"
+                                            data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
+                                            data-dia="<?php echo $disponibilidade['dia_semana']; ?>">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <a href="?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
+                                       class="btn btn-outline-danger" 
+                                       onclick="return confirm('Tem certeza que deseja excluir este registro de disponibilidade?');">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -544,7 +528,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
 </div>
 <?php endif; ?>
 
-<?php endif; ?>
+<?php endif; // fim do if ($colaborador): ?>
 
 <script>
 // JavaScript para manipulação do formulário de disponibilidade
