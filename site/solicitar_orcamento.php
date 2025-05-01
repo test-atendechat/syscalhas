@@ -121,22 +121,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     }
 }
 
-// Buscar configurações de horário do banco de dados
-$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+// Buscar configurações de horário e tempo de visita do banco de dados
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'tempo_visita_tecnica', 'unidade_tempo_visita')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
 $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+$tempo_visita = isset($config['tempo_visita_tecnica']) ? (int)$config['tempo_visita_tecnica'] : 60; // Padrão: 60 minutos
+$unidade_tempo = isset($config['unidade_tempo_visita']) ? $config['unidade_tempo_visita'] : 'minutos';
 
-// Extrair hora e converter para número
+// Converter tempo para minutos
+$intervalo_minutos = $tempo_visita;
+if ($unidade_tempo == 'horas') {
+    $intervalo_minutos = $tempo_visita * 60;
+}
+
+// Garantir que o intervalo seja de pelo menos 30 minutos
+$intervalo_minutos = max(30, $intervalo_minutos);
+
+// Extrair hora e minutos do horário de início e fim
 $hora_inicial = (int)substr($horario_inicio, 0, 2);
+$minuto_inicial = (int)substr($horario_inicio, 3, 2);
 $hora_final = (int)substr($horario_fim, 0, 2);
+$minuto_final = (int)substr($horario_fim, 3, 2);
 
-// Gerar horários disponíveis baseados nas configurações
+// Converter horários para minutos desde o início do dia
+$inicio_minutos = $hora_inicial * 60 + $minuto_inicial;
+$fim_minutos = $hora_final * 60 + $minuto_final;
+
+// Gerar horários disponíveis baseados no intervalo configurado
 $horarios_possiveis = [];
-for ($hora = $hora_inicial; $hora < $hora_final; $hora++) {
-    $horarios_possiveis[] = sprintf("%02d:00:00", $hora);
+for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_minutos) {
+    $hora = floor($minuto / 60);
+    $min = $minuto % 60;
+    $horarios_possiveis[] = sprintf("%02d:%02d:00", $hora, $min);
 }
 ?>
 <!DOCTYPE html>

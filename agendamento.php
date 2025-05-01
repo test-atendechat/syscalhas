@@ -22,8 +22,30 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Buscar colaboradores (tanto instaladores quanto orçamentistas)
-$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
+// Verificar o tipo de colaborador a ser filtrado com base no tipo de agendamento
+$tipo_colaborador_sql = "tipo IN ('instalador', 'orcamentista')"; // Padrão: ambos os tipos
+
+// Se está acessando um agendamento específico (visita técnica), filtrar apenas por orçamentistas
+if (isset($_GET['id']) && intval($_GET['id']) > 0) {
+    $tipo_colaborador_sql = "tipo = 'orcamentista'"; // Para visitas técnicas, apenas orçamentistas
+}
+// Se está acessando um orçamento aprovado, filtrar apenas por instaladores
+elseif (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
+    // Verificar o status do orçamento
+    $orcamento_id = intval($_GET['orcamento_id']);
+    $stmt = $pdo->prepare("SELECT status FROM orcamentos WHERE id = :id");
+    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $status_orcamento = $stmt->fetchColumn();
+    
+    // Se o orçamento está aprovado, precisamos de instaladores para executá-lo
+    if ($status_orcamento == 'aprovado') {
+        $tipo_colaborador_sql = "tipo = 'instalador'"; // Para instalação, apenas instaladores
+    }
+}
+
+// Buscar colaboradores do tipo apropriado
+$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE $tipo_colaborador_sql AND status = 'ativo' ORDER BY tipo, nome");
 $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
