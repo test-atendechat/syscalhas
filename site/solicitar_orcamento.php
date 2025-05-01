@@ -473,6 +473,12 @@ for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_mi
                             mensagemOrcamentistas.textContent = 'Erro ao verificar orçamentistas disponíveis: ' + (data.mensagem || 'Erro desconhecido');
                             mensagemOrcamentistas.className = 'alert alert-danger mt-2';
                         }
+                        
+                        // Limpar o select de orçamentistas quando houver erro
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.text = 'Selecione outro horário disponível';
+                        orcamentistaSelect.appendChild(defaultOption);
                         mensagemOrcamentistas.style.display = 'block';
                     }
                 })
