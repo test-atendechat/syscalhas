@@ -96,7 +96,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 }
                 
                 // Agora verificar se o instalador está disponível no horário
-                $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                      WHERE instalador_id = :colaborador_id 
                                      AND status = 'agendado' 
                                      AND ((
@@ -135,7 +135,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 }
             } else {
                 // Se não foi selecionado um colaborador, buscar qualquer um disponível
-                $stmt = $db->prepare("SELECT id FROM colaboradores 
+                $stmt = $pdo->prepare("SELECT id FROM colaboradores 
                                      WHERE tipo = 'instalador' AND status = 'ativo' 
                                      AND id NOT IN (
                                          SELECT DISTINCT instalador_id FROM agendamentos 
@@ -182,7 +182,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $codigo_confirmacao = md5(uniqid(rand(), true));
             
             // Inserir agendamento
-            $stmt = $db->prepare("INSERT INTO agendamentos (
+            $stmt = $pdo->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
                                 status, codigo_confirmacao, cliente_agendou, criado_em, data_agendamento,
                                 hora_inicio, hora_fim)
@@ -208,20 +208,20 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $stmt->execute();
             
             // Atualizar status de execução do orçamento
-            $stmt = $db->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
             // Commit da transação
-            $db->commit();
+            $pdo->commit();
             
             $mensagem = 'Agendamento realizado com sucesso! Em breve entraremos em contato para confirmar.';
             $tipo = 'success';
         }
     } catch (Exception $e) {
         // Rollback em caso de erro
-        if ($db->inTransaction()) {
-            $db->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
         }
         $mensagem = 'Erro ao processar agendamento: ' . $e->getMessage();
     }
@@ -233,7 +233,7 @@ $mensagem_codificada = urlencode($mensagem);
 
 // Recuperar o código de acesso do orçamento para gerar o link correto
 try {
-    $stmt = $db->prepare("SELECT codigo_acesso FROM orcamentos WHERE id = :id");
+    $stmt = $pdo->prepare("SELECT codigo_acesso FROM orcamentos WHERE id = :id");
     $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
     $stmt->execute();
     $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
