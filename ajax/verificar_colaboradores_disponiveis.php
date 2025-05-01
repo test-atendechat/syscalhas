@@ -81,7 +81,7 @@ try {
         
         // Verificar se existem as colunas data_inicio e data_fim
         if (in_array('data_inicio', $colunas) && in_array('data_fim', $colunas)) {
-            $stmt = $db->prepare("SELECT DISTINCT colaborador_id FROM agendamentos 
+            $stmt = $db->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
                              WHERE status = 'agendado' 
                              AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                              OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 

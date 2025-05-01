@@ -43,7 +43,7 @@ $params = [];
 
 // Filtrar por colaborador
 if ($colaborador_id > 0) {
-    $sql_filtros[] = "a.colaborador_id = :colaborador_id";
+    $sql_filtros[] = "a.instalador_id = :colaborador_id";
     $params[':colaborador_id'] = $colaborador_id;
 }
 
@@ -65,10 +65,12 @@ if (!empty($sql_filtros)) {
 }
 
 // Consulta de agendamentos
-$sql = "SELECT a.*, o.codigo_orcamento, o.cliente_nome, c.nome as colaborador_nome 
+$sql = "SELECT a.*, o.numero as codigo_orcamento, 
+        (SELECT nome FROM clientes WHERE id = o.cliente_id) as cliente_nome, 
+        c.nome as colaborador_nome 
         FROM agendamentos a 
         LEFT JOIN orcamentos o ON a.orcamento_id = o.id 
-        LEFT JOIN colaboradores c ON a.colaborador_id = c.id 
+        LEFT JOIN colaboradores c ON a.instalador_id = c.id 
         $where 
         ORDER BY a.data_inicio ASC";
 
