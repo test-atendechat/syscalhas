@@ -52,8 +52,12 @@ if (empty($data) || empty($hora)) {
 }
 
 // Obter configurações de horário de funcionamento e indisponibilidade automática
-$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'aplicar_indisponibilidade_automatica', 'tempo_indisponivel_entrada', 'horario_inicio_almoco', 'horario_fim_almoco')");
+// Usamos uma consulta com FOR UPDATE para garantir que lemos os valores mais atualizados do banco
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'aplicar_indisponibilidade_automatica', 'tempo_indisponivel_entrada', 'horario_inicio_almoco', 'horario_fim_almoco') FOR UPDATE");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Log para debug das configurações carregadas
+error_log("Configurações carregadas: tempo_indisponivel_entrada = {$config['tempo_indisponivel_entrada']}");
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';

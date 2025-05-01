@@ -164,6 +164,12 @@ if (!isset($_SESSION['usuario_nivel']) || $_SESSION['usuario_nivel'] != 'admin')
 
 // Inicializar variáveis
 $mensagem = '';
+
+// Verificar se existe mensagem na sessão (após redirecionamento)
+if (isset($_SESSION['mensagem_configuracoes'])) {
+    $mensagem = $_SESSION['mensagem_configuracoes'];
+    unset($_SESSION['mensagem_configuracoes']); // Limpar depois de usar
+}
 $configuracoes = [
     'empresa_nome' => APP_NAME,
     'empresa_telefone' => '',
@@ -377,9 +383,22 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Confirmar transação
         $pdo->commit();
-        // Mantemos as mensagens anteriores para exibir corretamente os alertas de indisponibilidade
-        if (empty($mensagem)) {
-            $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
+        
+        // Verificar se os horários foram alterados para forçar um refresh completo
+        if ($horario_alterado) {
+            // Salvar mensagem na sessão para exibir após o redirecionamento
+            $_SESSION['mensagem_configuracoes'] = empty($mensagem) ? 
+                alerta('Configurações atualizadas com sucesso!', 'success') : 
+                $mensagem;
+                
+            // Redirecionar para a mesma página para garantir um refresh completo
+            header('Location: configuracoes.php');
+            exit;
+        } else {
+            // Mantemos as mensagens anteriores para exibir corretamente os alertas de indisponibilidade
+            if (empty($mensagem)) {
+                $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
+            }
         }
     } catch (Exception $e) {
         // Reverter em caso de erro
