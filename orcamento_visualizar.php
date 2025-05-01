@@ -811,10 +811,53 @@ if (!$acesso_interno) {
                             // Para a última hora, considerar os minutos calculados
                             $max_min = ($hora == $hora_maxima_horas) ? $hora_maxima_mins : 59;
                             
-                            // Adicionar opções para cada hora disponvel em incrementos de 30 min
+                            // Buscar configurações de horário de almoço e tempo indisponível na entrada
+                            $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio_almoco', 'horario_fim_almoco', 'tempo_indisponivel_entrada', 'aplicar_indisponibilidade_automatica')");
+                            $config_adicional = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+                            
+                            // Valores padrão caso não existam configurações
+                            $horario_inicio_almoco = isset($config_adicional['horario_inicio_almoco']) ? $config_adicional['horario_inicio_almoco'] : '11:00';
+                            $horario_fim_almoco = isset($config_adicional['horario_fim_almoco']) ? $config_adicional['horario_fim_almoco'] : '12:00';
+                            $tempo_indisponivel_entrada = isset($config_adicional['tempo_indisponivel_entrada']) ? (int)$config_adicional['tempo_indisponivel_entrada'] : 30;
+                            $aplicar_indisponibilidade = isset($config_adicional['aplicar_indisponibilidade_automatica']) ? ($config_adicional['aplicar_indisponibilidade_automatica'] == 'sim') : false;
+                            
+                            // Extrair hora e minutos do horário de almoço
+                            $hora_inicio_almoco = (int)substr($horario_inicio_almoco, 0, 2);
+                            $minuto_inicio_almoco = (int)substr($horario_inicio_almoco, 3, 2);
+                            $hora_fim_almoco = (int)substr($horario_fim_almoco, 0, 2);
+                            $minuto_fim_almoco = (int)substr($horario_fim_almoco, 3, 2);
+                            
+                            // Calcular fim do período indisponível após abertura
+                            $fim_indisponivel_entrada_hora = $horas_inicio;
+                            $fim_indisponivel_entrada_min = $minutos_inicio + $tempo_indisponivel_entrada;
+                            
+                            // Ajustar caso ultrapasse 60 minutos
+                            while ($fim_indisponivel_entrada_min >= 60) {
+                                $fim_indisponivel_entrada_hora++;
+                                $fim_indisponivel_entrada_min -= 60;
+                            }
+                            
+                            // Adicionar opções para cada hora disponível em incrementos de 30 min
                             for ($min = $min_inicial; $min <= $max_min; $min += 30) {
                                 if ($min == 60) continue; // Pular quando for exatamente 60 minutos
                                 $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':' . str_pad($min, 2, '0', STR_PAD_LEFT);
+                                
+                                // Se indisponibilidade automática estiver ativada
+                                if ($aplicar_indisponibilidade) {
+                                    // Verificar se está dentro do período de almoço
+                                    $no_periodo_almoco = ($hora > $hora_inicio_almoco || ($hora == $hora_inicio_almoco && $min >= $minuto_inicio_almoco)) && 
+                                                        ($hora < $hora_fim_almoco || ($hora == $hora_fim_almoco && $min < $minuto_fim_almoco));
+                                    
+                                    // Verificar se está dentro do período indisponível após a entrada
+                                    $no_periodo_entrada = ($hora < $fim_indisponivel_entrada_hora || 
+                                                         ($hora == $fim_indisponivel_entrada_hora && $min < $fim_indisponivel_entrada_min));
+                                    
+                                    // Pular este horário se estiver em período indisponível
+                                    if ($no_periodo_almoco || $no_periodo_entrada) {
+                                        continue;
+                                    }
+                                }
+                                
                                 echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
                             }
                         }

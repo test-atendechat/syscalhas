@@ -112,6 +112,36 @@ try {
         exit;
     }
     
+    // Verificar configurações de indisponibilidade automática
+    if ($aplicar_indisponibilidade) {
+        // Verificar período indisponível após abertura
+        $fim_indisponivel_entrada = clone $hora_inicio_expediente;
+        $fim_indisponivel_entrada->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
+        
+        if ($data_hora_inicio < $fim_indisponivel_entrada) {
+            $resposta['mensagem'] = 'O horário selecionado coincide com o período indisponível na abertura (' . 
+                                    $horario_inicio . ' até ' . $fim_indisponivel_entrada->format('H:i') . ').';
+            echo json_encode($resposta);
+            exit;
+        }
+        
+        // Verificar período de almoço
+        $hora_inicio_almoco_dt = new DateTime($data . ' ' . $horario_inicio_almoco);
+        $hora_fim_almoco_dt = new DateTime($data . ' ' . $horario_fim_almoco);
+        
+        // Se o período solicitado está dentro ou intercepta o horário de almoço
+        $comeca_antes_acaba_no_almoco = $data_hora_inicio < $hora_inicio_almoco_dt && $data_hora_fim > $hora_inicio_almoco_dt;
+        $comeca_no_almoco = $data_hora_inicio >= $hora_inicio_almoco_dt && $data_hora_inicio < $hora_fim_almoco_dt;
+        $periodo_cruza_almoco = $comeca_antes_acaba_no_almoco || $comeca_no_almoco;
+        
+        if ($periodo_cruza_almoco) {
+            $resposta['mensagem'] = 'O horário selecionado coincide com o período de almoço (' . 
+                                    $horario_inicio_almoco . ' - ' . $horario_fim_almoco . ').';
+            echo json_encode($resposta);
+            exit;
+        }
+    }
+    
     // Verificar se a tabela agendamentos tem registros
     $resultado = $pdo->query("SELECT COUNT(*) FROM agendamentos");
     $tem_agendamentos = ($resultado->fetchColumn() > 0);
