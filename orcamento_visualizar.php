@@ -48,6 +48,30 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         if ($stmt->execute()) {
             $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
         } else {
+            $mensagem = alerta('Erro ao finalizar orçamento', 'danger');
+        }
+    } elseif ($acao == 'andamento') {
+        // Atualizar status de execução para em andamento
+        $stmt = $db->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'andamento' 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao atualizar status de execução', 'danger');
+        }
+    } elseif ($acao == 'pendente') {
+        // Atualizar status de execução para pendente
+        $stmt = $db->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'pendente' 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+        } else {
             $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
         }
     } elseif ($acao == 'reabrir') {

@@ -207,7 +207,7 @@ require_once('includes/header.php');
     </div>
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="busca" class="form-label">Busca</label>
                 <input type="text" class="form-control" id="busca" name="busca" value="<?php echo $busca; ?>" placeholder="Número ou nome do cliente">
             </div>
@@ -223,6 +223,17 @@ require_once('includes/header.php');
             </div>
             
             <div class="col-md-2">
+                <label for="status_execucao" class="form-label">Execução</label>
+                <select class="form-select" id="status_execucao" name="status_execucao">
+                    <option value="">Todos</option>
+                    <option value="pendente" <?php echo ($status_execucao == 'pendente') ? 'selected' : ''; ?>>Pendente</option>
+                    <option value="agendado" <?php echo ($status_execucao == 'agendado') ? 'selected' : ''; ?>>Agendado</option>
+                    <option value="andamento" <?php echo ($status_execucao == 'andamento') ? 'selected' : ''; ?>>Em andamento</option>
+                    <option value="finalizado" <?php echo ($status_execucao == 'finalizado') ? 'selected' : ''; ?>>Finalizado</option>
+                </select>
+            </div>
+            
+            <div class="col-md-2">
                 <label for="data_inicio" class="form-label">Data Inicial</label>
                 <input type="text" class="form-control" id="data_inicio" name="data_inicio" value="<?php echo $data_inicio; ?>" placeholder="dd/mm/aaaa">
             </div>
@@ -232,7 +243,7 @@ require_once('includes/header.php');
                 <input type="text" class="form-control" id="data_fim" name="data_fim" value="<?php echo $data_fim; ?>" placeholder="dd/mm/aaaa">
             </div>
             
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-1 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-filter me-2"></i>Filtrar
                 </button>
@@ -327,7 +338,7 @@ require_once('includes/header.php');
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="text-center">Nenhum orçamento encontrado.</td>
+                            <td colspan="8" class="text-center">Nenhum orçamento encontrado.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -339,17 +350,17 @@ require_once('includes/header.php');
             <nav aria-label="Navegação de página" class="mt-4">
                 <ul class="pagination justify-content-center">
                     <li class="page-item <?php echo ($pagina <= 1) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?pagina=<?php echo $pagina-1; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>">Anterior</a>
+                        <a class="page-link" href="?pagina=<?php echo $pagina-1; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&status_execucao=<?php echo $status_execucao; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>">Anterior</a>
                     </li>
                     
                     <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
                         <li class="page-item <?php echo ($pagina == $i) ? 'active' : ''; ?>">
-                            <a class="page-link" href="?pagina=<?php echo $i; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>"><?php echo $i; ?></a>
+                            <a class="page-link" href="?pagina=<?php echo $i; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&status_execucao=<?php echo $status_execucao; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>"><?php echo $i; ?></a>
                         </li>
                     <?php endfor; ?>
                     
                     <li class="page-item <?php echo ($pagina >= $total_paginas) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?pagina=<?php echo $pagina+1; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>">Próxima</a>
+                        <a class="page-link" href="?pagina=<?php echo $pagina+1; ?>&busca=<?php echo $busca; ?>&status=<?php echo $status; ?>&status_execucao=<?php echo $status_execucao; ?>&data_inicio=<?php echo $data_inicio; ?>&data_fim=<?php echo $data_fim; ?>">Próxima</a>
                     </li>
                 </ul>
             </nav>
@@ -357,7 +368,7 @@ require_once('includes/header.php');
         
         <!-- Resumo -->
         <div class="alert alert-info mt-3">
-            <div class="row">
+            <div class="row mb-2">
                 <div class="col-md-3">
                     <strong>Total de Orçamentos:</strong> <?php echo $total_registros; ?>
                 </div>
@@ -377,6 +388,32 @@ require_once('includes/header.php');
                 </div>
                 <div class="col-md-3">
                     <strong>Rejeitados:</strong> <?php echo isset($totais_status['rejeitado']) ? $totais_status['rejeitado'] : 0; ?>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <strong>Status de Execução:</strong>
+                </div>
+                <?php
+                // Contar orçamentos por status de execução
+                $stmt = $db->query("SELECT status_execucao, COUNT(*) as total FROM orcamentos GROUP BY status_execucao");
+                $totais_execucao = [];
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $totais_execucao[$row['status_execucao']] = $row['total'];
+                }
+                ?>
+                <div class="col-md-3">
+                    <span class="badge bg-secondary">Pendentes:</span> <?php echo isset($totais_execucao['pendente']) ? $totais_execucao['pendente'] : 0; ?>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-info">Agendados:</span> <?php echo isset($totais_execucao['agendado']) ? $totais_execucao['agendado'] : 0; ?>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-warning">Em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-success">Finalizados:</span> <?php echo isset($totais_execucao['finalizado']) ? $totais_execucao['finalizado'] : 0; ?>
                 </div>
             </div>
         </div>
