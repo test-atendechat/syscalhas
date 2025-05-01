@@ -19,10 +19,10 @@ $colaborador_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $colaborador = null;
 $disponibilidades = [];
 
-// Incluir arquivo de conexão
-require_once 'includes/db.php';
-// Usar a variável $db definida em includes/db.php como $pdo para consistência
-$pdo = $db; // Alias para manter o código consistente
+// Inicializando a variável global $pdo que já foi incluída
+global $pdo;
+// O arquivo includes/db.php já foi incluído e inicializa a variável $pdo
+// (anteriormente conhecida como $db em algumas partes do sistema)
 
 // Buscar dados do colaborador
 if ($colaborador_id > 0) {
@@ -47,7 +47,8 @@ if ($colaborador_id > 0) {
     $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Buscar agendamentos feitos por clientes para este colaborador
-    $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome 
+    $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome, 
+                             o.descricao as detalhes
                              FROM agendamentos a
                              JOIN orcamentos o ON a.orcamento_id = o.id
                              JOIN clientes c ON o.cliente_id = c.id
@@ -444,7 +445,7 @@ require_once('includes/header.php');
                                     #<?php echo $agendamento['numero']; ?>
                                 </a>
                             </td>
-                            <td><?php echo $agendamento['detalhes']; ?></td>
+                            <td><?php echo isset($agendamento['detalhes']) ? $agendamento['detalhes'] : ''; ?></td>
                             <td>
                                 <span class="badge bg-<?php 
                                     echo $agendamento['status'] == 'agendado' ? 'primary' : 
