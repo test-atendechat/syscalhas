@@ -165,7 +165,15 @@ require_once('includes/header.php');
                                 <td><?php echo $colaborador['id']; ?></td>
                                 <td><?php echo $colaborador['nome']; ?></td>
                                 <td>
-                                    <span class="badge bg-<?php echo $colaborador['tipo'] === 'instalador' ? 'primary' : 'info'; ?>">
+                                    <span class="badge bg-<?php 
+                                        if ($colaborador['tipo'] === 'instalador') {
+                                            echo 'primary';
+                                        } elseif ($colaborador['tipo'] === 'orcamentista') {
+                                            echo 'warning';
+                                        } else {
+                                            echo 'info';
+                                        }
+                                    ?>">
                                         <?php echo ucfirst($colaborador['tipo']); ?>
                                     </span>
                                 </td>
@@ -187,6 +195,9 @@ require_once('includes/header.php');
                                         <a href="colaborador_equipe.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-info" title="Gerenciar Equipe">
                                             <i class="fas fa-users"></i>
                                         </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($colaborador['tipo'] === 'instalador' || $colaborador['tipo'] === 'orcamentista'): ?>
                                         <a href="colaborador_agenda.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-secondary" title="Gerenciar Agenda">
                                             <i class="fas fa-calendar-alt"></i>
                                         </a>

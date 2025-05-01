@@ -176,6 +176,7 @@ require_once('includes/header.php');
                 <select class="form-select" id="tipo" name="tipo" required>
                     <option value="auxiliar" <?php echo $tipo === 'auxiliar' ? 'selected' : ''; ?>>Auxiliar</option>
                     <option value="instalador" <?php echo $tipo === 'instalador' ? 'selected' : ''; ?>>Instalador</option>
+                    <option value="orcamentista" <?php echo $tipo === 'orcamentista' ? 'selected' : ''; ?>>Orçamentista</option>
                 </select>
                 <div class="invalid-feedback">Por favor, selecione o tipo de colaborador.</div>
             </div>
