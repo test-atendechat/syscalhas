@@ -86,6 +86,17 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt_status = $db->query("SELECT DISTINCT status FROM agendamentos ORDER BY status");
 $status_disponiveis = $stmt_status->fetchAll(PDO::FETCH_COLUMN);
 
+// Mapeamento de nomes amigáveis para os status
+$status_nomes = [
+    'orcamento_agendado' => 'Orçamento Agendado',
+    'instalacao_agendada' => 'Instalação Agendada',
+    'agendado' => 'Agendado',
+    'em_andamento' => 'Em Andamento',
+    'concluido' => 'Concluído',
+    'cancelado' => 'Cancelado',
+    'reagendado' => 'Reagendado'
+];
+
 // Buscar colaboradores (tanto instaladores quanto orçamentistas)
 $stmt_colaboradores = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') ORDER BY tipo, nome");
 $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
@@ -153,7 +164,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                         <option value="">Todos</option>
                         <?php foreach ($status_disponiveis as $status): ?>
                             <option value="<?php echo $status; ?>" <?php echo $filtro_status == $status ? 'selected' : ''; ?>>
-                                <?php echo ucfirst($status); ?>
+                                <?php echo isset($status_nomes[$status]) ? $status_nomes[$status] : ucfirst($status); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -188,6 +199,8 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
         }
         
         $status_badges = [
+            'orcamento_agendado' => 'info',
+            'instalacao_agendada' => 'primary',
             'agendado' => 'primary',
             'em_andamento' => 'info',
             'concluido' => 'success',
@@ -202,7 +215,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
             <div class="card bg-light">
                 <div class="card-body text-center">
                     <h5 class="card-title">
-                        <span class="badge bg-<?php echo $badge_class; ?> mb-2"><?php echo ucfirst($status); ?></span>
+                        <span class="badge bg-<?php echo $badge_class; ?> mb-2"><?php echo isset($status_nomes[$status]) ? $status_nomes[$status] : ucfirst($status); ?></span>
                     </h5>
                     <h3 class="card-text"><?php echo $count; ?></h3>
                 </div>
