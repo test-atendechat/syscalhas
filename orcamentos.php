@@ -73,7 +73,7 @@ $total_registros = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
 // Obter orçamentos
-$stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome 
+$stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome, o.codigo_acesso 
                      FROM orcamentos o
                      LEFT JOIN clientes c ON o.cliente_id = c.id
                      WHERE {$where}
@@ -261,7 +261,7 @@ require_once('includes/header.php');
                         <th>Número</th>
                         <th>Cliente</th>
                         <th>Data</th>
-                        <th>Validade</th>
+                        <th>WhatsApp</th>
                         <th class="text-end">Valor</th>
                         <th>Status</th>
                         <th>Execução</th>
@@ -275,7 +275,11 @@ require_once('includes/header.php');
                                 <td><a href="orcamento_visualizar.php?id=<?php echo $orcamento['id']; ?>"><?php echo $orcamento['numero']; ?></a></td>
                                 <td><?php echo $orcamento['cliente_nome']; ?></td>
                                 <td><?php echo dataParaBr($orcamento['data_criacao']); ?></td>
-                                <td><?php echo dataParaBr($orcamento['data_validade']); ?></td>
+                                <td>
+                                    <a href="https://api.whatsapp.com/send?phone=19918189184&text=Ol%C3%A1%20<?php echo urlencode($orcamento['cliente_nome']); ?>,%20segue%20o%20link%20para%20acessar%20seu%20or%C3%A7amento:%20https%3A%2F%2F<?php echo $_SERVER['HTTP_HOST']; ?>%2Forcamento_visualizar.php%3Fcodigo%3D<?php echo $orcamento['codigo_acesso']; ?>" class="btn btn-success btn-sm" target="_blank">
+                                        <i class="fab fa-whatsapp"></i> Enviar
+                                    </a>
+                                </td>
                                 <td class="text-end"><?php echo formataValor($orcamento['valor_total']); ?></td>
                                 <td>
                                     <span class="status-box status-<?php echo $orcamento['status']; ?>">
