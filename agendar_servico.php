@@ -3,6 +3,9 @@ require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 
+// Garantir acesso às variáveis globais da conexão com o banco de dados
+global $db, $pdo;
+
 // Verificar se é uma requisição POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: index.php');
@@ -85,15 +88,34 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
                                      WHERE instalador_id = :colaborador_id 
                                      AND status = 'agendado' 
-                                     AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                                     OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                                     OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
+                                     AND ((
+                                        -- Verificar usando campos data_inicio/data_fim (formato timestamp)
+                                        (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
+                                        ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
+                                        OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
+                                        OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
+                                     ) OR (
+                                        -- Verificar usando campos data_agendamento/hora_inicio/hora_fim (formato separado)
+                                        data_agendamento = :data_agendamento AND
+                                        ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
+                                        OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
+                                        OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim))
+                                     ))");
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 
-                $data_inicio_str = $data_hora_inicio->format('Y-m-d H:i:s');
-                $data_fim_str = $data_hora_fim->format('Y-m-d H:i:s');
-                $stmt->bindParam(':data_inicio', $data_inicio_str);
-                $stmt->bindParam(':data_fim', $data_fim_str);
+                // Formatar datas e horas para ambos os formatos
+                $data_inicio_completa = $data_hora_inicio->format('Y-m-d H:i:s');
+                $data_fim_completa = $data_hora_fim->format('Y-m-d H:i:s');
+                $data_apenas = $data_hora_inicio->format('Y-m-d');
+                $hora_inicio_apenas = $data_hora_inicio->format('H:i:s');
+                $hora_fim_apenas = $data_hora_fim->format('H:i:s');
+                
+                // Vincular os parâmetros para ambos os formatos
+                $stmt->bindParam(':data_inicio', $data_inicio_completa);
+                $stmt->bindParam(':data_fim', $data_fim_completa);
+                $stmt->bindParam(':data_agendamento', $data_apenas);
+                $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
+                $stmt->bindParam(':hora_fim', $hora_fim_apenas);
                 $stmt->execute();
                 
                 if ($stmt->fetchColumn() > 0) {
@@ -107,15 +129,35 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                      AND id NOT IN (
                                          SELECT DISTINCT instalador_id FROM agendamentos 
                                          WHERE status = 'agendado' 
-                                         AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                                         OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                                         OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
+                                         AND ((
+                                            -- Verificar usando campos data_inicio/data_fim (formato timestamp)
+                                            (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
+                                            ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
+                                            OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
+                                            OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
+                                         ) OR (
+                                            -- Verificar usando campos data_agendamento/hora_inicio/hora_fim (formato separado)
+                                            data_agendamento = :data_agendamento AND
+                                            ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
+                                            OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
+                                            OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim))
+                                         ))
                                      ) 
                                      LIMIT 1");
-                $data_inicio_str = $data_hora_inicio->format('Y-m-d H:i:s');
-                $data_fim_str = $data_hora_fim->format('Y-m-d H:i:s');
-                $stmt->bindParam(':data_inicio', $data_inicio_str);
-                $stmt->bindParam(':data_fim', $data_fim_str);
+                
+                // Formatar datas e horas para ambos os formatos
+                $data_inicio_completa = $data_hora_inicio->format('Y-m-d H:i:s');
+                $data_fim_completa = $data_hora_fim->format('Y-m-d H:i:s');
+                $data_apenas = $data_hora_inicio->format('Y-m-d');
+                $hora_inicio_apenas = $data_hora_inicio->format('H:i:s');
+                $hora_fim_apenas = $data_hora_fim->format('H:i:s');
+                
+                // Vincular os parâmetros para ambos os formatos
+                $stmt->bindParam(':data_inicio', $data_inicio_completa);
+                $stmt->bindParam(':data_fim', $data_fim_completa);
+                $stmt->bindParam(':data_agendamento', $data_apenas);
+                $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
+                $stmt->bindParam(':hora_fim', $hora_fim_apenas);
                 $stmt->execute();
                 
                 if ($colaborador_disp = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -131,17 +173,26 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Inserir agendamento
             $stmt = $db->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
-                                status, codigo_confirmacao, cliente_agendou, criado_em, data_agendamento)
+                                status, codigo_confirmacao, cliente_agendou, criado_em, data_agendamento,
+                                hora_inicio, hora_fim)
                                 VALUES (
                                 :orcamento_id, :instalador_id, :data_inicio, :data_fim, 
-                                'agendado', :codigo_confirmacao, TRUE, NOW(), :data_agendamento)");
+                                'agendado', :codigo_confirmacao, TRUE, NOW(), :data_agendamento,
+                                :hora_inicio, :hora_fim)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
             
             $data_inicio_final = $data_hora_inicio->format('Y-m-d H:i:s');
             $data_fim_final = $data_hora_fim->format('Y-m-d H:i:s');
+            $data_agendamento = $data_hora_inicio->format('Y-m-d'); // Apenas a data sem a hora
+            $hora_inicio_apenas = $data_hora_inicio->format('H:i:s'); // Apenas a hora para o formato antigo
+            $hora_fim_apenas = $data_hora_fim->format('H:i:s'); // Apenas a hora para o formato antigo
+            
             $stmt->bindParam(':data_inicio', $data_inicio_final);
             $stmt->bindParam(':data_fim', $data_fim_final);
+            $stmt->bindParam(':data_agendamento', $data_agendamento);
+            $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
+            $stmt->bindParam(':hora_fim', $hora_fim_apenas);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
             $stmt->execute();
             

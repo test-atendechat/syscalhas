@@ -3,8 +3,9 @@ require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
-// Garantir que temos uma conexão com o banco de dados
-// Os arquivos incluídos já devem ter definido as variáveis $db e $pdo
+// Garantir acesso às variáveis globais de conexão
+global $db, $pdo;
+
 // Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
 if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
@@ -109,36 +110,39 @@ try {
         $stmt_colunas = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'agendamentos'");
         $colunas = $stmt_colunas->fetchAll(PDO::FETCH_COLUMN);
         
-        // Verificar se existem as colunas data_inicio e data_fim
-        if (in_array('data_inicio', $colunas) && in_array('data_fim', $colunas)) {
-            $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
-                             WHERE status = 'agendado' 
-                             AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                             OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                             OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
-            $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-            $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
-            $stmt->execute();
-            
-            $colaboradores_ocupados = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        } else {
-            // Alternativa usando data_agendamento e hora_inicio/hora_fim
-            $data_apenas = $data_hora_inicio->format('Y-m-d');
-            $hora_inicio_apenas = $data_hora_inicio->format('H:i:s');
-            $hora_fim_apenas = $data_hora_fim->format('H:i:s');
-            
-            $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
-                             WHERE status = 'agendado' AND data_agendamento = :data_agendamento 
-                             AND ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
-                             OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
-                             OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim))");
-            $stmt->bindParam(':data_agendamento', $data_apenas);
-            $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
-            $stmt->bindParam(':hora_fim', $hora_fim_apenas);
-            $stmt->execute();
-            
-            $colaboradores_ocupados = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        }
+        // Consulta combinada usando ambos os formatos de data/hora da tabela agendamentos
+        // Uma vez que tanto os campos data_inicio/data_fim quanto data_agendamento/hora_inicio/hora_fim existem na tabela
+        $data_apenas = $data_hora_inicio->format('Y-m-d');
+        $hora_inicio_apenas = $data_hora_inicio->format('H:i:s');
+        $hora_fim_apenas = $data_hora_fim->format('H:i:s');
+        $data_inicio_completa = $data_hora_inicio->format('Y-m-d H:i:s');
+        $data_fim_completa = $data_hora_fim->format('Y-m-d H:i:s');
+        
+        $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
+                         WHERE status = 'agendado' AND 
+                         ((
+                            -- Verificar usando campos data_inicio/data_fim (formato timestamp)
+                            (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
+                            ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
+                            OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
+                            OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
+                         ) OR (
+                            -- Verificar usando campos data_agendamento/hora_inicio/hora_fim (formato separado)
+                            data_agendamento = :data_agendamento AND
+                            ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
+                            OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
+                            OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim))
+                         ))");
+        
+        // Vincular os parâmetros para ambos os formatos
+        $stmt->bindParam(':data_inicio', $data_inicio_completa);
+        $stmt->bindParam(':data_fim', $data_fim_completa);
+        $stmt->bindParam(':data_agendamento', $data_apenas);
+        $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
+        $stmt->bindParam(':hora_fim', $hora_fim_apenas);
+        $stmt->execute();
+        
+        $colaboradores_ocupados = $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
     
     // 2. Verificar colaboradores com indisponibilidades registradas na tabela colaborador_agenda
@@ -197,8 +201,8 @@ try {
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
     }
     
-    // Buscar colaboradores disponíveis (instaladores)
-    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador'";
+    // Buscar instaladores disponíveis da tabela instaladores
+    $sql = "SELECT id, nome FROM instaladores WHERE ativo = TRUE";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
