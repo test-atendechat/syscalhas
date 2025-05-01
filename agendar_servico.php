@@ -215,7 +215,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Commit da transação
             $pdo->commit();
             
-            $mensagem = 'Agendamento realizado com sucesso! Em breve entraremos em contato para confirmar.';
+            $mensagem = 'Agendamento realizado com sucesso!';
             $tipo = 'success';
         }
     } catch (Exception $e) {
