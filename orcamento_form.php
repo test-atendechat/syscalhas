@@ -29,7 +29,6 @@ $titulo = 'Novo Orçamento';
 $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
-$tempo_previsto_horas = 2; // Tempo padrão para execução do serviço em horas
 
 // Buscar configurações do banco de dados
 $stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
@@ -80,7 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
     $taxa_mao_obra = floatval(str_replace(',', '.', $_POST['taxa_mao_obra']));
     $observacoes = limpaString($_POST['observacoes']);
     $forma_pagamento = $_POST['forma_pagamento'];
-    $tempo_previsto_horas = intval($_POST['tempo_previsto_horas']);
 
     // Validar os dados
     if ($cliente_id <= 0) {
@@ -97,8 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 'taxa_mao_obra' => $taxa_mao_obra,
                 'observacoes' => $observacoes,
                 'usuario_id' => $_SESSION['usuario_id'],
-                'forma_pagamento' => $forma_pagamento,
-                'tempo_previsto_horas' => $tempo_previsto_horas
+                'forma_pagamento' => $forma_pagamento
             ];
 
             if ($acao_form == 'cadastrar') {
@@ -372,14 +369,6 @@ require_once('includes/header.php');
                         <option value="prazo" <?php echo ($forma_pagamento == 'prazo') ? 'selected' : ''; ?>>A Prazo</option>
                         <option value="vista" <?php echo ($forma_pagamento == 'vista') ? 'selected' : ''; ?>>À Vista</option>
                     </select>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <label for="tempo_previsto_horas" class="form-label required-field">Tempo Previsto (horas)</label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="tempo_previsto_horas" name="tempo_previsto_horas" value="<?php echo isset($tempo_previsto_horas) ? $tempo_previsto_horas : 2; ?>" min="1" max="240" required>
-                        <span class="input-group-text">h</span>
-                    </div>
-                    <div class="form-text">Tempo estimado para a execução do serviço. Pode ser superior a 24h para serviços que levam vários dias.</div>
                 </div>
 
             </div>

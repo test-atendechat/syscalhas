@@ -386,7 +386,6 @@ if (!$acesso_interno) {
                 <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
                 <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
                 <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
-                <p class="mb-0"><strong>Tempo Previsto:</strong> <?php echo isset($orcamento['tempo_previsto_horas']) ? $orcamento['tempo_previsto_horas'] . ' hora(s)' : '2 horas'; ?></p>
 
             </div>
         </div>
@@ -598,20 +597,7 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
                 <?php else: ?>
-                    <?php
-                    // Formatar tempo previsto para exibição (em horas ou dias)
-                    $tempo_texto = "2 horas"; // Valor padrão
-                    if (isset($orcamento['tempo_previsto_horas'])) {
-                        $horas = intval($orcamento['tempo_previsto_horas']);
-                        if ($horas <= 24) {
-                            $tempo_texto = "{$horas} hora" . ($horas > 1 ? 's' : '');
-                        } else {
-                            $dias = ceil($horas / 24);
-                            $tempo_texto = "até {$dias} dia" . ($dias > 1 ? 's' : '');
-                        }
-                    }
-                    ?>
-                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço. <strong>O tempo previsto para conclusão após o início do serviço é de <?php echo $tempo_texto; ?>.</strong>
+                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
                 <?php endif; ?>
             <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.

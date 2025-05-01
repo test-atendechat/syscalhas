@@ -361,29 +361,6 @@ try {
                     <?php endif; ?>
                     
                     <?php 
-                    // Verifica se o usuário tem acesso a agendamentos
-                    $mostra_agendamentos = ($_SESSION['usuario']['nivel'] === 'admin' || 
-                                      verificarPermissao('gerenciar_agendamentos'));
-                    
-                    if ($mostra_agendamentos): 
-                    ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'agendamento') !== false || strpos($pagina_atual, 'instalador') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-alt me-1"></i>Agendamentos
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="agendamentos.php"><i class="fas fa-calendar-check me-1"></i>Lista de Agendamentos</a></li>
-                            <li><a class="dropdown-item" href="agendamento_form.php"><i class="fas fa-calendar-plus me-1"></i>Novo Agendamento</a></li>
-                            <li><a class="dropdown-item" href="calendario_agendamento.php"><i class="fas fa-calendar-week me-1"></i>Calendário</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="instaladores.php"><i class="fas fa-hard-hat me-1"></i>Instaladores</a></li>
-                            <li><a class="dropdown-item" href="indisponibilidades.php"><i class="fas fa-calendar-times me-1"></i>Indisponibilidades</a></li>
-                            <li><a class="dropdown-item" href="horarios_disponiveis.php"><i class="fas fa-clock me-1"></i>Horários</a></li>
-                        </ul>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php 
                     // Verifica se o usuário tem acesso a pelo menos uma seção de produtos/estoque
                     $mostra_produtos = ($_SESSION['usuario']['nivel'] === 'admin' || 
                                       verificarPermissao('gerenciar_produtos') || 
@@ -429,10 +406,6 @@ try {
                             <li><a class="dropdown-item" href="relatorios_vendas.php"><i class="fas fa-chart-line me-1"></i>Vendas</a></li>
                             <li><a class="dropdown-item" href="relatorios_produtos_vendidos.php"><i class="fas fa-trophy me-1"></i>Produtos mais Vendidos</a></li>
                             <li><a class="dropdown-item" href="relatorios_estoque_baixo.php"><i class="fas fa-exclamation-triangle me-1"></i>Estoque Baixo</a></li>
-                            <?php endif; ?>
-                            
-                            <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_agendamentos')): ?>
-                            <li><a class="dropdown-item" href="relatorio_instaladores.php"><i class="fas fa-hard-hat me-1"></i>Desempenho de Instaladores</a></li>
                             <?php endif; ?>
                             
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_financeiros')): ?>
