@@ -38,8 +38,8 @@ function notificarSolicitacaoOrcamento($cliente_id, $cliente_nome, $dados_adicio
         $mensagem .= " para {$data_formatada} às {$dados_adicionais['hora_inicio']}";
     }
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'warning', $link);
+    // Adicionar notificação categorizada
+    return adicionarNotificacao($mensagem, 'warning', $link, 'solicitacoes');
 }
 
 /**
@@ -54,6 +54,6 @@ function notificarNovoOrcamento($orcamento_id, $numero, $cliente_nome) {
     $link = "orcamento_visualizar.php?id={$orcamento_id}";
     $mensagem = "NOVO ORÇAMENTO #{$numero} criado para {$cliente_nome}";
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'primary', $link);
+    // Adicionar notificação categorizada
+    return adicionarNotificacao($mensagem, 'primary', $link, 'solicitacoes');
 }

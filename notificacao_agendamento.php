@@ -19,8 +19,8 @@ function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio
     $link = "agendamento.php?id={$agendamento_id}&orcamento_id={$orcamento_id}";
     $mensagem = "NOVO AGENDAMENTO: Serviço agendado para {$cliente_nome} no dia {$data_formatada} às {$hora_inicio}";
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'info', $link);
+    // Adicionar notificação categorizada
+    return adicionarNotificacao($mensagem, 'info', $link, 'agendamentos');
 }
 
 /**
@@ -65,8 +65,8 @@ function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, 
             break;
     }
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, $tipo_notificacao, $link);
+    // Adicionar notificação categorizada
+    return adicionarNotificacao($mensagem, $tipo_notificacao, $link, 'agendamentos');
 }
 
 /**
@@ -90,6 +90,6 @@ function notificarLembreteAgendamento($agendamento_id, $data_formatada, $hora_in
         $mensagem = "LEMBRETE: Serviço para {$cliente_nome} agendado para {$data_formatada} às {$hora_inicio}";
     }
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'warning', $link);
+    // Adicionar notificação categorizada
+    return adicionarNotificacao($mensagem, 'warning', $link, 'agendamentos');
 }

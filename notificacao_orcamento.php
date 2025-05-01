@@ -74,8 +74,8 @@ function notificarOrcamento($orcamento_id, $tipo, $dados_adicionais = []) {
             break;
     }
     
-    // Adicionar notificação (sem som)
-    return adicionarNotificacao($mensagem, $tipo_notificacao, $link);
+    // Adicionar notificação categorizada (sem som)
+    return adicionarNotificacao($mensagem, $tipo_notificacao, $link, 'orcamentos');
 }
 
 /**

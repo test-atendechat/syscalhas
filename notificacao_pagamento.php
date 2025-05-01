@@ -49,6 +49,6 @@ function notificarEstorno($orcamento_id, $valor, $pagamento_id) {
     
     $mensagem = "ESTORNO: R$ {$valor_formatado} do orçamento #{$orcamento['numero']} - Cliente: {$orcamento['cliente_nome']}";
     
-    // Adicionar notificação sem som
-    return adicionarNotificacao($mensagem, 'danger', $link);
+    // Adicionar notificação categorizada sem som
+    return adicionarNotificacao($mensagem, 'danger', $link, 'pagamentos');
 }
