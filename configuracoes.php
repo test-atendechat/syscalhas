@@ -375,7 +375,10 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Confirmar transação
         $pdo->commit();
-        $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
+        // Mantemos as mensagens anteriores para exibir corretamente os alertas de indisponibilidade
+        if (empty($mensagem)) {
+            $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
+        }
     } catch (Exception $e) {
         // Reverter em caso de erro
         $pdo->rollback();
