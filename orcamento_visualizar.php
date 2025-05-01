@@ -22,6 +22,12 @@ if (isset($_GET['mensagem'])) {
     }
 }
 
+// Verificar se há mensagem de agendamento
+if (isset($_GET['mensagem_agendamento'])) {
+    $tipo_alerta = $_GET['tipo'] ?? 'danger';
+    $mensagem = alerta($_GET['mensagem_agendamento'], $tipo_alerta);
+}
+
 // Processar ações como marcar como finalizado ou reabrir orçamento
 if (isset($_GET['id']) && isset($_GET['acao'])) {
     // Verificar autenticação primeiro
@@ -597,13 +603,116 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
                 <?php else: ?>
-                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
+                    Agradecemos por aprovar nosso orçamento. Você pode agendar a execução do serviço diretamente através deste link.
                 <?php endif; ?>
             <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
             <?php endif; ?>
         </p>
     </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['codigo']) && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
+<!-- Seção de agendamento para clientes -->
+<div class="card mb-4" id="agendamento">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Serviço</h5>
+    </div>
+    <div class="card-body">
+        <form id="formAgendamento" method="post" action="agendar_servico.php">
+            <input type="hidden" name="orcamento_id" value="<?php echo $orcamento['id']; ?>">
+            <input type="hidden" name="codigo" value="<?php echo $_GET['codigo']; ?>">
+            <input type="hidden" name="tempo_previsto" value="<?php echo $orcamento['tempo_previsto']; ?>">
+            <input type="hidden" name="unidade_tempo" value="<?php echo $orcamento['unidade_tempo']; ?>">
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="data_servico" class="form-label required-field">Data de Execução</label>
+                    <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
+                    <small class="text-muted">Selecione a data desejada para a execução do serviço.</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="hora_inicio" class="form-label required-field">Horário de Início</label>
+                    <select class="form-select" id="hora_inicio" name="hora_inicio" required>
+                        <option value="">Selecione o horário</option>
+                        <?php
+                        // Gerar opções de horário das 7h às 17h
+                        for ($hora = 7; $hora <= 17; $hora++) {
+                            $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':00';
+                            echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted">Horário de trabalho: 07:00 às 17:00.</small>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="colaborador_id" class="form-label">Instalador Preferencial</label>
+                    <select class="form-select" id="colaborador_id" name="colaborador_id">
+                        <option value="">Selecione um instalador ou deixe em branco para qualquer disponível</option>
+                        <?php
+                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+                        $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        foreach($instaladores as $instalador) {
+                            $selected = ($instalador['id'] == $orcamento['colaborador_id']) ? 'selected' : '';
+                            echo "<option value=\"{$instalador['id']}\" {$selected}>{$instalador['nome']}</option>";
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted">Tempo previsto para este serviço: <?php echo $orcamento['tempo_previsto']; ?> <?php echo $orcamento['unidade_tempo']; ?>.</small>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Importante:</strong> O agendamento está sujeito à disponibilidade dos instaladores. 
+                Após confirmar, entraremos em contato para confirmar o agendamento.
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-calendar-check me-2"></i>Confirmar Agendamento
+            </button>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if (!$acesso_interno && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
+<script>
+    // Script para validar o horário com base no tempo previsto
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataServico = document.getElementById('data_servico');
+        const horaInicio = document.getElementById('hora_inicio');
+        const tempoPrevisto = <?php echo $orcamento['tempo_previsto']; ?>;
+        const unidadeTempo = '<?php echo $orcamento['unidade_tempo']; ?>';
+        
+        // Converter tempo previsto para minutos
+        let duracaoMinutos = tempoPrevisto;
+        if (unidadeTempo === 'horas') {
+            duracaoMinutos = tempoPrevisto * 60;
+        } else if (unidadeTempo === 'dias') {
+            duracaoMinutos = tempoPrevisto * 60 * 8; // Considerando 8 horas por dia
+        }
+        
+        // Ao selecionar hora, validar se há tempo suficiente para concluir o serviço
+        horaInicio.addEventListener('change', function() {
+            const horaInicioStr = this.value;
+            if (!horaInicioStr) return;
+            
+            const [hora, minuto] = horaInicioStr.split(':').map(Number);
+            const horaInicioMinutos = hora * 60 + minuto;
+            const fimExpedienteMinutos = 17 * 60; // 17:00
+            
+            // Verificar se o serviço pode ser concluído no mesmo dia
+            if (horaInicioMinutos + duracaoMinutos > fimExpedienteMinutos) {
+                alert('Atenção: O serviço não poderá ser concluído no mesmo dia com este horário de início.\nO serviço será continuado no próximo dia disponível.');
+            }
+        });
+    });
+</script>
 <?php endif; ?>
 
 <?php 
