@@ -94,8 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             // Calcula a data de validade (30 dias após a data atual)
             $data_validade = date('Y-m-d', strtotime('+30 days'));
             
-            $stmt_orcamento = $pdo->prepare("INSERT INTO orcamentos (cliente_id, data_criacao, data_validade, status) 
-                                         VALUES (:cliente_id, NOW(), :data_validade, 'em_analise')");
+            // Gerar um número de orçamento único (ano-mês-sequencial)
+            $ano_atual = date('Y');
+            $mes_atual = date('m');
+            
+            // Buscar o último orçamento deste mês para incrementar o número sequencial
+            $stmt_ultimo = $pdo->prepare("SELECT MAX(numero) as ultimo FROM orcamentos WHERE numero LIKE :padrao");
+            $padrao = $ano_atual . $mes_atual . '-%';
+            $stmt_ultimo->bindParam(':padrao', $padrao);
+            $stmt_ultimo->execute();
+            $ultimo = $stmt_ultimo->fetch(PDO::FETCH_ASSOC);
+            
+            // Se existir, incrementar o número sequencial
+            if ($ultimo && $ultimo['ultimo']) {
+                $partes = explode('-', $ultimo['ultimo']);
+                $sequencial = intval(end($partes)) + 1;
+            } else {
+                $sequencial = 1;
+            }
+            
+            // Formatar o número do orçamento (ANO-MES-SEQUENCIAL)
+            $numero_orcamento = $ano_atual . $mes_atual . '-' . str_pad($sequencial, 3, '0', STR_PAD_LEFT);
+            
+            $stmt_orcamento = $pdo->prepare("INSERT INTO orcamentos (numero, cliente_id, data_criacao, data_validade, status) 
+                                         VALUES (:numero, :cliente_id, NOW(), :data_validade, 'em_analise')");
+            $stmt_orcamento->bindParam(':numero', $numero_orcamento);
             $stmt_orcamento->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
             $stmt_orcamento->bindParam(':data_validade', $data_validade);
             $stmt_orcamento->execute();
