@@ -30,6 +30,8 @@ $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
 $colaborador_id = 0; // Colaborador responsável pelo orçamento
+$tempo_previsto = 60; // Tempo padrão de 60 minutos
+$unidade_tempo = 'minutos'; // Unidade de tempo padrão (minutos, horas, dias)
 
 // Buscar configurações do banco de dados
 $stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
@@ -91,6 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
             // Iniciar transação
             $db->beginTransaction();
 
+            // Obter tempo previsto
+            $tempo_previsto = intval($_POST['tempo_previsto'] ?? 60);
+            $unidade_tempo = $_POST['unidade_tempo'] ?? 'minutos';
+            
             // Array para os dados do orçamento
             $orcamento_data = [
                 'cliente_id' => $cliente_id,
@@ -98,7 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 'taxa_mao_obra' => $taxa_mao_obra,
                 'observacoes' => $observacoes,
                 'usuario_id' => $_SESSION['usuario_id'],
-                'forma_pagamento' => $forma_pagamento
+                'forma_pagamento' => $forma_pagamento,
+                'tempo_previsto' => $tempo_previsto,
+                'unidade_tempo' => $unidade_tempo,
+                'colaborador_id' => $colaborador_id
             ];
 
             if ($acao_form == 'cadastrar') {
