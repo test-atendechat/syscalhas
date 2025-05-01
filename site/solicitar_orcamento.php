@@ -88,22 +88,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             }
             
             // Criar o agendamento para visita técnica (orçamento)
-            $titulo = "Visita para Orçamento - " . $nome;
-            $tipo = 'orcamento';
             $status = 'agendado';
             
+            // Observações ajustadas para incluir o título como parte das observações
+            $observacoes_completas = "Visita para Orçamento - " . $nome . "\n\n" . $observacoes;
+            
             $stmt = $pdo->prepare("INSERT INTO agendamentos 
-                                  (titulo, cliente_id, instalador_id, data_agendamento, hora_inicio, hora_fim, tipo, status, observacoes) 
-                                  VALUES (:titulo, :cliente_id, :instalador_id, :data_agendamento, :hora_inicio, :hora_fim, :tipo, :status, :observacoes)");
-            $stmt->bindParam(':titulo', $titulo);
+                                  (cliente_id, instalador_id, data_agendamento, hora_inicio, hora_fim, status, observacoes) 
+                                  VALUES (:cliente_id, :instalador_id, :data_agendamento, :hora_inicio, :hora_fim, :status, :observacoes)");
             $stmt->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $orcamentista_id, PDO::PARAM_INT);
             $stmt->bindParam(':data_agendamento', $data_servico); // Usamos data_servico em vez de data_agendamento
             $stmt->bindParam(':hora_inicio', $hora_inicio);
             $stmt->bindParam(':hora_fim', $hora_fim);
-            $stmt->bindParam(':tipo', $tipo);
             $stmt->bindParam(':status', $status);
-            $stmt->bindParam(':observacoes', $observacoes);
+            $stmt->bindParam(':observacoes', $observacoes_completas);
             $stmt->execute();
             
             $mensagem = alerta('Solicitação de orçamento agendada com sucesso! Em breve entraremos em contato.', 'success');
