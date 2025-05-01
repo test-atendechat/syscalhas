@@ -675,8 +675,8 @@ if (!$acesso_interno) {
     </div>
 
     <!-- Validade do orçamento -->
-    <div class="alert alert-info mb-4">
-        <strong><i class="fas fa-calendar-alt me-2"></i>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></strong>
+    <div class="text-center mb-4">
+        <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
     </div>
 
     <h5 class="mb-3">Itens do Orçamento</h5>
