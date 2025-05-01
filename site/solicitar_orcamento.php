@@ -94,30 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             // Calcula a data de validade (30 dias após a data atual)
             $data_validade = date('Y-m-d', strtotime('+30 days'));
             
-            // Gerar um número de orçamento no formato padrão (ANO/000X)
-            $ano_atual = date('Y');
-            
-            // Buscar o último orçamento deste ano para incrementar o número sequencial
-            $stmt_ultimo = $pdo->prepare("SELECT MAX(numero) as ultimo FROM orcamentos WHERE numero LIKE :padrao");
-            $padrao = $ano_atual . '/%';
-            $stmt_ultimo->bindParam(':padrao', $padrao);
-            $stmt_ultimo->execute();
-            $ultimo = $stmt_ultimo->fetch(PDO::FETCH_ASSOC);
-            
-            // Se existir, extrair e incrementar o número sequencial
-            if ($ultimo && $ultimo['ultimo']) {
-                $partes = explode('/', $ultimo['ultimo']);
-                if (count($partes) > 1) {
-                    $sequencial = intval(end($partes)) + 1;
-                } else {
-                    $sequencial = 1;
-                }
-            } else {
-                $sequencial = 1;
-            }
-            
-            // Formatar o número do orçamento (ANO/000X)
-            $numero_orcamento = $ano_atual . '/' . str_pad($sequencial, 4, '0', STR_PAD_LEFT);
+            // Gerar um número de orçamento no formato padrão usando a função do sistema
+            $numero_orcamento = gerarNumeroOrcamento();
             
             // Gerar código de acesso único para acompanhamento externo do orçamento
             $codigo_acesso = md5(uniqid(rand(), true));
