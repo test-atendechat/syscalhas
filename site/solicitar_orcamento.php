@@ -150,9 +150,41 @@ $minuto_final = (int)substr($horario_fim, 3, 2);
 $inicio_minutos = $hora_inicial * 60 + $minuto_inicial;
 $fim_minutos = $hora_final * 60 + $minuto_final;
 
+// Buscar configurações de horário de almoço e tempo indisponível na entrada
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio_almoco', 'horario_fim_almoco', 'tempo_indisponivel_entrada')");
+$config_adicional = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Valores padrão caso não existam configurações
+$horario_inicio_almoco = isset($config_adicional['horario_inicio_almoco']) ? $config_adicional['horario_inicio_almoco'] : '11:00';
+$horario_fim_almoco = isset($config_adicional['horario_fim_almoco']) ? $config_adicional['horario_fim_almoco'] : '12:00';
+$tempo_indisponivel_entrada = isset($config_adicional['tempo_indisponivel_entrada']) ? (int)$config_adicional['tempo_indisponivel_entrada'] : 30;
+
+// Extrair hora e minutos do horário de almoço
+$hora_inicio_almoco = (int)substr($horario_inicio_almoco, 0, 2);
+$minuto_inicio_almoco = (int)substr($horario_inicio_almoco, 3, 2);
+$hora_fim_almoco = (int)substr($horario_fim_almoco, 0, 2);
+$minuto_fim_almoco = (int)substr($horario_fim_almoco, 3, 2);
+
+// Converter horários de almoço para minutos desde o início do dia
+$inicio_almoco_minutos = $hora_inicio_almoco * 60 + $minuto_inicio_almoco;
+$fim_almoco_minutos = $hora_fim_almoco * 60 + $minuto_fim_almoco;
+
+// Calcular fim do período indisponível após abertura
+$fim_indisponivel_entrada = $inicio_minutos + $tempo_indisponivel_entrada;
+
 // Gerar horários disponíveis baseados no intervalo configurado
 $horarios_possiveis = [];
 for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_minutos) {
+    // Verificar se está no período de almoço (pular)
+    if ($minuto >= $inicio_almoco_minutos && $minuto < $fim_almoco_minutos) {
+        continue;
+    }
+    
+    // Verificar se está no período indisponível de entrada (pular)
+    if ($minuto < $fim_indisponivel_entrada) {
+        continue;
+    }
+    
     $hora = floor($minuto / 60);
     $min = $minuto % 60;
     $horarios_possiveis[] = sprintf("%02d:%02d:00", $hora, $min);
