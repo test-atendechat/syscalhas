@@ -678,8 +678,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const horaFimDisplay = document.getElementById('hora_fim_display');
     const orcamentoSelect = document.getElementById('orcamento_id');
     
-    // Armazenar o tempo previsto em horas do orçamento
-    let tempoPrevisto = <?php echo isset($agendamento['tempo_previsto_horas']) ? $agendamento['tempo_previsto_horas'] : 2; ?>;
+    // Armazenar o tempo previsto em horas do orçamento (inicialmente vazio)
+    let tempoPrevisto = 0;
     
     // Função para formatar a exibição do tempo previsto (em horas ou dias)
     function formatarTempoPrevisto(horas) {
@@ -696,6 +696,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Obter hora selecionada
         const horaInicioSelecionada = horaInicio.value;
         if (!horaInicioSelecionada) return;
+        
+        // Verificar se um orçamento foi selecionado
+        if (!tempoPrevisto || tempoPrevisto <= 0) {
+            horaFim.value = '';
+            horaFimDisplay.value = 'Selecione um orçamento para calcular';
+            return;
+        }
         
         // Converter para objeto Date para facilitar cálculos
         const [horas, minutos] = horaInicioSelecionada.split(':');

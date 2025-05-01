@@ -421,11 +421,27 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,listWeek'
+            right: 'dayGridMonth,listWeek'
         },
         locale: 'pt-br',
         events: events,
         selectable: true,
+        dayMaxEvents: 3, // Limitar o número de eventos por dia
+        height: 'auto', // Ajustar altura automaticamente
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            meridiem: false
+        },
+        eventDisplay: 'block',
+        eventTextColor: '#fff',
+        buttonText: {
+            today: 'Hoje',
+            month: 'Mês',
+            week: 'Semana',
+            list: 'Lista'
+        },
+        displayEventTime: true,
         selectConstraint: {
             // Impedir seleção de dias indisponíveis
             start: hoje.toISOString().split('T')[0], // Hoje

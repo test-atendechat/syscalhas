@@ -611,7 +611,30 @@ if (!$acesso_interno) {
                         }
                     }
                     ?>
-                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço. <strong>O tempo previsto para conclusão após o início do serviço é de <?php echo $tempo_texto; ?>.</strong>
+                    <div class="alert alert-success mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Agradecemos por aprovar nosso orçamento!</h5>
+                        <p>Em breve entraremos em contato para agendar a execução do serviço.</p>
+                    </div>
+                    
+                    <div class="alert alert-info mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo previsto!</h5>
+                        <p class="mb-0">O tempo previsto para conclusão após o início do serviço é de <strong><?php echo $tempo_texto; ?></strong>.</p>
+                    </div>
+                    
+                    <div class="alert alert-primary mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-calendar-alt me-2"></i>Agende abaixo a data e hora de início da execução do serviço!</h5>
+                        <p class="mb-0">Selecione uma data e horário conveniente para você:</p>
+                        <div class="text-center mt-3">
+                            <a href="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>" class="btn btn-primary"><i class="fas fa-calendar-check me-2"></i>Selecionar Data e Horário</a>
+                        </div>
+                    </div>
+                    
+                    <?php if (isset($_GET['agendado']) && $_GET['agendado'] == 'true'): ?>
+                    <div class="alert alert-success mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço Agendado!</h5>
+                        <p class="mb-0">O Serviço foi agendado para início em <?php echo isset($_GET['data']) ? $_GET['data'] : 'data selecionada'; ?> às <?php echo isset($_GET['hora']) ? $_GET['hora'] : 'hora selecionada'; ?>. Caso tenha algum imprevisto, avise-nos com antecedência para alteração do agendamento!</p>
+                    </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
