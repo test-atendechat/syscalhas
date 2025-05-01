@@ -32,11 +32,25 @@ if ($colaborador_id > 0) {
         exit;
     }
     
-    // Buscar agenda do colaborador
-    $stmt = $db->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+    // Inicializar a conexão com o banco de dados
+    global $pdo;
+    
+    // Buscar agenda do colaborador - Disponibilidades cadastradas
+    $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
     $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Buscar agendamentos feitos por clientes para este colaborador
+    $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome 
+                                 FROM agendamentos a
+                                 JOIN orcamentos o ON a.orcamento_id = o.id
+                                 JOIN clientes c ON o.cliente_id = c.id
+                                 WHERE a.instalador_id = :colaborador_id
+                                 ORDER BY a.data_agendamento, a.hora_inicio");
+    $stmt_agendamentos->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+    $stmt_agendamentos->execute();
+    $agendamentos_clientes = $stmt_agendamentos->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Processar formulário - Adicionar/Editar disponibilidade
@@ -381,6 +395,65 @@ require_once('includes/header.php');
         <?php else: ?>
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>Nenhuma disponibilidade cadastrada para este colaborador.
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Agendamentos feitos pelos clientes -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Agendamentos de Clientes</h5>
+    </div>
+    <div class="card-body">
+        <?php if (!empty($agendamentos_clientes)): ?>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Horário</th>
+                            <th>Cliente</th>
+                            <th>Orçamento</th>
+                            <th>Status</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($agendamentos_clientes as $agendamento): ?>
+                            <tr>
+                                <td><?php echo dataParaBr($agendamento['data_agendamento']); ?></td>
+                                <td>
+                                    <?php 
+                                    echo date('H:i', strtotime($agendamento['hora_inicio'])) . ' até ' . 
+                                         date('H:i', strtotime($agendamento['hora_fim'])); 
+                                    ?>
+                                </td>
+                                <td><?php echo $agendamento['cliente_nome']; ?></td>
+                                <td>
+                                    <a href="orcamento_visualizar.php?id=<?php echo $agendamento['orcamento_id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <?php echo $agendamento['numero']; ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php 
+                                        if ($agendamento['status'] == 'agendado') echo 'primary';
+                                        elseif ($agendamento['status'] == 'concluido') echo 'success';
+                                        elseif ($agendamento['status'] == 'cancelado') echo 'danger';
+                                        else echo 'secondary';
+                                    ?>">
+                                        <?php echo ucfirst($agendamento['status']); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo $agendamento['observacoes']; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>Nenhum agendamento de cliente para este colaborador.
             </div>
         <?php endif; ?>
     </div>
