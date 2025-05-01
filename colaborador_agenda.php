@@ -160,7 +160,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
         $observacao = $stmt_verificar->fetchColumn();
         
         // Se o registro tiver texto indicando que é automático, não permitir exclusão
-        if (strpos($observacao, '(automático)') !== false) {
+        if ($observacao !== false && $observacao !== null && strpos($observacao, '(automático)') !== false) {
             $mensagem = alerta('Não é possível excluir registros automáticos de indisponibilidade. Eles são gerenciados pelas configurações do sistema.', 'warning');
         } else {
             // Excluir o registro normalmente se não for automático
@@ -362,7 +362,9 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                         $indisponibilidades_manuais = [];
                         
                         foreach ($disponibilidades as $disponibilidade) {
-                            if (strpos($disponibilidade['observacao'], '(automático)') !== false) {
+                            // Verificar se observacao existe e não é nula antes de usar strpos
+                            if (isset($disponibilidade['observacao']) && $disponibilidade['observacao'] !== null && 
+                                strpos($disponibilidade['observacao'], '(automático)') !== false) {
                                 $indisponibilidades_automaticas[] = $disponibilidade;
                             } else {
                                 $indisponibilidades_manuais[] = $disponibilidade;
@@ -374,10 +376,12 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                         $indisponibilidade_almoco = [];
                         
                         foreach ($indisponibilidades_automaticas as $disp) {
-                            if (strpos($disp['observacao'], 'Indisponibilidade de entrada') !== false) {
-                                $indisponibilidade_entrada = $disp;
-                            } elseif (strpos($disp['observacao'], 'Horário de almoço') !== false) {
-                                $indisponibilidade_almoco = $disp;
+                            if (isset($disp['observacao']) && $disp['observacao'] !== null) {
+                                if (strpos($disp['observacao'], 'Indisponibilidade de entrada') !== false) {
+                                    $indisponibilidade_entrada = $disp;
+                                } elseif (strpos($disp['observacao'], 'Horário de almoço') !== false) {
+                                    $indisponibilidade_almoco = $disp;
+                                }
                             }
                         }
                         
