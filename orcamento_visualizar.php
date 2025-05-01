@@ -7,7 +7,34 @@ require_once('notificacao_orcamento.php');
 
 // Garantir que todas as funções personalizadas estejam disponíveis
 if (!function_exists('buscarAgendamentoAtivo')) {
-    require_once('includes/functions.php');
+    /**
+     * Busca o agendamento ativo para um orçamento
+     * 
+     * @param int $orcamento_id ID do orçamento
+     * @return array|null Dados do agendamento ou null se não encontrado
+     */
+    function buscarAgendamentoAtivo($orcamento_id) {
+        global $pdo;
+        
+        // Consultar dados do agendamento com informações do colaborador
+        $stmt = $pdo->prepare("SELECT a.*, 
+                              c.nome as colaborador_nome, 
+                              c.telefone as colaborador_telefone, 
+                              c.tipo as tipo_colaborador
+                              FROM agendamentos a 
+                              JOIN colaboradores c ON a.instalador_id = c.id
+                              WHERE a.orcamento_id = :orcamento_id 
+                              AND (a.status = 'agendado' OR a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada')
+                              ORDER BY a.data_agendamento DESC LIMIT 1");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        return null;
+    }
 }
 
 // Garantir acesso às variáveis globais de conexão
@@ -217,7 +244,7 @@ if (isset($_GET['id'])) {
         
         // Buscar dados de agendamento se o status de execução for 'agendado'
         $agendamento = null;
-        if ($orcamento['status_execucao'] == 'agendado') {
+        if ($orcamento['status_execucao'] == 'agendado' || $orcamento['status_execucao'] == 'orcamento_agendado') {
             // Usar a nova função para buscar agendamento ativo
             $agendamento = buscarAgendamentoAtivo($id);
         }
@@ -259,7 +286,7 @@ if (isset($_GET['id'])) {
         
         // Buscar dados de agendamento se o status de execução for 'agendado'
         $agendamento = null;
-        if ($orcamento['status_execucao'] == 'agendado') {
+        if ($orcamento['status_execucao'] == 'agendado' || $orcamento['status_execucao'] == 'orcamento_agendado') {
             // Usar a nova função para buscar agendamento ativo
             $agendamento = buscarAgendamentoAtivo($id);
         }
