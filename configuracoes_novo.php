@@ -358,30 +358,6 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Se houve alteração nos horários e a configuração de indisponibilidade automática está ativada
         if ($horario_alterado && isset($_POST['aplicar_indisponibilidade_automatica']) && $_POST['aplicar_indisponibilidade_automatica'] == 'sim') {
             // Atualizar as indisponibilidades globais para todos os colaboradores
-            try {
-                $resultado = atualizarIndisponibilidadesColaboradores($pdo, $_POST);
-                if ($resultado) {
-                    $mensagem .= alerta('Horários atualizados e indisponibilidades recalculadas com sucesso para todos os colaboradores!', 'success');
-                } else {
-                    $mensagem .= alerta('Horários atualizados, mas houve um problema ao atualizar as indisponibilidades automáticas.', 'warning');
-                }
-            } catch (Exception $ex) {
-                $mensagem .= alerta('Aviso: Houve um problema ao atualizar as indisponibilidades automáticas: ' . $ex->getMessage(), 'warning');
-            }
-        } elseif ($horario_alterado) {
-            // Se os horários foram alterados mas a indisponibilidade automática está desativada
-            $mensagem .= alerta('Os horários foram atualizados. Para atualizar as indisponibilidades dos colaboradores, ative a opção "Aplicar indisponibilidade automática" ou use o botão "Atualizar Indisponibilidades Agora".', 'info');
-        }
-        
-        // Confirmar transação
-        $pdo->commit();
-        $mensagem = alerta('Configurações atualizadas com sucesso!', 'success');
-    } catch (Exception $e) {
-        // Reverter em caso de erro
-        $pdo->rollback();
-        $mensagem = alerta('Erro ao atualizar configurações: ' . $e->getMessage(), 'danger');
-    }
-}
 
 ?>
 
