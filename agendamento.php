@@ -139,8 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                                  OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
                                  OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-            $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-            $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+            $data_inicio_str = $data_hora_inicio->format('Y-m-d H:i:s');
+            $data_fim_str = $data_hora_fim->format('Y-m-d H:i:s');
+            $stmt->bindParam(':data_inicio', $data_inicio_str);
+            $stmt->bindParam(':data_fim', $data_fim_str);
             $stmt->execute();
             
             if ($stmt->fetchColumn() > 0) {
@@ -161,8 +163,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                                 :data_agendamento, :hora_inicio, :hora_fim)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-            $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-            $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+            
+            // Armazenar em variáveis antes de passar por referência
+            $data_inicio_valor = $data_hora_inicio->format('Y-m-d H:i:s');
+            $data_fim_valor = $data_hora_fim->format('Y-m-d H:i:s');
+            
+            $stmt->bindParam(':data_inicio', $data_inicio_valor);
+            $stmt->bindParam(':data_fim', $data_fim_valor);
             $stmt->bindParam(':observacoes', $observacoes);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
             $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);

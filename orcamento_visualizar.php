@@ -806,9 +806,9 @@ if (!$acesso_interno) {
             
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <label for="colaborador_id" class="form-label">Instalador Preferencial</label>
-                    <select class="form-select" id="colaborador_id" name="colaborador_id">
-                        <option value="">Selecione um instalador ou deixe em branco para qualquer disponível</option>
+                    <label for="colaborador_id" class="form-label required-field">Instalador</label>
+                    <select class="form-select" id="colaborador_id" name="colaborador_id" required>
+                        <option value="">Selecione um instalador disponível</option>
                         <?php
                         // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
                         $selected_id = $orcamento['colaborador_id'] ?? 0;
