@@ -466,7 +466,7 @@ require_once('includes/header.php');
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="data_servico" class="form-label required-field">Data de Execução</label>
-                            <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d'); ?>">
+                            <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo $agendamento_atual ? date('Y-m-d', strtotime($agendamento_atual['data_inicio'])) : ''; ?>">
                         </div>
                         <div class="col-md-6">
                             <label for="hora_inicio" class="form-label required-field">Horário de Início</label>
@@ -491,10 +491,14 @@ require_once('includes/header.php');
                                 // Garantir que não seja menor que 7h (início do expediente)
                                 $hora_maxima = max(7, $hora_maxima);
                                 
+                                // Valor selecionado atual (se estiver editando)
+                                $selected_hour = $agendamento_atual ? date('H:i', strtotime($agendamento_atual['data_inicio'])) : '';
+                                
                                 // Gerar opções de horário das 7h até a hora máxima calculada
                                 for ($hora = 7; $hora <= $hora_maxima; $hora++) {
                                     $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':00';
-                                    echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                                    $selected = ($selected_hour && $selected_hour == $hora_str) ? 'selected' : '';
+                                    echo "<option value=\"{$hora_str}\" {$selected}>{$hora_str}</option>";
                                 }
                                 ?>
                             </select>
@@ -517,7 +521,7 @@ require_once('includes/header.php');
                     
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>
-                        <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="2"><?php echo $agendamento_atual ? $agendamento_atual['observacoes'] : ''; ?></textarea>
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
