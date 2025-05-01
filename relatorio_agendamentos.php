@@ -23,17 +23,18 @@ $filtro_data_inicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : date(
 $filtro_data_fim = isset($_GET['data_fim']) ? $_GET['data_fim'] : date('Y-m-d', strtotime('+7 days'));
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : '';
 
-// Se o relatório está sendo chamado com id específico, mostrar apenas esse instalador
+// Se o relatório está sendo chamado com id específico, mostrar apenas esse colaborador
 $titulo_relatorio = "Relatório de Agendamentos por Período";
 if ($colaborador_id > 0) {
-    // Buscar nome do colaborador
-    $stmt = $db->prepare("SELECT nome FROM colaboradores WHERE id = :id");
+    // Buscar nome e tipo do colaborador
+    $stmt = $db->prepare("SELECT nome, tipo FROM colaboradores WHERE id = :id");
     $stmt->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($colaborador) {
-        $titulo_relatorio = "Agenda do Instalador: " . $colaborador['nome'];
+        $tipo_display = ($colaborador['tipo'] == 'orcamentista') ? 'Orçamentista' : 'Instalador';
+        $titulo_relatorio = "Agenda do {$tipo_display}: " . $colaborador['nome'];
     }
 }
 
@@ -67,7 +68,7 @@ if (!empty($sql_filtros)) {
 // Consulta de agendamentos
 $sql = "SELECT a.*, o.numero as codigo_orcamento, 
         (SELECT nome FROM clientes WHERE id = o.cliente_id) as cliente_nome, 
-        c.nome as colaborador_nome 
+        c.nome as colaborador_nome, c.tipo as colaborador_tipo
         FROM agendamentos a 
         LEFT JOIN orcamentos o ON a.orcamento_id = o.id 
         LEFT JOIN colaboradores c ON a.instalador_id = c.id 
@@ -85,8 +86,8 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt_status = $db->query("SELECT DISTINCT status FROM agendamentos ORDER BY status");
 $status_disponiveis = $stmt_status->fetchAll(PDO::FETCH_COLUMN);
 
-// Buscar colaboradores
-$stmt_colaboradores = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+// Buscar colaboradores (tanto instaladores quanto orçamentistas)
+$stmt_colaboradores = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') ORDER BY tipo, nome");
 $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -111,14 +112,31 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
         <div class="card-body">
             <form action="" method="GET" class="row g-3">
                 <div class="col-md-4">
-                    <label for="colaborador_id" class="form-label">Instalador</label>
+                    <label for="colaborador_id" class="form-label">Profissional</label>
                     <select name="colaborador_id" id="colaborador_id" class="form-select">
-                        <option value="0">Todos os instaladores</option>
-                        <?php foreach ($colaboradores as $c): ?>
-                            <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
-                                <?php echo $c['nome']; ?>
-                            </option>
-                        <?php endforeach; ?>
+                        <option value="0">Todos os profissionais</option>
+                        
+                        <!-- Grupo de Instaladores -->
+                        <optgroup label="Instaladores">
+                            <?php foreach ($colaboradores as $c): ?>
+                                <?php if ($c['tipo'] == 'instalador'): ?>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
+                                        <?php echo $c['nome']; ?>
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </optgroup>
+                        
+                        <!-- Grupo de Orçamentistas -->
+                        <optgroup label="Orçamentistas">
+                            <?php foreach ($colaboradores as $c): ?>
+                                <?php if ($c['tipo'] == 'orcamentista'): ?>
+                                    <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
+                                        <?php echo $c['nome']; ?>
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -217,7 +235,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>Data/Hora Início</th>
                                 <th>Data/Hora Fim</th>
-                                <th>Instalador</th>
+                                <th>Profissional</th>
                                 <th>Cliente</th>
                                 <th>Orçamento</th>
                                 <th>Status</th>
@@ -236,7 +254,14 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <td><?php echo $data_inicio->format('d/m/Y H:i'); ?></td>
                                 <td><?php echo $data_fim->format('d/m/Y H:i'); ?></td>
-                                <td><?php echo $agendamento['colaborador_nome']; ?></td>
+                                <td>
+                                    <?php echo $agendamento['colaborador_nome']; ?>
+                                    <?php if (!empty($agendamento['colaborador_tipo'])): ?>
+                                        <span class="badge bg-<?php echo $agendamento['colaborador_tipo'] == 'instalador' ? 'success' : 'info'; ?> ms-1">
+                                            <?php echo $agendamento['colaborador_tipo'] == 'instalador' ? 'Instalador' : 'Orçamentista'; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo $agendamento['cliente_nome']; ?></td>
                                 <td>
                                     <?php if (!empty($agendamento['codigo_orcamento'])): ?>
@@ -253,11 +278,33 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($status != 'cancelado' && $status != 'concluido'): ?>
-                                        <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                    <div class="btn-group">
+                                        <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>" class="btn btn-sm btn-outline-primary" title="Visualizar">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                    <?php endif; ?>
+                                        
+                                        <?php if ($status != 'cancelado' && $status != 'concluido'): ?>
+                                            <?php if ($agendamento['colaborador_tipo'] == 'instalador'): ?>
+                                                <!-- Botões específicos para instalador -->
+                                                <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>&acao=iniciar" class="btn btn-sm btn-outline-info" title="Iniciar Serviço">
+                                                    <i class="fas fa-play"></i>
+                                                </a>
+                                                <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>&acao=finalizar" class="btn btn-sm btn-outline-success" title="Finalizar Serviço">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                            <?php else: ?>
+                                                <!-- Botões específicos para orçamentista -->
+                                                <a href="orcamento_form.php?agendamento_id=<?php echo $agendamento['id']; ?>" class="btn btn-sm btn-outline-success" title="Gerar Orçamento">
+                                                    <i class="fas fa-file-invoice-dollar"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <!-- Botão de cancelamento para ambos os tipos -->
+                                            <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>&acao=cancelar" class="btn btn-sm btn-outline-danger" title="Cancelar" onclick="return confirm('Tem certeza que deseja cancelar este agendamento?')">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
