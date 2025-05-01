@@ -52,13 +52,23 @@ if (empty($data) || empty($hora)) {
 }
 
 // Obter configurações de horário de funcionamento
-$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'horario_entrada_disponivel', 'horario_almoco_inicio', 'horario_almoco_fim', 'tempo_previsto_visita')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
 $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+$horario_entrada_disponivel = isset($config['horario_entrada_disponivel']) ? $config['horario_entrada_disponivel'] : '07:30';
+$horario_almoco_inicio = isset($config['horario_almoco_inicio']) ? $config['horario_almoco_inicio'] : '12:00';
+$horario_almoco_fim = isset($config['horario_almoco_fim']) ? $config['horario_almoco_fim'] : '13:00';
+$tempo_previsto_visita = isset($config['tempo_previsto_visita']) ? $config['tempo_previsto_visita'] : '60';
 $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
+
+// Usar tempo previsto configurado para visitas se não for especificado
+if (isset($_GET['tipo']) && $_GET['tipo'] === 'orcamentista' && empty($_GET['tempo_previsto'])) {
+    $tempo_previsto = (int)$tempo_previsto_visita;
+    $unidade_tempo = 'minutos';
+}
 
 try {
     // Calcular data e hora de início
@@ -94,6 +104,27 @@ try {
     if ($data_hora_inicio < $hora_inicio_expediente || $data_hora_fim > $hora_fim_expediente) {
         $resposta['mensagem'] = 'O horário selecionado está fora do horário de funcionamento (' . 
                                 $horario_inicio . ' - ' . $horario_fim . ').';
+        echo json_encode($resposta);
+        exit;
+    }
+    
+    // Verificar período de preparação na entrada
+    $hora_entrada_disponivel = new DateTime($data . ' ' . $horario_entrada_disponivel);
+    if ($data_hora_inicio < $hora_entrada_disponivel && $data_hora_inicio >= $hora_inicio_expediente) {
+        $resposta['mensagem'] = 'O horário selecionado está no período de preparação inicial (' . 
+                                $horario_inicio . ' - ' . $horario_entrada_disponivel . '). Por favor, escolha um horário a partir de ' . $horario_entrada_disponivel . '.';
+        echo json_encode($resposta);
+        exit;
+    }
+    
+    // Verificar período de almoço
+    $hora_almoco_inicio = new DateTime($data . ' ' . $horario_almoco_inicio);
+    $hora_almoco_fim = new DateTime($data . ' ' . $horario_almoco_fim);
+    
+    // Se o período solicitado estiver dentro ou sobrepor o horário de almoço
+    if (($data_hora_inicio < $hora_almoco_fim && $data_hora_fim > $hora_almoco_inicio)) {
+        $resposta['mensagem'] = 'O horário selecionado interfere com o período de almoço (' . 
+                                $horario_almoco_inicio . ' - ' . $horario_almoco_fim . '). Por favor, escolha um horário antes ou depois deste período.';
         echo json_encode($resposta);
         exit;
     }

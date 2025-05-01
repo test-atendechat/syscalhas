@@ -7,12 +7,16 @@ require_once('../includes/functions.php');
 global $db, $pdo;
 
 // Obter configurações de horário de funcionamento do banco de dados
-$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'horario_entrada_disponivel', 'horario_almoco_inicio', 'horario_almoco_fim', 'tempo_previsto_visita')");
 $config = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '08:00';
 $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '18:00';
+$horario_entrada_disponivel = isset($config['horario_entrada_disponivel']) ? $config['horario_entrada_disponivel'] : '08:30';
+$horario_almoco_inicio = isset($config['horario_almoco_inicio']) ? $config['horario_almoco_inicio'] : '12:00';
+$horario_almoco_fim = isset($config['horario_almoco_fim']) ? $config['horario_almoco_fim'] : '13:00';
+$tempo_previsto_visita = isset($config['tempo_previsto_visita']) ? (int)$config['tempo_previsto_visita'] : 60;
 $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
 
 // Inicializar variáveis

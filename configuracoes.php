@@ -30,6 +30,10 @@ $configuracoes = [
     // Horário de funcionamento
     'horario_inicio' => '07:00', // Horário de início do expediente
     'horario_fim' => '17:00', // Horário de término do expediente
+    'horario_entrada_disponivel' => '07:30', // Horário disponível após entrada (período de preparação)
+    'horario_almoco_inicio' => '12:00', // Início do horário de almoço (indisponível)
+    'horario_almoco_fim' => '13:00', // Fim do horário de almoço (indisponível)
+    'tempo_previsto_visita' => '60', // Tempo previsto para visitas técnicas em minutos
     'dias_funcionamento' => '1,2,3,4,5', // Dias da semana (1=Segunda, 7=Domingo)
     // Cores padrão do sistema
     'cor_principal' => '#0d6efd', // Azul bootstrap
@@ -273,6 +277,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <label for="horario_fim" class="form-label">Horário de Término do Expediente</label>
                         <input type="time" class="form-control" id="horario_fim" name="horario_fim" value="<?php echo $configuracoes['horario_fim']; ?>">
                         <div class="form-text">Horário em que a empresa encerra os trabalhos diariamente.</div>
+                    </div>
+                </div>
+                
+                <!-- Horários indisponíveis -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_entrada_disponivel" class="form-label">Horário Disponível Após Entrada</label>
+                        <input type="time" class="form-control" id="horario_entrada_disponivel" name="horario_entrada_disponivel" value="<?php echo $configuracoes['horario_entrada_disponivel']; ?>">
+                        <div class="form-text">Horário em que a equipe está pronta para iniciar os atendimentos (período de preparação).</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="tempo_previsto_visita" class="form-label">Tempo Previsto para Visitas Técnicas</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="tempo_previsto_visita" name="tempo_previsto_visita" min="15" step="15" value="<?php echo $configuracoes['tempo_previsto_visita']; ?>">
+                            <span class="input-group-text">minutos</span>
+                        </div>
+                        <div class="form-text">Tempo padrão para orçamentistas realizarem visitas técnicas.</div>
+                    </div>
+                </div>
+                
+                <!-- Horário de almoço -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_almoco_inicio" class="form-label">Início do Horário de Almoço</label>
+                        <input type="time" class="form-control" id="horario_almoco_inicio" name="horario_almoco_inicio" value="<?php echo $configuracoes['horario_almoco_inicio']; ?>">
+                        <div class="form-text">Início do período de almoço quando não são realizados agendamentos.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_almoco_fim" class="form-label">Fim do Horário de Almoço</label>
+                        <input type="time" class="form-control" id="horario_almoco_fim" name="horario_almoco_fim" value="<?php echo $configuracoes['horario_almoco_fim']; ?>">
+                        <div class="form-text">Término do período de almoço quando agendamentos voltam a ser disponíveis.</div>
                     </div>
                 </div>
                 <div class="row">
