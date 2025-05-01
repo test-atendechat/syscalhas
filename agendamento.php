@@ -626,6 +626,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const tempoPrevisto = <?php echo $orcamento ? $orcamento['tempo_previsto'] : 60; ?>;
     const unidadeTempo = '<?php echo $orcamento ? $orcamento['unidade_tempo'] : 'minutos'; ?>';
+    // Verificar se estamos em um reagendamento de visita técnica ou agendamento normal
+    const isVisitaTecnica = <?php echo isset($_GET['id']) && intval($_GET['id']) > 0 ? 'true' : 'false'; ?>;
     
     // Função para carregar colaboradores disponíveis
     function carregarColaboradoresDisponiveis() {
@@ -650,8 +652,13 @@ document.addEventListener('DOMContentLoaded', function() {
         colaboradorSelect.appendChild(loadingOption);
         colaboradorSelect.selectedIndex = 1;
         
+        // Escolher a URL baseado no tipo de agendamento (visita técnica com orçamentistas ou instalação com instaladores)
+        const ajaxUrl = isVisitaTecnica ? 
+            `ajax/verificar_orcamentistas_disponiveis.php?data=${dataValue}&hora=${horaValue}` : 
+            `ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`;
+        
         // Buscar colaboradores disponíveis via AJAX
-        fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+        fetch(ajaxUrl)
             .then(response => response.json())
             .then(data => {
                 // Remover opção de carregamento
@@ -683,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         // Se não há colaboradores disponíveis
                         const naoDisponivelOption = document.createElement('option');
-                        naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
+                        naoDisponivelOption.text = isVisitaTecnica ? 'Nenhum orçamentista disponível neste horário' : 'Nenhum colaborador disponível neste horário';
                         naoDisponivelOption.disabled = true;
                         colaboradorSelect.appendChild(naoDisponivelOption);
                     }
