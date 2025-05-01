@@ -60,7 +60,7 @@ $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $confi
 
 try {
     // Calcular data e hora de início
-    $data_inicio = $data . ' ' . $hora . ':00';
+    $data_inicio = $data . ' ' . $hora;
     $data_hora_inicio = new DateTime($data_inicio);
     
     // Calcular data e hora de término (1 hora após início para visitas técnicas)

@@ -380,7 +380,15 @@ for ($hora = 8; $hora < 18; $hora++) {
             mensagemOrcamentistas.style.display = 'block';
             
             // Fazer requisição AJAX
-            fetch(`../ajax/verificar_orcamentistas_disponiveis.php?data=${dataAgendamentoInput.value}&hora=${selecionarHoraSelect.value}`)
+            // Garantir que a hora está no formato correto (HH:MM:SS)
+            let horaAjustada = selecionarHoraSelect.value;
+            if (!horaAjustada.includes(':')) {
+                horaAjustada += ':00:00';
+            } else if (horaAjustada.split(':').length === 2) {
+                horaAjustada += ':00';
+            }
+            
+            fetch(`../ajax/verificar_orcamentistas_disponiveis.php?data=${dataAgendamentoInput.value}&hora=${horaAjustada}`)
                 .then(response => response.json())
                 .then(data => {
                     // Remover opção de carregamento
