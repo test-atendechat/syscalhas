@@ -622,10 +622,7 @@ if (!$acesso_interno) {
             </div>
         </div>
         
-        <!-- Validade do orçamento (movida para esta seção) -->
-        <div class="alert alert-info mb-4">
-            <strong><i class="fas fa-calendar-alt me-2"></i>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></strong>
-        </div>
+
 
         <div class="row mb-4">
             <div class="col-md-6">
@@ -675,6 +672,11 @@ if (!$acesso_interno) {
                 <?php endif; ?>
             </div>
         </div>
+    </div>
+
+    <!-- Validade do orçamento -->
+    <div class="alert alert-info mb-4">
+        <strong><i class="fas fa-calendar-alt me-2"></i>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></strong>
     </div>
 
     <h5 class="mb-3">Itens do Orçamento</h5>
@@ -824,8 +826,6 @@ if (!$acesso_interno) {
     <div class="orcamento-footer mt-5">
         <div class="row">
             <div class="col-md-12 text-center">
-                <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
-                
                 <?php if ($acesso_interno && $orcamento['status'] == 'pendente'): ?>
                 <div class="mt-4">
                     <form method="post" class="d-inline">
