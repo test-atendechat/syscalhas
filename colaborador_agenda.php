@@ -47,7 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
     
     // Verificar se é indisponibilidade (botão "Registrar Indisponibilidade" foi pressionado)
     $botao = isset($_POST['btnSalvarIndisponibilidade']) ? 'indisponibilidade' : 'disponibilidade';
-    $disponivel = ($botao == 'disponibilidade' && isset($_POST['disponivel'])) ? 1 : 0;
+    $disponivel = ($botao == 'indisponibilidade') ? 0 : (isset($_POST['disponivel']) ? 1 : 0);
+    
+    // Se for indisponibilidade, usar o motivo selecionado como observação
+    $tipo_indisponibilidade = $_POST['tipo_indisponibilidade'] ?? '';
+    if ($botao == 'indisponibilidade' && !empty($tipo_indisponibilidade)) {
+        $_POST['observacao'] = 'Motivo: ' . $tipo_indisponibilidade . ' - ' . ($_POST['observacao'] ?? '');
+    }
     
     $observacao = $_POST['observacao'] ?? '';
     $recorrente = isset($_POST['recorrente']) ? 1 : 0;

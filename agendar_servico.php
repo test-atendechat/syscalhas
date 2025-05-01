@@ -83,7 +83,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Verificar se o colaborador está disponível no horário (se especificado)
             if ($colaborador_id > 0) {
                 $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
-                                     WHERE colaborador_id = :colaborador_id 
+                                     WHERE instalador_id = :colaborador_id 
                                      AND status = 'agendado' 
                                      AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                                      OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
@@ -105,7 +105,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 $stmt = $db->prepare("SELECT id FROM colaboradores 
                                      WHERE tipo = 'instalador' 
                                      AND id NOT IN (
-                                         SELECT DISTINCT colaborador_id FROM agendamentos 
+                                         SELECT DISTINCT instalador_id FROM agendamentos 
                                          WHERE status = 'agendado' 
                                          AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                                          OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
@@ -130,13 +130,13 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             
             // Inserir agendamento
             $stmt = $db->prepare("INSERT INTO agendamentos (
-                                orcamento_id, colaborador_id, data_inicio, data_fim, 
-                                status, codigo_confirmacao, cliente_confirmou, data_cadastro)
+                                orcamento_id, instalador_id, data_inicio, data_fim, 
+                                status, codigo_confirmacao, cliente_agendou, criado_em)
                                 VALUES (
-                                :orcamento_id, :colaborador_id, :data_inicio, :data_fim, 
-                                'agendado', :codigo_confirmacao, FALSE, NOW())");
+                                :orcamento_id, :instalador_id, :data_inicio, :data_fim, 
+                                'agendado', :codigo_confirmacao, TRUE, NOW())");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
-            $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+            $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
             
             $data_inicio_final = $data_hora_inicio->format('Y-m-d H:i:s');
             $data_fim_final = $data_hora_fim->format('Y-m-d H:i:s');
