@@ -22,81 +22,36 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Verificar o tipo de agendamento para determinar qual verificador AJAX usar
-$is_visita_tecnica = isset($_GET['id']) && intval($_GET['id']) > 0;
-
-// Se está acessando um orçamento aprovado, verificar status para determinar tipo
-$is_instalacao = false;
-if (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
-    // Verificar o status do orçamento
-    $orcamento_id = intval($_GET['orcamento_id']);
-    $stmt = $pdo->prepare("SELECT status FROM orcamentos WHERE id = :id");
-    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $status_orcamento = $stmt->fetchColumn();
-    
-    // Se o orçamento está aprovado, é uma instalação
-    if ($status_orcamento == 'aprovado') {
-        $is_instalacao = true;
-    }
-}
-
-// Não carregaremos os colaboradores inicialmente
-// Eles serão carregados via AJAX quando o usuário selecionar data e horário
-$colaboradores = [];
+// Buscar colaboradores instaladores
+$stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+$colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
 if ($agendamento_id > 0) {
     // Buscar o agendamento pelo seu ID
-    $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome, a.orcamento_id,
-                          cl.nome as cliente_nome, cl.telefone as cliente_telefone,
-                          cl.email as cliente_email, cl.endereco as cliente_endereco,
-                          cl.cidade as cliente_cidade
-                          FROM agendamentos a 
-                          LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                          LEFT JOIN clientes cl ON a.cliente_id = cl.id
-                          WHERE a.id = :agendamento_id");
+    $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome, a.orcamento_id
+                        FROM agendamentos a 
+                        LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                        WHERE a.id = :agendamento_id");
     $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
     $stmt->execute();
     $agendamento_atual = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($agendamento_atual) {
-        // Verificar se temos um orçamento associado ou se é um agendamento direto do site
-        if (!empty($agendamento_atual['orcamento_id'])) {
-            // Definir o orcamento_id a partir do agendamento
-            $orcamento_id = $agendamento_atual['orcamento_id'];
-            // Buscar o orçamento
-            $orcamento = buscarOrcamento($orcamento_id);
-            
-            // Buscar todos os agendamentos relacionados a este orçamento
-            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
-                                FROM agendamentos a 
-                                LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                                WHERE a.orcamento_id = :orcamento_id 
-                                ORDER BY a.data_inicio DESC");
-            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
-            $stmt->execute();
-            $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            // É um agendamento direto do site (sem orçamento associado)
-            // Criar um array apenas com este agendamento
-            $agendamentos = array($agendamento_atual);
-            
-            // Criar uma estrutura de orçamento simulada com dados básicos do cliente para exibição
-            if (!empty($agendamento_atual['cliente_id'])) {
-                $orcamento = array(
-                    'id' => 0,
-                    'cliente_nome' => $agendamento_atual['cliente_nome'],
-                    'cliente_telefone' => $agendamento_atual['cliente_telefone'],
-                    'cliente_email' => $agendamento_atual['cliente_email'],
-                    'cliente_endereco' => $agendamento_atual['cliente_endereco'],
-                    'cliente_cidade' => $agendamento_atual['cliente_cidade'],
-                    'data_solicitacao' => $agendamento_atual['data_agendamento'],
-                    'tipo' => 'Visita Técnica (Site)',
-                    'status' => 'Agendado'
-                );
-            }
-        }
+        // Definir o orcamento_id a partir do agendamento
+        $orcamento_id = $agendamento_atual['orcamento_id'];
+        // Buscar o orçamento
+        $orcamento = buscarOrcamento($orcamento_id);
+        
+        // Buscar todos os agendamentos relacionados a este orçamento
+        $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
+                            FROM agendamentos a 
+                            LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                            WHERE a.orcamento_id = :orcamento_id 
+                            ORDER BY a.data_inicio DESC");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 // Se temos um orçamento específico (direto ou via agendamento), vamos carregar seus dados
@@ -269,58 +224,42 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
     
     try {
         // Verificar se o agendamento existe
-        $stmt = $pdo->prepare("SELECT orcamento_id, cliente_id FROM agendamentos WHERE id = :id");
+        $stmt = $pdo->prepare("SELECT orcamento_id FROM agendamentos WHERE id = :id");
         $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
         $stmt->execute();
         
         if ($resultado = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $orcamento_id = $resultado['orcamento_id'];
-            $cliente_id = $resultado['cliente_id'];
             
             // Cancelar agendamento
-            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado', observacoes = CONCAT(COALESCE(observacoes, ''), ' [Cancelado pelo usuário]') WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
             $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
-            // Se for um agendamento ligado a um orçamento, atualizar o status do orçamento
-            if (!empty($orcamento_id)) {
-                // Verificar se há outros agendamentos ativos para este orçamento
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
-                                   WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
-                $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            // Verificar se há outros agendamentos ativos para este orçamento
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
+                               WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // Se não houver outros agendamentos, volta para pendente
+            if ($stmt->fetchColumn() == 0) {
+                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
+                $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
                 $stmt->execute();
-                
-                // Se não houver outros agendamentos, volta para pendente
-                if ($stmt->fetchColumn() == 0) {
-                    $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
-                    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
-                    $stmt->execute();
-                }
-                
-                $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
-                
-                // Recarregar agendamentos do orçamento
-                $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
-                                 FROM agendamentos a 
-                                 LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                                 WHERE a.orcamento_id = :orcamento_id 
-                                 ORDER BY a.data_inicio DESC");
-                $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
-                $stmt->execute();
-                $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } else {
-                // É um agendamento direto do site (sem orçamento vinculado)
-                $mensagem = alerta('Visita técnica cancelada com sucesso!', 'success');
-                
-                // Para agendamentos sem orçamento, apenas incluir o próprio agendamento na lista
-                $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
-                                 FROM agendamentos a 
-                                 LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                                 WHERE a.id = :id");
-                $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
-                $stmt->execute();
-                $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
+            
+            $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
+            
+            // Recarregar agendamentos
+            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
+                             FROM agendamentos a 
+                             LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                             WHERE a.orcamento_id = :orcamento_id 
+                             ORDER BY a.data_inicio DESC");
+            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $mensagem = alerta('Agendamento não encontrado.', 'danger');
         }
@@ -366,74 +305,40 @@ require_once('includes/header.php');
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <?php if (!empty($agendamento_atual) && empty($agendamento_atual['orcamento_id'])): ?>
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações da Visita Técnica</h5>
-                <?php else: ?>
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações do Orçamento</h5>
-                <?php endif; ?>
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações do Orçamento</h5>
             </div>
             <div class="card-body">
                 <dl class="row">
-                    <?php if (!empty($agendamento_atual) && empty($agendamento_atual['orcamento_id'])): ?>
-                        <!-- Agendamento direto do site (sem orçamento) -->
-                        <dt class="col-sm-4">Cliente:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['cliente_nome'] ?? 'Cliente não identificado'; ?></dd>
-                        
-                        <dt class="col-sm-4">Telefone:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['cliente_telefone'] ?? 'Não informado'; ?></dd>
-                        
-                        <dt class="col-sm-4">Email:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['cliente_email'] ?? 'Não informado'; ?></dd>
-                        
-                        <dt class="col-sm-4">Endereço:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['cliente_endereco'] ?? 'Não informado'; ?></dd>
-                        
-                        <dt class="col-sm-4">Data Solicitação:</dt>
-                        <dd class="col-sm-8"><?php echo date('d/m/Y', strtotime($orcamento['data_solicitacao'])); ?></dd>
-                        
-                        <dt class="col-sm-4">Tipo:</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-info text-white"><?php echo $orcamento['tipo']; ?></span>
-                        </dd>
-                        
-                        <dt class="col-sm-4">Status:</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-success text-white"><?php echo $orcamento['status']; ?></span>
-                        </dd>
-
-                    <?php else: ?>
-                        <!-- Orçamento normal -->
-                        <dt class="col-sm-4">Número:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['numero']; ?></dd>
-                        
-                        <dt class="col-sm-4">Cliente:</dt>
-                        <dd class="col-sm-8"><?php 
-                            $cliente = buscarCliente($orcamento['cliente_id']);
-                            echo $cliente ? $cliente['nome'] : 'Cliente não encontrado';
-                        ?></dd>
-                        
-                        <dt class="col-sm-4">Status:</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-<?php echo $orcamento['status'] == 'aprovado' ? 'success' : ($orcamento['status'] == 'pendente' ? 'warning' : 'danger'); ?>">
-                                <?php echo ucfirst($orcamento['status']); ?>
-                            </span>
-                        </dd>
-                        
-                        <dt class="col-sm-4">Execução:</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-<?php 
-                                echo $orcamento['status_execucao'] == 'finalizado' ? 'success' : 
-                                     ($orcamento['status_execucao'] == 'agendado' ? 'info' : 'secondary'); ?>">
-                                <?php echo ucfirst($orcamento['status_execucao']); ?>
-                            </span>
-                        </dd>
-                        
-                        <dt class="col-sm-4">Tempo Previsto:</dt>
-                        <dd class="col-sm-8"><?php echo $orcamento['tempo_previsto'] . ' ' . $orcamento['unidade_tempo']; ?></dd>
-                        
-                        <dt class="col-sm-4">Valor Total:</dt>
-                        <dd class="col-sm-8">R$ <?php echo number_format($orcamento['valor_total'], 2, ',', '.'); ?></dd>
-                    <?php endif; ?>
+                    <dt class="col-sm-4">Número:</dt>
+                    <dd class="col-sm-8"><?php echo $orcamento['numero']; ?></dd>
+                    
+                    <dt class="col-sm-4">Cliente:</dt>
+                    <dd class="col-sm-8"><?php 
+                        $cliente = buscarCliente($orcamento['cliente_id']);
+                        echo $cliente ? $cliente['nome'] : 'Cliente não encontrado';
+                    ?></dd>
+                    
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-<?php echo $orcamento['status'] == 'aprovado' ? 'success' : ($orcamento['status'] == 'pendente' ? 'warning' : 'danger'); ?>">
+                            <?php echo ucfirst($orcamento['status']); ?>
+                        </span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Execução:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-<?php 
+                            echo $orcamento['status_execucao'] == 'finalizado' ? 'success' : 
+                                 ($orcamento['status_execucao'] == 'agendado' ? 'info' : 'secondary'); ?>">
+                            <?php echo ucfirst($orcamento['status_execucao']); ?>
+                        </span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Tempo Previsto:</dt>
+                    <dd class="col-sm-8"><?php echo $orcamento['tempo_previsto'] . ' ' . $orcamento['unidade_tempo']; ?></dd>
+                    
+                    <dt class="col-sm-4">Valor Total:</dt>
+                    <dd class="col-sm-8">R$ <?php echo number_format($orcamento['valor_total'], 2, ',', '.'); ?></dd>
                 </dl>
             </div>
         </div>
@@ -466,7 +371,7 @@ require_once('includes/header.php');
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="data_servico" class="form-label required-field">Data de Execução</label>
-                            <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo $agendamento_atual ? date('Y-m-d', strtotime($agendamento_atual['data_inicio'])) : ''; ?>">
+                            <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d'); ?>">
                         </div>
                         <div class="col-md-6">
                             <label for="hora_inicio" class="form-label required-field">Horário de Início</label>
@@ -491,14 +396,10 @@ require_once('includes/header.php');
                                 // Garantir que não seja menor que 7h (início do expediente)
                                 $hora_maxima = max(7, $hora_maxima);
                                 
-                                // Valor selecionado atual (se estiver editando)
-                                $selected_hour = $agendamento_atual ? date('H:i', strtotime($agendamento_atual['data_inicio'])) : '';
-                                
                                 // Gerar opções de horário das 7h até a hora máxima calculada
                                 for ($hora = 7; $hora <= $hora_maxima; $hora++) {
                                     $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':00';
-                                    $selected = ($selected_hour && $selected_hour == $hora_str) ? 'selected' : '';
-                                    echo "<option value=\"{$hora_str}\" {$selected}>{$hora_str}</option>";
+                                    echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
                                 }
                                 ?>
                             </select>
@@ -506,22 +407,21 @@ require_once('includes/header.php');
                     </div>
                     
                     <div class="mb-3">
-                        <label for="colaborador_id" class="form-label required-field">Responsável</label>
+                        <label for="colaborador_id" class="form-label required-field">Instalador Responsável</label>
                         <select class="form-select" id="colaborador_id" name="colaborador_id" required>
-                            <option value="">Selecione data e horário primeiro</option>
+                            <option value="">Selecione um instalador</option>
+                            <?php foreach($colaboradores as $colaborador): ?>
+                                <option value="<?php echo $colaborador['id']; ?>">
+                                    <?php echo $colaborador['nome']; ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
-                        <small class="text-muted" id="colaborador_help">
-                            <?php if (isset($_GET['id']) && intval($_GET['id']) > 0): ?>
-                                Selecione data e horário primeiro para ver orçamentistas disponíveis.
-                            <?php else: ?>
-                                Selecione data e horário primeiro para ver colaboradores disponíveis.
-                            <?php endif; ?>
-                        </small>
+                        <small class="text-muted">Selecione data e horário primeiro para ver apenas colaboradores disponíveis.</small>
                     </div>
                     
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>
-                        <textarea class="form-control" id="observacoes" name="observacoes" rows="2"><?php echo $agendamento_atual ? $agendamento_atual['observacoes'] : ''; ?></textarea>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
@@ -551,7 +451,7 @@ require_once('includes/header.php');
                             <th>ID</th>
                             <th>Data/Hora Início</th>
                             <th>Data/Hora Fim</th>
-                            <th>Responsável</th>
+                            <th>Instalador</th>
                             <th>Status</th>
                             <th>Observações</th>
                             <th>Ações</th>
@@ -574,19 +474,11 @@ require_once('includes/header.php');
                                 <td><?php echo $agendamento['observacoes']; ?></td>
                                 <td>
                                     <?php if ($agendamento['status'] == 'agendado'): ?>
-                                        <?php if (!empty($agendamento['orcamento_id'])): ?>
-                                            <a href="agendamento.php?orcamento_id=<?php echo $orcamento_id; ?>&acao=cancelar&id=<?php echo $agendamento['id']; ?>" 
-                                               class="btn btn-sm btn-danger" 
-                                               onclick="return confirm('Tem certeza que deseja cancelar este agendamento?')">
-                                                <i class="fas fa-calendar-times"></i> Cancelar
-                                            </a>
-                                        <?php else: ?>
-                                            <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>&acao=cancelar" 
-                                               class="btn btn-sm btn-danger" 
-                                               onclick="return confirm('Tem certeza que deseja cancelar este agendamento?')">
-                                                <i class="fas fa-calendar-times"></i> Cancelar
-                                            </a>
-                                        <?php endif; ?>
+                                        <a href="agendamento.php?orcamento_id=<?php echo $orcamento_id; ?>&acao=cancelar&id=<?php echo $agendamento['id']; ?>" 
+                                           class="btn btn-sm btn-danger" 
+                                           onclick="return confirm('Tem certeza que deseja cancelar este agendamento?')">
+                                            <i class="fas fa-calendar-times"></i> Cancelar
+                                        </a>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-secondary" disabled>
                                             <i class="fas fa-ban"></i> <?php echo ucfirst($agendamento['status']); ?>
@@ -628,8 +520,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const tempoPrevisto = <?php echo $orcamento ? $orcamento['tempo_previsto'] : 60; ?>;
     const unidadeTempo = '<?php echo $orcamento ? $orcamento['unidade_tempo'] : 'minutos'; ?>';
-    // Verificar se estamos em um reagendamento de visita técnica ou agendamento normal
-    const isVisitaTecnica = <?php echo $is_visita_tecnica ? 'true' : 'false'; ?>;
     
     // Função para carregar colaboradores disponíveis
     function carregarColaboradoresDisponiveis() {
@@ -654,13 +544,8 @@ document.addEventListener('DOMContentLoaded', function() {
         colaboradorSelect.appendChild(loadingOption);
         colaboradorSelect.selectedIndex = 1;
         
-        // Escolher a URL baseado no tipo de agendamento (visita técnica com orçamentistas ou instalação com instaladores)
-        const ajaxUrl = isVisitaTecnica ? 
-            `ajax/verificar_orcamentistas_disponiveis.php?data=${dataValue}&hora=${horaValue}` : 
-            `ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`;
-        
         // Buscar colaboradores disponíveis via AJAX
-        fetch(ajaxUrl)
+        fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
             .then(response => response.json())
             .then(data => {
                 // Remover opção de carregamento
@@ -674,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.colaboradores.forEach(colaborador => {
                             const option = document.createElement('option');
                             option.value = colaborador.id;
-                            option.text = colaborador.nome + ' (' + (colaborador.tipo ? colaborador.tipo.charAt(0).toUpperCase() + colaborador.tipo.slice(1) : 'Colaborador') + ')';
+                            option.text = colaborador.nome;
                             
                             // Verificar se este era o valor selecionado anteriormente
                             if (selectedValue && colaborador.id == selectedValue) {
@@ -692,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         // Se não há colaboradores disponíveis
                         const naoDisponivelOption = document.createElement('option');
-                        naoDisponivelOption.text = isVisitaTecnica ? 'Nenhum orçamentista disponível neste horário' : 'Nenhum colaborador disponível neste horário';
+                        naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
                         naoDisponivelOption.disabled = true;
                         colaboradorSelect.appendChild(naoDisponivelOption);
                     }
@@ -720,11 +605,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Eventos para acionar a busca de colaboradores disponíveis
     dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
     horaInicio.addEventListener('change', carregarColaboradoresDisponiveis);
-    
-    // Carregar colaboradores disponíveis automaticamente se data e hora já estiverem preenchidos
-    if (dataServico.value && horaInicio.value) {
-        carregarColaboradoresDisponiveis();
-    }
 });
 </script>
 

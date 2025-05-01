@@ -38,11 +38,11 @@ if ($colaborador_id > 0) {
     // Inicializar a conexão com o banco de dados
     global $pdo;
     
-    // Buscar disponibilidades do colaborador (excluindo entradas automaticas)
-    $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id AND (observacao NOT LIKE '%(automático)%' OR observacao IS NULL) ORDER BY data_disponibilidade, hora_inicio");
+    // Buscar agenda do colaborador - Disponibilidades cadastradas
+    $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
     $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
-    $disponibilidades_manuais = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Buscar agendamentos feitos por clientes para este colaborador
     $stmt_agendamentos = $pdo->prepare("SELECT a.*, o.numero, o.cliente_id, c.nome as cliente_nome, 
@@ -152,35 +152,22 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
     $registro_id = intval($_GET['registro_id']);
     
     try {
-        // Verificar se é um registro automático pela observação
-        $stmt_verificar = $pdo->prepare("SELECT observacao FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
-        $stmt_verificar->bindParam(':id', $registro_id, PDO::PARAM_INT);
-        $stmt_verificar->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-        $stmt_verificar->execute();
-        $observacao = $stmt_verificar->fetchColumn();
-        
-        // Se o registro tiver texto indicando que é automático, não permitir exclusão
-        if ($observacao !== false && $observacao !== null && strpos($observacao, '(automático)') !== false) {
-            $mensagem = alerta('Não é possível excluir registros automáticos de indisponibilidade. Eles são gerenciados pelas configurações do sistema.', 'warning');
-        } else {
-            // Excluir o registro normalmente se não for automático
-            $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id AND (observacao NOT LIKE '%automático%' OR observacao IS NULL)");
-            $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
-            $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            if ($stmt->rowCount() > 0) {
-                $mensagem = alerta('Registro de disponibilidade excluído com sucesso!', 'success');
-            } else {
-                $mensagem = alerta('Registro não encontrado ou você não tem permissão para excluí-lo.', 'danger');
-            }
-        }
-        
-        // Atualizar lista de disponibilidades
-        $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+        $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
+        $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
         $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
         $stmt->execute();
-        $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if ($stmt->rowCount() > 0) {
+            $mensagem = alerta('Registro de disponibilidade excluído com sucesso!', 'success');
+            
+            // Atualizar lista de disponibilidades
+            $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+            $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $mensagem = alerta('Registro não encontrado ou você não tem permissão para excluí-lo.', 'danger');
+        }
     } catch (Exception $e) {
         $mensagem = alerta('Erro ao excluir registro: ' . $e->getMessage(), 'danger');
     }
@@ -342,72 +329,71 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
         <h5 class="mb-0"><i class="fas fa-list me-2"></i>Disponibilidades Cadastradas</h5>
     </div>
     <div class="card-body">
-        <?php if (!empty($disponibilidades_manuais)): ?>
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Horário</th>
-                        <th>Status</th>
-                        <th>Recorrente</th>
-                        <th>Observações</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Exibir apenas indisponibilidades manuais -->
-                    <?php foreach ($disponibilidades_manuais as $disponibilidade): ?>
-                        <tr data-id="<?php echo $disponibilidade['id']; ?>" class="<?php echo $disponibilidade['disponivel'] ? '' : 'table-warning'; ?>">
-                            <td>
-                                <?php if ($disponibilidade['recorrente']): ?>
-                                    <?php 
-                                    $dias_semana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                                    echo $dias_semana[$disponibilidade['dia_semana']] . 's';
-                                    ?>
-                                <?php else: ?>
-                                    <?php echo date('d/m/Y', strtotime($disponibilidade['data_disponibilidade'])); ?>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php 
-                                echo date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
-                                     date('H:i', strtotime($disponibilidade['hora_fim'])); 
-                                ?>
-                            </td>
-                            <td>
-                                <span class="badge bg-<?php echo $disponibilidade['disponivel'] ? 'success' : 'warning'; ?>">
-                                    <?php echo $disponibilidade['disponivel'] ? 'Disponível' : 'Indisponível'; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-<?php echo $disponibilidade['recorrente'] ? 'info' : 'secondary'; ?>">
-                                    <?php echo $disponibilidade['recorrente'] ? 'Semanal' : 'Não'; ?>
-                                </span>
-                            </td>
-                            <td><?php echo $disponibilidade['observacao']; ?></td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary edit-disponibilidade" 
-                                            data-id="<?php echo $disponibilidade['id']; ?>"
-                                            data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
-                                            data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
-                                            data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
-                                            data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
-                                            data-obs="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>"
-                                            data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
-                                            data-dia="<?php echo $disponibilidade['dia_semana']; ?>">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <a href="?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
-                                       class="btn btn-outline-danger" 
-                                       onclick="return confirm('Tem certeza que deseja excluir este registro de disponibilidade?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
+        <?php if (count($disponibilidades) > 0): ?>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Horário</th>
+                            <th>Status</th>
+                            <th>Recorrente</th>
+                            <th>Observações</th>
+                            <th>Ações</th>
                         </tr>
-                    <?php endforeach; ?>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($disponibilidades as $disponibilidade): ?>
+                            <tr data-id="<?php echo $disponibilidade['id']; ?>" class="<?php echo $disponibilidade['disponivel'] ? '' : 'table-warning'; ?>">
+                                <td>
+                                    <?php if ($disponibilidade['recorrente']): ?>
+                                        <?php 
+                                        $dias_semana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                                        echo $dias_semana[$disponibilidade['dia_semana']] . 's';
+                                        ?>
+                                    <?php else: ?>
+                                        <?php echo date('d/m/Y', strtotime($disponibilidade['data_disponibilidade'])); ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php 
+                                    echo date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
+                                         date('H:i', strtotime($disponibilidade['hora_fim'])); 
+                                    ?>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php echo $disponibilidade['disponivel'] ? 'success' : 'warning'; ?>">
+                                        <?php echo $disponibilidade['disponivel'] ? 'Disponível' : 'Indisponível'; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php echo $disponibilidade['recorrente'] ? 'info' : 'secondary'; ?>">
+                                        <?php echo $disponibilidade['recorrente'] ? 'Semanal' : 'Não'; ?>
+                                    </span>
+                                </td>
+                                <td><?php echo $disponibilidade['observacao']; ?></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-primary edit-disponibilidade" 
+                                                data-id="<?php echo $disponibilidade['id']; ?>"
+                                                data-data="<?php echo $disponibilidade['data_disponibilidade']; ?>"
+                                                data-inicio="<?php echo $disponibilidade['hora_inicio']; ?>"
+                                                data-fim="<?php echo $disponibilidade['hora_fim']; ?>"
+                                                data-disponivel="<?php echo $disponibilidade['disponivel']; ?>"
+                                                data-obs="<?php echo htmlspecialchars($disponibilidade['observacao']); ?>"
+                                                data-recorrente="<?php echo $disponibilidade['recorrente']; ?>"
+                                                data-dia="<?php echo $disponibilidade['dia_semana']; ?>">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <a href="?id=<?php echo $colaborador_id; ?>&acao=excluir&registro_id=<?php echo $disponibilidade['id']; ?>" 
+                                           class="btn btn-outline-danger" 
+                                           onclick="return confirm('Tem certeza que deseja excluir este registro de disponibilidade?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -475,7 +461,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
 </div>
 <?php endif; ?>
 
-<?php endif; // fim do if ($colaborador): ?>
+<?php endif; ?>
 
 <script>
 // JavaScript para manipulação do formulário de disponibilidade

@@ -811,53 +811,10 @@ if (!$acesso_interno) {
                             // Para a última hora, considerar os minutos calculados
                             $max_min = ($hora == $hora_maxima_horas) ? $hora_maxima_mins : 59;
                             
-                            // Buscar configurações de horário de almoço e tempo indisponível na entrada
-                            $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio_almoco', 'horario_fim_almoco', 'tempo_indisponivel_entrada', 'aplicar_indisponibilidade_automatica')");
-                            $config_adicional = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
-                            
-                            // Valores padrão caso não existam configurações
-                            $horario_inicio_almoco = isset($config_adicional['horario_inicio_almoco']) ? $config_adicional['horario_inicio_almoco'] : '11:00';
-                            $horario_fim_almoco = isset($config_adicional['horario_fim_almoco']) ? $config_adicional['horario_fim_almoco'] : '12:00';
-                            $tempo_indisponivel_entrada = isset($config_adicional['tempo_indisponivel_entrada']) ? (int)$config_adicional['tempo_indisponivel_entrada'] : 30;
-                            $aplicar_indisponibilidade = isset($config_adicional['aplicar_indisponibilidade_automatica']) ? ($config_adicional['aplicar_indisponibilidade_automatica'] == 'sim') : false;
-                            
-                            // Extrair hora e minutos do horário de almoço
-                            $hora_inicio_almoco = (int)substr($horario_inicio_almoco, 0, 2);
-                            $minuto_inicio_almoco = (int)substr($horario_inicio_almoco, 3, 2);
-                            $hora_fim_almoco = (int)substr($horario_fim_almoco, 0, 2);
-                            $minuto_fim_almoco = (int)substr($horario_fim_almoco, 3, 2);
-                            
-                            // Calcular fim do período indisponível após abertura
-                            $fim_indisponivel_entrada_hora = $horas_inicio;
-                            $fim_indisponivel_entrada_min = $minutos_inicio + $tempo_indisponivel_entrada;
-                            
-                            // Ajustar caso ultrapasse 60 minutos
-                            while ($fim_indisponivel_entrada_min >= 60) {
-                                $fim_indisponivel_entrada_hora++;
-                                $fim_indisponivel_entrada_min -= 60;
-                            }
-                            
-                            // Adicionar opções para cada hora disponível em incrementos de 30 min
+                            // Adicionar opções para cada hora disponvel em incrementos de 30 min
                             for ($min = $min_inicial; $min <= $max_min; $min += 30) {
                                 if ($min == 60) continue; // Pular quando for exatamente 60 minutos
                                 $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':' . str_pad($min, 2, '0', STR_PAD_LEFT);
-                                
-                                // Se indisponibilidade automática estiver ativada
-                                if ($aplicar_indisponibilidade) {
-                                    // Verificar se está dentro do período de almoço
-                                    $no_periodo_almoco = ($hora > $hora_inicio_almoco || ($hora == $hora_inicio_almoco && $min >= $minuto_inicio_almoco)) && 
-                                                        ($hora < $hora_fim_almoco || ($hora == $hora_fim_almoco && $min < $minuto_fim_almoco));
-                                    
-                                    // Verificar se está dentro do período indisponível após a entrada
-                                    $no_periodo_entrada = ($hora < $fim_indisponivel_entrada_hora || 
-                                                         ($hora == $fim_indisponivel_entrada_hora && $min < $fim_indisponivel_entrada_min));
-                                    
-                                    // Pular este horário se estiver em período indisponível
-                                    if ($no_periodo_almoco || $no_periodo_entrada) {
-                                        continue;
-                                    }
-                                }
-                                
                                 echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
                             }
                         }
@@ -944,8 +901,7 @@ if (!$acesso_interno) {
             colaboradorSelect.selectedIndex = 1;
             
             // Buscar colaboradores disponíveis via AJAX
-            const orcamentoId = <?php echo $orcamento['id']; ?>;
-            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}&orcamento_id=${orcamentoId}`)
+            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
                 .then(response => response.json())
                 .then(data => {
                     // Remover opção de carregamento
@@ -960,52 +916,17 @@ if (!$acesso_interno) {
                                 option.text = colaborador.nome;
                                 colaboradorSelect.appendChild(option);
                             });
-                            
-                            // Verificar se existe uma mensagem informativa sobre almoço
-                            if (data.mensagem_info) {
-                                // Criar div para mensagem informativa se não existir
-                                let infoMsgDiv = document.getElementById('info-agendamento');
-                                if (!infoMsgDiv) {
-                                    infoMsgDiv = document.createElement('div');
-                                    infoMsgDiv.id = 'info-agendamento';
-                                    infoMsgDiv.className = 'alert alert-info mt-2';
-                                    colaboradorSelect.parentNode.appendChild(infoMsgDiv);
-                                }
-                                
-                                // Mostrar mensagem
-                                infoMsgDiv.textContent = data.mensagem_info;
-                                infoMsgDiv.style.display = 'block';
-                            } else {
-                                // Esconder mensagem se existir
-                                const infoMsgDiv = document.getElementById('info-agendamento');
-                                if (infoMsgDiv) {
-                                    infoMsgDiv.style.display = 'none';
-                                }
-                            }
                         } else {
                             // Se não há colaboradores disponíveis
                             const naoDisponivelOption = document.createElement('option');
                             naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
                             naoDisponivelOption.disabled = true;
                             colaboradorSelect.appendChild(naoDisponivelOption);
-                            
-                            // Esconder mensagem de info se existir
-                            const infoMsgDiv = document.getElementById('info-agendamento');
-                            if (infoMsgDiv) {
-                                infoMsgDiv.style.display = 'none';
-                            }
                         }
                     } else {
                         // Exibir mensagem de erro
                         const erroOption = document.createElement('option');
-                        // Verificar se é um erro de horário bloqueado (almoço ou outro período indisponível)
-                        if (data.mensagem && data.mensagem.includes('coincide com o período de almoço')) {
-                            erroOption.text = 'Horário de almoço: ' + data.mensagem;
-                        } else if (data.mensagem && data.mensagem.includes('período indisponível na abertura')) {
-                            erroOption.text = 'Período inicial: ' + data.mensagem;
-                        } else {
-                            erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
-                        }
+                        erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
                         erroOption.disabled = true;
                         colaboradorSelect.appendChild(erroOption);
                     }

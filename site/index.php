@@ -168,35 +168,35 @@ require_once('../includes/config.php');
                         <div class="service-icon">
                             <i class="fas fa-medal"></i>
                         </div>
-                        <h5>Referência há mais de 15 anos</h5>
-                        <p class="text-muted">Excelência e profissionalismo reconhecidos em toda a região.</p>
+                        <h5>Qualidade Garantida</h5>
+                        <p class="text-muted">Utilizamos materiais de primeira linha e técnicas modernas.</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="text-center">
                         <div class="service-icon">
-                            <i class="fas fa-check-double"></i>
+                            <i class="fas fa-history"></i>
                         </div>
-                        <h5>Serviço bem feito</h5>
-                        <p class="text-muted">Não escolhemos o serviço, escolhemos fazer bem feito do início ao fim.</p>
+                        <h5>Atendimento Rápido</h5>
+                        <p class="text-muted">Equipe sempre pronta para atender sua demanda com agilidade.</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="text-center">
                         <div class="service-icon">
-                            <i class="fas fa-shield-alt"></i>
+                            <i class="fas fa-hand-holding-usd"></i>
                         </div>
-                        <h5>Garantias Personalizadas</h5>
-                        <p class="text-muted">Oferecemos garantias especiais para cada serviço executado.</p>
+                        <h5>Preços Justos</h5>
+                        <p class="text-muted">Melhor custo-benefício da região sem surpresas no orçamento.</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="text-center">
                         <div class="service-icon">
-                            <i class="fas fa-certificate"></i>
+                            <i class="fas fa-users"></i>
                         </div>
-                        <h5>Produtos de Qualidade</h5>
-                        <p class="text-muted">Trabalhamos com as melhores chapas e materiais para calhas do mercado.</p>
+                        <h5>Equipe Especializada</h5>
+                        <p class="text-muted">Profissionais treinados e com anos de experiência no mercado.</p>
                     </div>
                 </div>
             </div>

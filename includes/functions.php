@@ -520,7 +520,4 @@ function validaCNPJ($cnpj) {
     // Verifica se os dígitos calculados batem com os dígitos informados
     return ($cnpj[12] == $dv1 && $cnpj[13] == $dv2);
 }
-
-// Função de sincronização de configurações transferida para includes/sincronizador_config.php
-// Para evitar funções duplicadas
 ?>

@@ -51,36 +51,18 @@ if (empty($data) || empty($hora)) {
     exit;
 }
 
-// Obter configurações de horário de funcionamento e indisponibilidade automática
-// Usamos uma consulta com FOR UPDATE para garantir que lemos os valores mais atualizados do banco
-$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'aplicar_indisponibilidade_automatica', 'tempo_indisponivel_entrada', 'horario_inicio_almoco', 'horario_fim_almoco') FOR UPDATE");
+// Obter configurações de horário de funcionamento
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-// Log para debug das configurações carregadas
-error_log("Configurações carregadas: tempo_indisponivel_entrada = {$config['tempo_indisponivel_entrada']}");
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
 $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
 $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
 
-// Configurações de indisponibilidade automática
-$aplicar_indisponibilidade = isset($config['aplicar_indisponibilidade_automatica']) ? ($config['aplicar_indisponibilidade_automatica'] == 'sim') : false;
-$tempo_indisponivel_entrada = isset($config['tempo_indisponivel_entrada']) ? (int)$config['tempo_indisponivel_entrada'] : 30;
-$horario_inicio_almoco = isset($config['horario_inicio_almoco']) ? $config['horario_inicio_almoco'] : '11:00';
-$horario_fim_almoco = isset($config['horario_fim_almoco']) ? $config['horario_fim_almoco'] : '12:00';
-
 try {
     // Calcular data e hora de início
-    // Verificar se o formato da hora já inclui segundos
-    if (substr_count($hora, ':') >= 2) {
-        $data_inicio = $data . ' ' . $hora;
-    } else if (substr_count($hora, ':') == 1) {
-        $data_inicio = $data . ' ' . $hora . ':00';
-    } else {
-        $data_inicio = $data . ' ' . $hora . ':00:00';
-    }
-    
+    $data_inicio = $data . ' ' . $hora . ':00';
     $data_hora_inicio = new DateTime($data_inicio);
     
     // Converter tempo previsto para minutos
@@ -114,36 +96,6 @@ try {
                                 $horario_inicio . ' - ' . $horario_fim . ').';
         echo json_encode($resposta);
         exit;
-    }
-    
-    // Verificar configurações de indisponibilidade automática
-    if ($aplicar_indisponibilidade) {
-        // Verificar período indisponível após abertura
-        $fim_indisponivel_entrada = clone $hora_inicio_expediente;
-        $fim_indisponivel_entrada->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
-        
-        if ($data_hora_inicio < $fim_indisponivel_entrada) {
-            $resposta['mensagem'] = 'O horário selecionado coincide com o período indisponível na abertura (' . 
-                                    $horario_inicio . ' até ' . $fim_indisponivel_entrada->format('H:i') . ').';
-            echo json_encode($resposta);
-            exit;
-        }
-        
-        // Verificar período de almoço
-        $hora_inicio_almoco_dt = new DateTime($data . ' ' . $horario_inicio_almoco);
-        $hora_fim_almoco_dt = new DateTime($data . ' ' . $horario_fim_almoco);
-        
-        // Se o período solicitado está dentro ou intercepta o horário de almoço
-        $comeca_antes_acaba_no_almoco = $data_hora_inicio < $hora_inicio_almoco_dt && $data_hora_fim > $hora_inicio_almoco_dt;
-        $comeca_no_almoco = $data_hora_inicio >= $hora_inicio_almoco_dt && $data_hora_inicio < $hora_fim_almoco_dt;
-        $periodo_cruza_almoco = $comeca_antes_acaba_no_almoco || $comeca_no_almoco;
-        
-        if ($periodo_cruza_almoco) {
-            $resposta['mensagem'] = 'O horário selecionado coincide com o período de almoço (' . 
-                                    $horario_inicio_almoco . ' - ' . $horario_fim_almoco . ').';
-            echo json_encode($resposta);
-            exit;
-        }
     }
     
     // Verificar se a tabela agendamentos tem registros
@@ -249,73 +201,8 @@ try {
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
     }
     
-    // 4. Verificar indisponibilidades automáticas (horário de almoço e tempo após chegada)
-    // Forçar aplicar_indisponibilidade para true, pois é importante bloquear horário de almoço
-    $aplicar_indisponibilidade = true;
-    if ($aplicar_indisponibilidade) {
-        // Verificar conflito com horário de almoço
-        $inicio_almoco = new DateTime($data . ' ' . $horario_inicio_almoco);
-        $fim_almoco = new DateTime($data . ' ' . $horario_fim_almoco);
-        
-        // Verificar se o horário de início coincide com o período de almoço
-        $conflito_almoco = ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco);
-        
-        // Verificar conflito com tempo indisponível após chegada
-        $hora_chegada = new DateTime($data . ' ' . $horario_inicio); // Horário de abertura da empresa
-        $hora_disponivel = clone $hora_chegada;
-        $hora_disponivel->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
-        
-        $conflito_entrada = ($data_hora_inicio < $hora_disponivel);
-        
-        // Se houver conflito com almoço ou entrada, retornar lista vazia sem mostrar mensagem de erro
-        if ($conflito_almoco || $conflito_entrada) {
-            $resposta['status'] = 'sucesso';
-            $resposta['colaboradores'] = [];
-            echo json_encode($resposta);
-            exit;
-        }
-        
-        // Verificar se o serviço cruza com o período de almoço e adicionar o tempo de almoço
-        if ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $inicio_almoco) {
-            // Tempo do serviço antes do almoço
-            $tempo_antes_almoco = $inicio_almoco->getTimestamp() - $data_hora_inicio->getTimestamp();
-            
-            // Tempo restante após o almoço
-            $tempo_total_segundos = $data_hora_fim->getTimestamp() - $data_hora_inicio->getTimestamp();
-            $tempo_apos_almoco = $tempo_total_segundos - $tempo_antes_almoco;
-            
-            // Calcular novo horário de fim: horário de fim do almoço + tempo restante
-            $novo_data_hora_fim = clone $fim_almoco;
-            $novo_data_hora_fim->add(new DateInterval('PT' . (int)($tempo_apos_almoco) . 'S'));
-            
-            // Calcular tempo total em horas (incluindo pausa)
-            $tempo_total_com_pausa = ($novo_data_hora_fim->getTimestamp() - $data_hora_inicio->getTimestamp()) / 3600;
-            $tempo_total_com_pausa = round($tempo_total_com_pausa, 1); // Arredondar para 1 casa decimal
-            
-            // Adicionar informação sobre a pausa para almoço na resposta
-            $resposta['mensagem_info'] = 'O serviço de ' . round($duracao_minutos/60, 1) . ' horas terá uma pausa durante o almoço e terminará às ' . $novo_data_hora_fim->format('H:i') . '. Tempo total com pausa: ' . $tempo_total_com_pausa . ' horas.';
-        }
-    }
-    
-    // Verificar o tipo de orçamento para mostrar apenas colaboradores adequados
-    // Se temos um parâmetro 'orcamento_id', verificar status do orçamento
-    $orcamento_id = isset($_GET['orcamento_id']) ? (int)$_GET['orcamento_id'] : 0;
-    $tipo_colaborador = 'orcamentista'; // Padrão para visitas técnicas
-    
-    if ($orcamento_id > 0) {
-        $stmt_orc = $pdo->prepare("SELECT status FROM orcamentos WHERE id = :id");
-        $stmt_orc->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
-        $stmt_orc->execute();
-        $status_orcamento = $stmt_orc->fetchColumn();
-        
-        // Se o orçamento está aprovado, mostrar apenas instaladores
-        if ($status_orcamento == 'aprovado') {
-            $tipo_colaborador = 'instalador';
-        }
-    }
-    
-    // Buscar colaboradores do tipo apropriado
-    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo = :tipo_colaborador AND status = 'ativo'";
+    // Buscar colaboradores do tipo instalador
+    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' AND status = 'ativo'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
@@ -325,9 +212,7 @@ try {
     // Adicionar a cláusula ORDER BY depois de todas as condições
     $sql .= " ORDER BY nome";
     
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':tipo_colaborador', $tipo_colaborador, PDO::PARAM_STR);
-    $stmt->execute();
+    $stmt = $pdo->query($sql);
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Retornar resultado
@@ -335,14 +220,6 @@ try {
         'status' => 'sucesso',
         'colaboradores' => $colaboradores
     ];
-    
-    // Se tiver mensagem de info sobre almoço, adicionar
-    if (isset($resposta['mensagem_info'])) {
-        // Manter a mensagem de info que foi adicionada anteriormente
-    } else {
-        // Remover a chave se não existe
-        unset($resposta['mensagem_info']);
-    }
     
 } catch (Exception $e) {
     $resposta['mensagem'] = 'Erro ao verificar disponibilidade: ' . $e->getMessage();

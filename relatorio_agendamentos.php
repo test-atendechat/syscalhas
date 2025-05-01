@@ -23,18 +23,17 @@ $filtro_data_inicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : date(
 $filtro_data_fim = isset($_GET['data_fim']) ? $_GET['data_fim'] : date('Y-m-d', strtotime('+7 days'));
 $filtro_status = isset($_GET['status']) ? $_GET['status'] : '';
 
-// Se o relatório está sendo chamado com id específico, mostrar apenas esse orçamentista
+// Se o relatório está sendo chamado com id específico, mostrar apenas esse instalador
 $titulo_relatorio = "Relatório de Agendamentos por Período";
 if ($colaborador_id > 0) {
     // Buscar nome do colaborador
-    $stmt = $db->prepare("SELECT nome, tipo FROM colaboradores WHERE id = :id");
+    $stmt = $db->prepare("SELECT nome FROM colaboradores WHERE id = :id");
     $stmt->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
     $stmt->execute();
     $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($colaborador) {
-        $tipo_texto = ($colaborador['tipo'] == 'orcamentista') ? 'Orçamentista' : 'Instalador';
-        $titulo_relatorio = "Agenda do {$tipo_texto}: " . $colaborador['nome'];
+        $titulo_relatorio = "Agenda do Instalador: " . $colaborador['nome'];
     }
 }
 
@@ -68,7 +67,7 @@ if (!empty($sql_filtros)) {
 // Consulta de agendamentos
 $sql = "SELECT a.*, o.numero as codigo_orcamento, 
         (SELECT nome FROM clientes WHERE id = o.cliente_id) as cliente_nome, 
-        c.nome as colaborador_nome, c.tipo as colaborador_tipo 
+        c.nome as colaborador_nome 
         FROM agendamentos a 
         LEFT JOIN orcamentos o ON a.orcamento_id = o.id 
         LEFT JOIN colaboradores c ON a.instalador_id = c.id 
@@ -86,8 +85,8 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt_status = $db->query("SELECT DISTINCT status FROM agendamentos ORDER BY status");
 $status_disponiveis = $stmt_status->fetchAll(PDO::FETCH_COLUMN);
 
-// Buscar colaboradores (tanto orçamentistas quanto instaladores)
-$stmt_colaboradores = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
+// Buscar colaboradores
+$stmt_colaboradores = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
 $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -112,12 +111,12 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
         <div class="card-body">
             <form action="" method="GET" class="row g-3">
                 <div class="col-md-4">
-                    <label for="colaborador_id" class="form-label">Colaborador</label>
+                    <label for="colaborador_id" class="form-label">Instalador</label>
                     <select name="colaborador_id" id="colaborador_id" class="form-select">
-                        <option value="0">Todos os colaboradores</option>
+                        <option value="0">Todos os instaladores</option>
                         <?php foreach ($colaboradores as $c): ?>
                             <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
-                                <?php echo $c['nome']; ?> (<?php echo ucfirst($c['tipo']); ?>)
+                                <?php echo $c['nome']; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -218,7 +217,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>Data/Hora Início</th>
                                 <th>Data/Hora Fim</th>
-                                <th>Responsável</th>
+                                <th>Instalador</th>
                                 <th>Cliente</th>
                                 <th>Orçamento</th>
                                 <th>Status</th>
@@ -237,12 +236,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <td><?php echo $data_inicio->format('d/m/Y H:i'); ?></td>
                                 <td><?php echo $data_fim->format('d/m/Y H:i'); ?></td>
-                                <td>
-                                    <?php echo $agendamento['colaborador_nome']; ?>
-                                    <?php if (!empty($agendamento['colaborador_tipo'])): ?>
-                                        <span class="badge bg-info text-white"><?php echo ucfirst($agendamento['colaborador_tipo']); ?></span>
-                                    <?php endif; ?>
-                                </td>
+                                <td><?php echo $agendamento['colaborador_nome']; ?></td>
                                 <td><?php echo $agendamento['cliente_nome']; ?></td>
                                 <td>
                                     <?php if (!empty($agendamento['codigo_orcamento'])): ?>
