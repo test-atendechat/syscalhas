@@ -29,6 +29,7 @@ $titulo = 'Novo Orçamento';
 $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
+$colaborador_id = 0; // Colaborador responsável pelo orçamento
 
 // Buscar configurações do banco de dados
 $stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
@@ -61,6 +62,7 @@ if (isset($_GET['id'])) {
         $observacoes = $orcamento['observacoes'];
         $codigo_acesso = $orcamento['codigo_acesso'];
         $forma_pagamento = $orcamento['forma_pagamento'];
+        $colaborador_id = $orcamento['colaborador_id'] ?? 0;
         $itens = buscarItensOrcamento($id);
         $acao = 'atualizar';
         $titulo = 'Editar Orçamento';
@@ -79,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
     $taxa_mao_obra = floatval(str_replace(',', '.', $_POST['taxa_mao_obra']));
     $observacoes = limpaString($_POST['observacoes']);
     $forma_pagamento = $_POST['forma_pagamento'];
+    $colaborador_id = intval($_POST['colaborador_id'] ?? 0);
 
     // Validar os dados
     if ($cliente_id <= 0) {
