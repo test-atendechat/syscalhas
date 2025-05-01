@@ -701,6 +701,14 @@ if (!$acesso_interno) {
                     <select class="form-select" id="hora_inicio" name="hora_inicio" required>
                         <option value="">Selecione o horário</option>
                         <?php
+                        // Obter configurações de horário de funcionamento
+                        $stmt_conf = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim')");
+                        $config = $stmt_conf->fetchAll(PDO::FETCH_KEY_PAIR);
+
+                        // Valores padrão caso não existam configurações
+                        $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
+                        $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+                        
                         // Calcular hora máxima possível com base no tempo previsto
                         $tempo_previsto = $orcamento['tempo_previsto'];
                         $unidade_tempo = $orcamento['unidade_tempo'];
@@ -713,16 +721,35 @@ if (!$acesso_interno) {
                             $duracao_minutos = $tempo_previsto * 60 * 8; // 8 horas por dia
                         }
                         
-                        // Calcular hora máxima para início (17:00 - duração em minutos)
-                        $hora_maxima = floor((17 * 60 - $duracao_minutos) / 60);
+                        // Extrair as horas e minutos do horário de fim
+                        list($horas_fim, $minutos_fim) = explode(':', $horario_fim);
+                        $minutos_total_fim = ($horas_fim * 60) + $minutos_fim;
                         
-                        // Garantir que não seja menor que 7h (início do expediente)
-                        $hora_maxima = max(7, $hora_maxima);
+                        // Extrair as horas e minutos do horário de início
+                        list($horas_inicio, $minutos_inicio) = explode(':', $horario_inicio);
+                        $minutos_total_inicio = ($horas_inicio * 60) + $minutos_inicio;
                         
-                        // Gerar opções de horário das 7h até a hora máxima calculada
-                        for ($hora = 7; $hora <= $hora_maxima; $hora++) {
-                            $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':00';
-                            echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                        // Calcular hora máxima para início (hora_fim - duração em minutos)
+                        $hora_maxima_minutos = $minutos_total_fim - $duracao_minutos;
+                        $hora_maxima_horas = floor($hora_maxima_minutos / 60);
+                        $hora_maxima_mins = $hora_maxima_minutos % 60;
+                        
+                        // Garantir que não seja menor que o horário de início
+                        $hora_maxima_horas = max($horas_inicio, $hora_maxima_horas);
+                        
+                        // Criar intervalo de horas em incrementos de 1 hora
+                        for ($hora = $horas_inicio; $hora <= $hora_maxima_horas; $hora++) {
+                            // Para a primeira hora, considerar os minutos de início
+                            $min_inicial = ($hora == $horas_inicio) ? $minutos_inicio : 0;
+                            // Para a última hora, considerar os minutos calculados
+                            $max_min = ($hora == $hora_maxima_horas) ? $hora_maxima_mins : 59;
+                            
+                            // Adicionar opções para cada hora disponvel em incrementos de 30 min
+                            for ($min = $min_inicial; $min <= $max_min; $min += 30) {
+                                if ($min == 60) continue; // Pular quando for exatamente 60 minutos
+                                $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':' . str_pad($min, 2, '0', STR_PAD_LEFT);
+                                echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                            }
                         }
                         ?>
                     </select>

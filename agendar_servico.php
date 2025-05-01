@@ -20,6 +20,15 @@ $colaborador_id = intval($_POST['colaborador_id'] ?? 0);
 $tempo_previsto = intval($_POST['tempo_previsto'] ?? 60);
 $unidade_tempo = $_POST['unidade_tempo'] ?? 'minutos';
 
+// Obter configurações de horário de funcionamento
+$stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Valores padrão caso não existam configurações
+$horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
+$horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+$dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
+
 // Validar dados recebidos
 if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hora_inicio)) {
     $mensagem = 'Dados incompletos para agendamento. Por favor, preencha todos os campos obrigatórios.';
@@ -51,6 +60,23 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Calcular data e hora de término
             $data_hora_fim = clone $data_hora_inicio;
             $data_hora_fim->add(new DateInterval('PT' . $duracao_minutos . 'M'));
+            
+            // Verificar se a data é um dia de funcionamento
+            $dia_semana = date('N', strtotime($data_servico)); // Retorna 1 (segunda) a 7 (domingo)
+            
+            if (!in_array($dia_semana, $dias_funcionamento)) {
+                throw new Exception('O dia selecionado não é um dia de funcionamento.');
+            }
+            
+            // Verificar se está dentro do horário de funcionamento
+            $hora_inicio_expediente = new DateTime($data_servico . ' ' . $horario_inicio);
+            $hora_fim_expediente = new DateTime($data_servico . ' ' . $horario_fim);
+            
+            // Se a hora de início for anterior ao expediente ou se a hora do fim for posterior ao expediente
+            if ($data_hora_inicio < $hora_inicio_expediente || $data_hora_fim > $hora_fim_expediente) {
+                throw new Exception('O horário selecionado está fora do horário de funcionamento (' . 
+                                     $horario_inicio . ' - ' . $horario_fim . ').');
+            }
             
             // Iniciar transação
             $db->beginTransaction();

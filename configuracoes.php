@@ -176,6 +176,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
             
+            <!-- Configurações de Horário de Funcionamento -->
+            <div class="mb-4">
+                <h5><i class="fas fa-clock me-2"></i>Horário de Funcionamento</h5>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_inicio" class="form-label">Horário de Início do Expediente</label>
+                        <input type="time" class="form-control" id="horario_inicio" name="horario_inicio" value="<?php echo $configuracoes['horario_inicio']; ?>">
+                        <div class="form-text">Horário em que a empresa inicia os trabalhos diariamente.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_fim" class="form-label">Horário de Término do Expediente</label>
+                        <input type="time" class="form-control" id="horario_fim" name="horario_fim" value="<?php echo $configuracoes['horario_fim']; ?>">
+                        <div class="form-text">Horário em que a empresa encerra os trabalhos diariamente.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Dias de Funcionamento</label>
+                        <div class="d-flex flex-wrap">
+                            <?php
+                            $dias_semana = [
+                                1 => 'Segunda-feira',
+                                2 => 'Terça-feira',
+                                3 => 'Quarta-feira',
+                                4 => 'Quinta-feira',
+                                5 => 'Sexta-feira',
+                                6 => 'Sábado',
+                                7 => 'Domingo'
+                            ];
+                            
+                            $dias_selecionados = explode(',', $configuracoes['dias_funcionamento']);
+                            
+                            foreach ($dias_semana as $num => $nome) {
+                                $checked = in_array($num, $dias_selecionados) ? 'checked' : '';
+                                echo '<div class="form-check me-4 mb-2">
+                                        <input class="form-check-input dia-funcionamento" type="checkbox" value="' . $num . '" id="dia_' . $num . '" ' . $checked . '>
+                                        <label class="form-check-label" for="dia_' . $num . '">
+                                            ' . $nome . '
+                                        </label>
+                                    </div>';
+                            }
+                            ?>
+                            <input type="hidden" name="dias_funcionamento" id="dias_funcionamento" value="<?php echo $configuracoes['dias_funcionamento']; ?>">
+                        </div>
+                        <div class="form-text">Dias da semana em que a empresa realiza atendimentos e serviços.</div>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>Estas configurações serão usadas para determinar a disponibilidade dos colaboradores e os horários válidos para agendamento de serviços.
+                </div>
+            </div>
+            
             <!-- Configurações de Aparência -->
             <div class="mb-4">
                 <h5><i class="fas fa-palette me-2"></i>Configurações de Aparência</h5>
@@ -263,6 +316,26 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         });
     }
+    
+    // Gerenciar seleção de dias de funcionamento
+    const diasFuncionamentoCheckboxes = document.querySelectorAll('.dia-funcionamento');
+    const diasFuncionamentoInput = document.getElementById('dias_funcionamento');
+    
+    // Função para atualizar o campo hidden com os dias selecionados
+    function atualizarDiasFuncionamento() {
+        const diasSelecionados = [];
+        diasFuncionamentoCheckboxes.forEach(function(checkbox) {
+            if (checkbox.checked) {
+                diasSelecionados.push(checkbox.value);
+            }
+        });
+        diasFuncionamentoInput.value = diasSelecionados.join(',');
+    }
+    
+    // Adicionar evento de mudança para cada checkbox
+    diasFuncionamentoCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', atualizarDiasFuncionamento);
+    });
     
     // Botão para restaurar cores padrão
     const btnRestaurarCores = document.getElementById('btn-restaurar-cores');
