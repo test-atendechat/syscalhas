@@ -58,11 +58,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
         $mensagem = alerta('Preencha todos os campos obrigatórios.', 'danger');
     } else {
         try {
-            // Verificar se o cliente já existe (por telefone)
-            $stmt = $pdo->prepare("SELECT id FROM clientes WHERE telefone = :telefone LIMIT 1");
-            $stmt->bindParam(':telefone', $telefone);
-            $stmt->execute();
-            $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Verificar se o cliente já existe (por telefone, email ou CPF/CNPJ)
+            $where_clauses = [];
+            $params = [];
+            
+            // Adicionar condições para cada campo que possa identificar um cliente
+            if (!empty($telefone)) {
+                $where_clauses[] = "telefone = :telefone";
+                $params[':telefone'] = $telefone;
+            }
+            
+            if (!empty($email)) {
+                $where_clauses[] = "email = :email";
+                $params[':email'] = $email;
+            }
+            
+            if (!empty($cpf_cnpj)) {
+                $where_clauses[] = "cpf_cnpj = :cpf_cnpj";
+                $params[':cpf_cnpj'] = $cpf_cnpj;
+            }
+            
+            // Se não tiver nenhum campo para identificar, não busca
+            if (empty($where_clauses)) {
+                $cliente = false;
+            } else {
+                // Montar a query usando OR para verificar qualquer um dos campos
+                $where_sql = implode(' OR ', $where_clauses);
+                $sql = "SELECT id FROM clientes WHERE {$where_sql} LIMIT 1";
+                
+                $stmt = $pdo->prepare($sql);
+                foreach ($params as $param => $value) {
+                    $stmt->bindValue($param, $value);
+                }
+                $stmt->execute();
+                $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
             
             // Se o cliente não existe, criar um novo
             if (!$cliente) {
