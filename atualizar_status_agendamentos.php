@@ -3,6 +3,7 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('notificacao_agendamento.php');
 
 // Inicialização das variáveis
 $data_atual = date('Y-m-d');
@@ -20,14 +21,14 @@ $total_concluidos = 0;
 try {
     global $pdo;
     
-    // Buscar agendamentos que estão com status 'agendado' e já chegou a hora de início
+    // Buscar agendamentos que estão com status 'agendado', 'orcamento_agendado' ou 'instalacao_agendada' e já chegou a hora de início
     // Consulta baseada em data_inicio (timestamp) para a nova estrutura de dados
     $stmt = $pdo->prepare("UPDATE agendamentos 
                         SET status = 'em_andamento'
-                        WHERE status = 'agendado' 
+                        WHERE (status = 'agendado' OR status = 'orcamento_agendado' OR status = 'instalacao_agendada') 
                         AND data_inicio <= :datetime_atual 
                         AND data_fim >= :datetime_atual
-                        RETURNING id, data_inicio");
+                        RETURNING id, data_inicio, status");
                         
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
@@ -39,6 +40,31 @@ try {
         $log .= "Agendamentos atualizados para 'Em Andamento': {$total_em_andamento}\n";
         foreach ($atualizados_em_andamento as $agenda) {
             $log .= "- ID: {$agenda['id']}, Data/Hora de Início: {$agenda['data_inicio']}\n";
+            
+            // Buscar dados do agendamento para notificação
+            $agendamento_id = $agenda['id'];
+            $status_original = $agenda['status']; // Status antes da mudança
+            
+            $stmt_notificacao = $pdo->prepare("SELECT a.data_agendamento, a.hora_inicio, cl.nome as cliente_nome
+                                         FROM agendamentos a
+                                         JOIN orcamentos o ON o.id = a.orcamento_id
+                                         JOIN clientes cl ON cl.id = o.cliente_id
+                                         WHERE a.id = :agendamento_id");
+            $stmt_notificacao->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+            $stmt_notificacao->execute();
+            $dados_notificacao = $stmt_notificacao->fetch(PDO::FETCH_ASSOC);
+            
+            if ($dados_notificacao) {
+                $data_formatada = date('d/m/Y', strtotime($dados_notificacao['data_agendamento']));
+                notificarAlteracaoAgendamento(
+                    $agendamento_id,
+                    'andamento',
+                    $data_formatada,
+                    $dados_notificacao['hora_inicio'],
+                    $dados_notificacao['cliente_nome'],
+                    $status_original
+                );
+            }
         }
     } else {
         $log .= "Nenhum agendamento atualizado para 'Em Andamento'.\n";
@@ -49,7 +75,7 @@ try {
                         SET status = 'concluido'
                         WHERE status = 'em_andamento' 
                         AND data_fim <= :datetime_atual
-                        RETURNING id, data_fim");
+                        RETURNING id, data_fim, status");
                         
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
@@ -61,6 +87,31 @@ try {
         $log .= "\nAgendamentos atualizados para 'Concluído': {$total_concluidos}\n";
         foreach ($atualizados_concluidos as $agenda) {
             $log .= "- ID: {$agenda['id']}, Data/Hora de Fim: {$agenda['data_fim']}\n";
+            
+            // Buscar dados do agendamento para notificação
+            $agendamento_id = $agenda['id'];
+            $status_original = 'em_andamento'; // Status antes da mudança (sempre será em_andamento)
+            
+            $stmt_notificacao = $pdo->prepare("SELECT a.data_agendamento, a.hora_inicio, cl.nome as cliente_nome
+                                         FROM agendamentos a
+                                         JOIN orcamentos o ON o.id = a.orcamento_id
+                                         JOIN clientes cl ON cl.id = o.cliente_id
+                                         WHERE a.id = :agendamento_id");
+            $stmt_notificacao->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+            $stmt_notificacao->execute();
+            $dados_notificacao = $stmt_notificacao->fetch(PDO::FETCH_ASSOC);
+            
+            if ($dados_notificacao) {
+                $data_formatada = date('d/m/Y', strtotime($dados_notificacao['data_agendamento']));
+                notificarAlteracaoAgendamento(
+                    $agendamento_id,
+                    'finalizado',
+                    $data_formatada,
+                    $dados_notificacao['hora_inicio'],
+                    $dados_notificacao['cliente_nome'],
+                    $status_original
+                );
+            }
         }
     } else {
         $log .= "\nNenhum agendamento atualizado para 'Concluído'.\n";

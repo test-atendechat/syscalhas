@@ -22,12 +22,12 @@ $colaborador_id = intval($_GET['id']);
 $data = isset($_GET['data']) ? $_GET['data'] : date('Y-m-d');
 
 // Buscar informações do colaborador
-$stmt = $pdo->prepare("SELECT * FROM colaboradores WHERE id = :id AND tipo = 'instalador'");
+$stmt = $pdo->prepare("SELECT * FROM colaboradores WHERE id = :id");
 $stmt->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
 $stmt->execute();
 
 if ($stmt->rowCount() == 0) {
-    echo "<div class='alert alert-danger'>Colaborador não encontrado ou não é um instalador</div>";
+    echo "<div class='alert alert-danger'>Colaborador não encontrado</div>";
     exit;
 }
 
