@@ -276,9 +276,13 @@ require_once('includes/header.php');
                                 <td><?php echo $orcamento['cliente_nome']; ?></td>
                                 <td><?php echo dataParaBr($orcamento['data_criacao']); ?></td>
                                 <td>
-                                    <a href="https://api.whatsapp.com/send?phone=19918189184&text=Ol%C3%A1%20<?php echo urlencode($orcamento['cliente_nome']); ?>,%20segue%20o%20link%20para%20acessar%20seu%20or%C3%A7amento:%20https%3A%2F%2F<?php echo $_SERVER['HTTP_HOST']; ?>%2Forcamento_visualizar.php%3Fcodigo%3D<?php echo $orcamento['codigo_acesso']; ?>" class="btn btn-success btn-sm" target="_blank">
-                                        <i class="fab fa-whatsapp"></i> Enviar
-                                    </a>
+                                    <?php if (!empty($orcamento['cliente_telefone'])): ?>
+                                        <a href="https://api.whatsapp.com/send?phone=<?php echo formataTelefoneWhatsApp($orcamento['cliente_telefone']); ?>&text=Ol%C3%A1%20<?php echo urlencode($orcamento['cliente_nome']); ?>,%20segue%20o%20link%20para%20acessar%20seu%20or%C3%A7amento:%20https%3A%2F%2F<?php echo $_SERVER['HTTP_HOST']; ?>%2Forcamento_visualizar.php%3Fcodigo%3D<?php echo $orcamento['codigo_acesso']; ?>" class="btn btn-success btn-sm" target="_blank">
+                                            <i class="fab fa-whatsapp"></i> Enviar
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted"><i class="fas fa-exclamation-circle"></i> Sem telefone</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-end"><?php echo formataValor($orcamento['valor_total']); ?></td>
                                 <td>
