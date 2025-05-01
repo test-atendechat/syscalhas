@@ -319,6 +319,9 @@ if (!$acesso_interno) {
             <a href="orcamentos.php" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Voltar
             </a>
+            <button onclick="imprimirOrcamento();" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
             <div class="btn-group ms-2">
                 <a href="orcamento_form.php?id=<?php echo $orcamento['id']; ?>" class="btn btn-primary">
                     <i class="fas fa-edit me-2"></i>Editar
@@ -390,11 +393,6 @@ if (!$acesso_interno) {
                     <?php endif; ?>
                     
                     <!-- Opções gerais -->
-                    <li>
-                        <a class="dropdown-item" href="#" onclick="imprimirOrcamento(); return false;">
-                            <i class="fas fa-print me-2"></i>Imprimir
-                        </a>
-                    </li>
                     <li>
                         <a class="dropdown-item" href="#" onclick="copiarLinkCliente(); return false;">
                             <i class="fas fa-link me-2"></i>Copiar Link do Cliente
