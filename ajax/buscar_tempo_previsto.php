@@ -1,44 +1,65 @@
 <?php
 require_once('../includes/config.php');
 require_once('../includes/db.php');
-require_once('../includes/functions.php');
 require_once('../includes/auth.php');
 
-// Verificar autenticação via AJAX
+// Definir header como JSON
+header('Content-Type: application/json');
+
+// Verificar se usuário está autenticado
 session_start();
-if (!isset($_SESSION['usuario_id'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['erro' => 'Usuário não autenticado']);
+if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
+    echo json_encode([
+        'sucesso' => false,
+        'mensagem' => 'Usuário não autenticado',
+        'tempo_previsto_horas' => 0
+    ]);
     exit;
 }
 
-// Verificar se o ID do orçamento foi enviado
-if (!isset($_GET['orcamento_id']) || empty($_GET['orcamento_id'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['erro' => 'ID do orçamento não fornecido']);
+// Verificar se recebeu ID do orçamento
+$orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
+
+if ($orcamento_id <= 0) {
+    echo json_encode([
+        'sucesso' => false,
+        'mensagem' => 'ID do orçamento inválido',
+        'tempo_previsto_horas' => 0
+    ]);
     exit;
 }
 
-$orcamento_id = intval($_GET['orcamento_id']);
-
+// Buscar o tempo previsto do orçamento
 try {
-    // Consultar o tempo previsto do orçamento
     $stmt = $db->prepare("SELECT tempo_previsto_horas FROM orcamentos WHERE id = :id");
     $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
     $stmt->execute();
     
     if ($stmt->rowCount() > 0) {
         $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
-        header('Content-Type: application/json');
+        $tempo_previsto = isset($orcamento['tempo_previsto_horas']) ? floatval($orcamento['tempo_previsto_horas']) : 0;
+        
+        // Se não tiver tempo previsto, definir um padrão
+        if ($tempo_previsto <= 0) {
+            $tempo_previsto = 2; // Padrão de 2 horas
+        }
+        
         echo json_encode([
             'sucesso' => true,
-            'tempo_previsto_horas' => $orcamento['tempo_previsto_horas'] ?? 2 // Usar 2 como padrão se não estiver definido
+            'tempo_previsto_horas' => $tempo_previsto,
+            'mensagem' => 'Tempo previsto: ' . $tempo_previsto . ' hora(s)'
         ]);
     } else {
-        header('Content-Type: application/json');
-        echo json_encode(['erro' => 'Orçamento não encontrado']);
+        echo json_encode([
+            'sucesso' => false,
+            'mensagem' => 'Orçamento não encontrado',
+            'tempo_previsto_horas' => 2 // Padrão de 2 horas
+        ]);
     }
 } catch (Exception $e) {
-    header('Content-Type: application/json');
-    echo json_encode(['erro' => 'Erro ao buscar tempo previsto: ' . $e->getMessage()]);
+    echo json_encode([
+        'sucesso' => false,
+        'mensagem' => 'Erro ao buscar tempo previsto: ' . $e->getMessage(),
+        'tempo_previsto_horas' => 2 // Padrão de 2 horas em caso de erro
+    ]);
 }

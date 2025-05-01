@@ -2,12 +2,25 @@
 require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
+require_once('../includes/auth.php');
 
 // Definir header como JSON
 header('Content-Type: application/json');
 
-// Verificar acesso
-if (!temPermissao('agendar_instalacao')) {
+// Verificar se o usuário está autenticado
+session_start();
+if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Usuário não autenticado',
+        'instaladores' => []
+    ]);
+    exit;
+}
+
+// Verificar permissão
+require_once('../verificar_permissao.php');
+if (!verificarPermissao('gerenciar_agendamentos') && $_SESSION['usuario']['nivel'] !== 'admin') {
     echo json_encode([
         'success' => false,
         'message' => 'Você não tem permissão para acessar este recurso',

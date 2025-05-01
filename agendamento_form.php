@@ -637,21 +637,92 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Carregar horários disponíveis ao selecionar a data
     const dataInput = document.getElementById('data_agendamento');
-    dataInput.addEventListener('change', function() {
-        const data = this.value;
-        // Aqui deve ser implementada uma chamada AJAX para buscar horários disponíveis
-        // Exemplo básico para ilustrar funcionalidade
+    const horaInicioInput = document.getElementById('hora_inicio');
+    const horaFimInput = document.getElementById('hora_fim');
+    const instaladorSelect = document.getElementById('instalador_select');
+    
+    // Função para carregar instaladores disponíveis
+    function carregarInstaladoresDisponiveis() {
+        const data = dataInput.value;
+        const horaInicio = horaInicioInput.value;
+        const horaFim = horaFimInput.value;
         
+        if (!data || !horaInicio || !horaFim) {
+            // Não temos todos os dados necessários
+            document.getElementById('horarios-disponiveis').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Selecione data e horário para verificar instaladores disponíveis.
+                </div>
+            `;
+            return;
+        }
+        
+        // Mostrar indicador de carregamento
         document.getElementById('horarios-disponiveis').innerHTML = `
-            <div class="alert alert-success">
-                <strong><i class="fas fa-check-circle me-2"></i>Horários disponíveis para ${data}:</strong>
-                <ul class="mb-0 mt-2">
-                    <li>Manhã: 08:00 - 12:00</li>
-                    <li>Tarde: 13:00 - 17:00</li>
-                </ul>
+            <div class="alert alert-info">
+                <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                <span>Verificando instaladores disponíveis para ${data} ${horaInicio} - ${horaFim}...</span>
             </div>
         `;
-    });
+        
+        // Fazer requisição AJAX
+        fetch(`ajax/verificar_instaladores_disponiveis.php?data=${data}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Limpar e recarregar o select de instaladores
+                    // Manter apenas a primeira opção (placeholder)
+                    while (instaladorSelect.options.length > 1) {
+                        instaladorSelect.remove(1);
+                    }
+                    
+                    // Adicionar instaladores disponíveis
+                    data.instaladores.forEach(instalador => {
+                        const option = document.createElement('option');
+                        option.value = instalador.id;
+                        option.text = instalador.nome;
+                        instaladorSelect.appendChild(option);
+                    });
+                    
+                    // Atualizar mensagem de disponibilidade
+                    if (data.instaladores.length > 0) {
+                        document.getElementById('horarios-disponiveis').innerHTML = `
+                            <div class="alert alert-success">
+                                <strong><i class="fas fa-check-circle me-2"></i>${data.instaladores.length} instalador(es) disponível(is) para ${data} ${horaInicio} - ${horaFim}</strong>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('horarios-disponiveis').innerHTML = `
+                            <div class="alert alert-danger">
+                                <strong><i class="fas fa-times-circle me-2"></i>Nenhum instalador disponível para este horário.</strong>
+                                <p class="mb-0 mt-2">Por favor, selecione outro horário ou data.</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    document.getElementById('horarios-disponiveis').innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong><i class="fas fa-times-circle me-2"></i>Erro ao verificar disponibilidade:</strong>
+                            <p class="mb-0 mt-2">${data.message}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Erro na requisição:', error);
+                document.getElementById('horarios-disponiveis').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong><i class="fas fa-times-circle me-2"></i>Erro ao comunicar com o servidor.</strong>
+                        <p class="mb-0 mt-2">Por favor, tente novamente mais tarde.</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Eventos para recarregar instaladores quando mudar data ou horário
+    dataInput.addEventListener('change', carregarInstaladoresDisponiveis);
+    horaInicioInput.addEventListener('change', carregarInstaladoresDisponiveis);
+    horaFimInput.addEventListener('change', carregarInstaladoresDisponiveis);
     
     // Removido código anterior que manipulava o select de hora_fim, agora usamos a função calcularHoraFim()
     
