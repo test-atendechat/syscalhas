@@ -598,9 +598,36 @@ if (!$acesso_interno) {
                         </td>
                         <?php if (!$acesso_interno): ?>
                         <td>
-                            <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye me-1"></i>Ver no Calendário
-                            </a>
+                            <?php
+                            // Verificar se é possível reagendar (24 horas de antecedência)
+                            $data_agendamento = new DateTime($agendamento['data_agendamento'] . ' ' . $agendamento['hora_inicio']);
+                            $agora = new DateTime(); 
+                            $diferenca = $agora->diff($data_agendamento);
+                            $horas_ate_agendamento = ($diferenca->days * 24) + $diferenca->h;
+                            $pode_reagendar = $horas_ate_agendamento >= 24;
+                            
+                            // Previsão do tempo (aqui poderíamos obter dados reais de uma API)
+                            $previsao_chuva = rand(0, 1) ? true : false; // Simulação para exemplo
+                            $temperatura = rand(15, 30);
+                            $condicao_tempo = $previsao_chuva ? 'Possibilidade de chuva' : 'Ensolarado';
+                            ?>
+                            
+                            <div class="d-flex flex-column gap-2">
+                                <?php if ($pode_reagendar): ?>
+                                <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-calendar-alt me-1"></i>Reagendar
+                                </a>
+                                <?php else: ?>
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="Só é possível reagendar com 24h de antecedência">
+                                    <i class="fas fa-calendar-alt me-1"></i>Reagendar
+                                </button>
+                                <?php endif; ?>
+                                
+                                <div class="small mt-1">
+                                    <span class="d-block"><i class="fas <?php echo $previsao_chuva ? 'fa-cloud-rain text-primary' : 'fa-sun text-warning'; ?> me-1"></i> <?php echo $condicao_tempo; ?></span>
+                                    <span class="d-block"><i class="fas fa-temperature-high text-danger me-1"></i> <?php echo $temperatura; ?>°C</span>
+                                </div>
+                            </div>
                         </td>
                         <?php endif; ?>
                     </tr>
@@ -692,7 +719,7 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     <i class="fas fa-check-double me-2"></i>Orçamento Finalizado!
                 <?php else: ?>
-                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
+                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado<?php echo (!empty($agendamentos)) ? ' e Agendado' : ''; ?>!
                 <?php endif; ?>
             <?php else: ?>
                 <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
@@ -716,9 +743,7 @@ if (!$acesso_interno) {
                         }
                     }
                     ?>
-                    <div class="alert alert-success mb-3">
-                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!</h5>
-                    </div>
+                    <!-- Status já exibido no título principal acima -->
                     
                     <div class="alert alert-info mb-3">
                         <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo Previsto</h5>
