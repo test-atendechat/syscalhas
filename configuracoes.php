@@ -16,6 +16,9 @@ function atualizarIndisponibilidadesColaboradores($pdo, $config) {
         $fim_almoco = $config['horario_fim_almoco'];
         $tempo_indisponivel_entrada = (int)$config['tempo_indisponivel_entrada'];
         
+        // Definir a data atual para usar em todos os registros
+        $data_atual = date('Y-m-d');
+        
         // Verificar se a tabela existe
         $stmt = $pdo->prepare("SELECT to_regclass('colaborador_agenda')");
         $stmt->execute();
@@ -62,14 +65,18 @@ function atualizarIndisponibilidadesColaboradores($pdo, $config) {
                 
                 if (!$indisponibilidade_entrada_id) {
                     // Criar nova indisponibilidade de entrada
+                    // Usar data atual como data_disponibilidade
+                    $data_atual = date('Y-m-d');
+                    
                     $stmt_criar_entrada = $pdo->prepare("INSERT INTO colaborador_agenda 
-                                                    (colaborador_id, dia_semana, hora_inicio, hora_fim, 
+                                                    (colaborador_id, dia_semana, data_disponibilidade, hora_inicio, hora_fim, 
                                                     recorrente, disponivel, descricao, tipo) 
-                                                    VALUES (:colaborador_id, :dia_semana, :hora_inicio, :hora_fim, 
+                                                    VALUES (:colaborador_id, :dia_semana, :data_disponibilidade, :hora_inicio, :hora_fim, 
                                                     TRUE, FALSE, 'Indisponibilidade de entrada (automático)', 'sistema')");
                                                     
                     $stmt_criar_entrada->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                     $stmt_criar_entrada->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
+                    $stmt_criar_entrada->bindParam(':data_disponibilidade', $data_atual, PDO::PARAM_STR);
                     $stmt_criar_entrada->bindParam(':hora_inicio', $horario_inicio, PDO::PARAM_STR);
                     $stmt_criar_entrada->bindParam(':hora_fim', $horario_fim_entrada_indisponivel, PDO::PARAM_STR);
                     $stmt_criar_entrada->execute();
@@ -106,14 +113,18 @@ function atualizarIndisponibilidadesColaboradores($pdo, $config) {
                 
                 if (!$indisponibilidade_almoco_id) {
                     // Criar nova indisponibilidade de almoço
+                    // Usar a mesma data_atual também para o registro de almoço
+                    $data_atual = date('Y-m-d');
+                    
                     $stmt_criar_almoco = $pdo->prepare("INSERT INTO colaborador_agenda 
-                                                    (colaborador_id, dia_semana, hora_inicio, hora_fim, 
+                                                    (colaborador_id, dia_semana, data_disponibilidade, hora_inicio, hora_fim, 
                                                     recorrente, disponivel, descricao, tipo) 
-                                                    VALUES (:colaborador_id, :dia_semana, :hora_inicio, :hora_fim, 
+                                                    VALUES (:colaborador_id, :dia_semana, :data_disponibilidade, :hora_inicio, :hora_fim, 
                                                     TRUE, FALSE, 'Horário de almoço (automático)', 'sistema')");
                                                     
                     $stmt_criar_almoco->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                     $stmt_criar_almoco->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
+                    $stmt_criar_almoco->bindParam(':data_disponibilidade', $data_atual, PDO::PARAM_STR);
                     $stmt_criar_almoco->bindParam(':hora_inicio', $inicio_almoco, PDO::PARAM_STR);
                     $stmt_criar_almoco->bindParam(':hora_fim', $fim_almoco, PDO::PARAM_STR);
                     $stmt_criar_almoco->execute();
