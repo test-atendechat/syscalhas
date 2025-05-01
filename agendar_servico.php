@@ -82,9 +82,59 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $hora_inicio_expediente = new DateTime($data_servico . ' ' . $horario_inicio);
             $hora_fim_expediente = new DateTime($data_servico . ' ' . $horario_fim);
             
+            // Obter configuração de tempo indisponível após abertura
+            $stmt = $pdo->query("SELECT valor FROM configuracoes WHERE chave = 'tempo_indisponivel_entrada'");
+            $tempo_indisponivel_entrada = $stmt->fetchColumn() ?: 30; // Padrão: 30 minutos
+            
+            // Obter configurações de horário de almoço
+            $stmt = $pdo->query("SELECT valor FROM configuracoes WHERE chave = 'horario_inicio_almoco'");
+            $horario_inicio_almoco = $stmt->fetchColumn() ?: '11:00'; // Padrão: 11:00
+            
+            $stmt = $pdo->query("SELECT valor FROM configuracoes WHERE chave = 'horario_fim_almoco'");
+            $horario_fim_almoco = $stmt->fetchColumn() ?: '12:00'; // Padrão: 12:00
+            
+            // Calcular hora disponível após abertura
+            $hora_disponivel = clone $hora_inicio_expediente;
+            $hora_disponivel->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
+            
+            // Definir período de almoço
+            $inicio_almoco = new DateTime($data_servico . ' ' . $horario_inicio_almoco);
+            $fim_almoco = new DateTime($data_servico . ' ' . $horario_fim_almoco);
+            
+            // Verificar se o horário de início coincide com o período de almoço
+            $conflito_almoco = ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco);
+            
+            // Verificar conflito com tempo indisponível após chegada
+            $conflito_entrada = ($data_hora_inicio < $hora_disponivel);
+            
             // Se a hora de início for anterior ao expediente ou se a hora do fim for posterior ao expediente
             if ($data_hora_inicio < $hora_inicio_expediente || $data_hora_fim > $hora_fim_expediente) {
                 throw new Exception('O horário selecionado está fora do horário de funcionamento (' . $horario_inicio . ' - ' . $horario_fim . ').');
+            }
+            
+            // Verificar conflito com horário de almoço
+            if ($conflito_almoco) {
+                throw new Exception('Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . '). Por favor, escolha um horário antes ou depois do almoço.');
+            }
+            
+            // Verificar conflito com tempo indisponível após chegada
+            if ($conflito_entrada) {
+                $hora_disponivel_formatada = $hora_disponivel->format('H:i');
+                throw new Exception('Este horário coincide com o período indisponível na abertura da empresa. Disponível a partir de ' . $hora_disponivel_formatada . '.');
+            }
+            
+            // Verificar se o serviço cruza com o período de almoço e ajustar os cálculos
+            if ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $inicio_almoco) {
+                // Tempo do serviço antes do almoço
+                $tempo_antes_almoco = $inicio_almoco->getTimestamp() - $data_hora_inicio->getTimestamp();
+                
+                // Tempo restante após o almoço
+                $tempo_total_segundos = $data_hora_fim->getTimestamp() - $data_hora_inicio->getTimestamp();
+                $tempo_apos_almoco = $tempo_total_segundos - $tempo_antes_almoco;
+                
+                // Calcular novo horário de fim: horário de fim do almoço + tempo restante
+                $data_hora_fim = clone $fim_almoco;
+                $data_hora_fim->add(new DateInterval('PT' . (int)($tempo_apos_almoco) . 'S'));
             }
             
             // Iniciar transação
