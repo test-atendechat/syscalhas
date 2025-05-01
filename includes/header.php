@@ -409,7 +409,7 @@ try {
                             <?php endif; ?>
                             
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
-                            <li><a class="dropdown-item" href="relatorio_colaboradores.php"><i class="fas fa-user-hard-hat me-1"></i>Ranking de Colaboradores</a></li>
+                            <li><a class="dropdown-item" href="relatorio_colaboradores.php"><i class="fas fa-trophy me-1"></i>Ranking de Colaboradores</a></li>
                             <?php endif; ?>
                             
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_financeiros')): ?>
