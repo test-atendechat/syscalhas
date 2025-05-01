@@ -27,6 +27,9 @@ try {
     // Importar a funcionalidade de atualização automática
     require_once('atualizacao_automatica.php');
     
+    // Importar o sincronizador de configurações
+    require_once('sincronizador_config.php');
+    
     // Verificar se deve executar a atualização automática
     if (isset($verificar_atualizacao_automatica) && $verificar_atualizacao_automatica && function_exists('verificarAtualizacaoAutomatica')) {
         try {
@@ -34,6 +37,11 @@ try {
         } catch (Exception $e) {
             // Silencia erros para não atrapalhar o uso normal do sistema
         }
+    }
+    
+    // Sincronizar configurações do banco com o arquivo config.php
+    if (function_exists('executarSincronizacaoConfiguracoes')) {
+        executarSincronizacaoConfiguracoes($pdo);
     }
 } catch (PDOException $e) {
     // Em ambiente de produção, evite exibir detalhes do erro
