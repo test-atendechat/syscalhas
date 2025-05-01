@@ -68,33 +68,66 @@ document.addEventListener('DOMContentLoaded', function() {
         
         notificacoesVazia.style.display = 'none';
         
-        // Adicionar cada notificação à lista
+        // Agrupar notificações por categoria
+        const categorias = {};
         notificacoes.forEach(notificacao => {
-            const li = document.createElement('li');
-            li.className = `notificacao-item ${notificacao.lida ? 'lida' : ''}`;
-            li.dataset.id = notificacao.id;
+            const categoria = notificacao.categoria || 'geral';
+            if (!categorias[categoria]) {
+                categorias[categoria] = [];
+            }
+            categorias[categoria].push(notificacao);
+        });
+        
+        // Ordem de prioridade para categorias
+        const ordemCategorias = ['solicitacoes', 'orcamentos', 'agendamentos', 'pagamentos', 'geral'];
+        
+        // Ordenar categorias por prioridade
+        const categoriasOrdenadas = Object.keys(categorias).sort((a, b) => {
+            const indexA = ordemCategorias.indexOf(a) === -1 ? 999 : ordemCategorias.indexOf(a);
+            const indexB = ordemCategorias.indexOf(b) === -1 ? 999 : ordemCategorias.indexOf(b);
+            return indexA - indexB;
+        });
+        
+        // Adicionar cada categoria e suas notificações
+        categoriasOrdenadas.forEach(categoria => {
+            // Criar cabeçalho da categoria
+            const headerLi = document.createElement('li');
+            headerLi.className = 'notificacao-categoria-header';
             
-            li.innerHTML = `
-                <div class="notificacao-conteudo">
-                    <div class="notificacao-icone">
-                        ${obterIcone(notificacao.tipo)}
-                    </div>
-                    <div class="notificacao-info">
-                        <div class="notificacao-mensagem">${notificacao.mensagem}</div>
-                        <div class="notificacao-tempo">${formatarDataRelativa(notificacao.data_criacao)}</div>
-                    </div>
-                </div>
-            `;
+            // Nome da categoria formatado
+            let categoriaNome = categoria.charAt(0).toUpperCase() + categoria.slice(1);
             
-            // Adicionar evento de clique
-            li.addEventListener('click', function() {
-                marcarComoLida(notificacao.id);
-                if (notificacao.link) {
-                    window.location.href = notificacao.link;
-                }
+            headerLi.innerHTML = `<div class="categoria-titulo">${categoriaNome}</div>`;
+            notificacoesLista.appendChild(headerLi);
+            
+            // Adicionar notificações da categoria
+            categorias[categoria].forEach(notificacao => {
+                const li = document.createElement('li');
+                li.className = `notificacao-item ${notificacao.lida ? 'lida' : ''}`;
+                li.dataset.id = notificacao.id;
+                
+                li.innerHTML = `
+                    <div class="notificacao-conteudo">
+                        <div class="notificacao-icone">
+                            ${obterIcone(notificacao.tipo)}
+                        </div>
+                        <div class="notificacao-info">
+                            <div class="notificacao-mensagem">${notificacao.mensagem}</div>
+                            <div class="notificacao-tempo">${formatarDataRelativa(notificacao.data_criacao)}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Adicionar evento de clique
+                li.addEventListener('click', function() {
+                    marcarComoLida(notificacao.id);
+                    if (notificacao.link) {
+                        window.location.href = notificacao.link;
+                    }
+                });
+                
+                notificacoesLista.appendChild(li);
             });
-            
-            notificacoesLista.appendChild(li);
         });
     }
     
