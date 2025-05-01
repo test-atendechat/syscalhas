@@ -22,8 +22,8 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Buscar colaboradores instaladores
-$stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+// Buscar colaboradores (tanto instaladores quanto orçamentistas)
+$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
 $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
@@ -483,12 +483,12 @@ require_once('includes/header.php');
                     </div>
                     
                     <div class="mb-3">
-                        <label for="colaborador_id" class="form-label required-field">Instalador Responsável</label>
+                        <label for="colaborador_id" class="form-label required-field">Responsável</label>
                         <select class="form-select" id="colaborador_id" name="colaborador_id" required>
-                            <option value="">Selecione um instalador</option>
+                            <option value="">Selecione um responsável</option>
                             <?php foreach($colaboradores as $colaborador): ?>
                                 <option value="<?php echo $colaborador['id']; ?>">
-                                    <?php echo $colaborador['nome']; ?>
+                                    <?php echo $colaborador['nome']; ?> (<?php echo ucfirst($colaborador['tipo']); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -527,7 +527,7 @@ require_once('includes/header.php');
                             <th>ID</th>
                             <th>Data/Hora Início</th>
                             <th>Data/Hora Fim</th>
-                            <th>Instalador</th>
+                            <th>Responsável</th>
                             <th>Status</th>
                             <th>Observações</th>
                             <th>Ações</th>
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.colaboradores.forEach(colaborador => {
                             const option = document.createElement('option');
                             option.value = colaborador.id;
-                            option.text = colaborador.nome;
+                            option.text = colaborador.nome + ' (' + (colaborador.tipo ? colaborador.tipo.charAt(0).toUpperCase() + colaborador.tipo.slice(1) : 'Colaborador') + ')';
                             
                             // Verificar se este era o valor selecionado anteriormente
                             if (selectedValue && colaborador.id == selectedValue) {
