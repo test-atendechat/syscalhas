@@ -39,8 +39,8 @@ function notificarNovoOrcamento($orcamento_id, $numero, $cliente_nome) {
     $link = "../orcamento_visualizar.php?id={$orcamento_id}";
     $mensagem = "NOVO ORÇAMENTO #{$numero} criado para {$cliente_nome}";
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'primary', $link);
+    // Adicionar notificação com a categoria "orcamentos"
+    return adicionarNotificacao($mensagem, 'primary', $link, 'orcamentos');
 }
 
 // Garantir acesso às variáveis globais de conexão
@@ -181,7 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             }
             
             // Criar o agendamento para visita técnica (orçamento)
-            $status = 'agendado';
+            // Usar status 'orcamento_agendado' pois será um agendamento com orçamentista
+            $status = 'orcamento_agendado';
             
             // Criar orçamento em branco para vincular ao agendamento
             // Calcula a data de validade (30 dias após a data atual)
