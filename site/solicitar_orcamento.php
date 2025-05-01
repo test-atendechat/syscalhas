@@ -19,7 +19,7 @@ $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $confi
 $mensagem = '';
 $data_selecionada = isset($_GET['data']) ? $_GET['data'] : date('Y-m-d');
 $orcamentista_id = isset($_GET['orcamentista_id']) ? intval($_GET['orcamentista_id']) : 0;
-$nome = $telefone = $email = $endereco = $cidade = $observacoes = '';
+$nome = $telefone = $email = $cpf_cnpj = $endereco = $cidade = $estado = $cep = $observacoes = '';
 
 // Duração padrão para visitas de orçamento (1 hora)
 $tempo_previsto = 1;
@@ -310,14 +310,29 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                         <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="cidade" class="form-label fw-bold required-field">Cidade</label>
-                        <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo htmlspecialchars($cidade); ?>" required>
+                        <label for="cpf_cnpj" class="form-label fw-bold">CPF/CNPJ</label>
+                        <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" value="<?php echo htmlspecialchars($cpf_cnpj); ?>">
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <label for="endereco" class="form-label fw-bold required-field">Endereço Completo</label>
                     <input type="text" class="form-control" id="endereco" name="endereco" value="<?php echo htmlspecialchars($endereco); ?>" required placeholder="Rua, número, bairro">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label for="cidade" class="form-label fw-bold required-field">Cidade</label>
+                        <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo htmlspecialchars($cidade); ?>" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="estado" class="form-label fw-bold">Estado</label>
+                        <input type="text" class="form-control" id="estado" name="estado" value="<?php echo htmlspecialchars($estado); ?>" placeholder="SP">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="cep" class="form-label fw-bold">CEP</label>
+                        <input type="text" class="form-control" id="cep" name="cep" value="<?php echo htmlspecialchars($cep); ?>" placeholder="00000-000">
+                    </div>
                 </div>
                 
                 <div class="mb-3">
