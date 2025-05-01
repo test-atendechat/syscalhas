@@ -273,7 +273,7 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $pdo->beginTransaction();
         
-        // Processar cada configuração
+        // Processar as configurações da tabela 'configuracoes'
         foreach ($configuracoes as $chave => $valor) {
             if (isset($_POST[$chave])) {
                 $novo_valor = trim($_POST[$chave]);
@@ -303,99 +303,116 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else if (strpos($chave, 'empresa_') === 0) {
                     $_SESSION['empresa_' . str_replace('empresa_', '', $chave)] = $novo_valor;
                 }
+            }
+        }
+        
+        // Processar configurações específicas por dia da semana
+        // Primeiro, verificar se a tabela existe
+        $stmt = $pdo->prepare("SELECT to_regclass('configuracoes_dias_semana')");
+        $stmt->execute();
+        $existe_tabela_dias = $stmt->fetchColumn();
+        
+        if ($existe_tabela_dias) {
+            // Para cada dia da semana (0 a 6)
+            for ($dia_semana = 0; $dia_semana <= 6; $dia_semana++) {
+                // Verifica se o dia está ativo (checkbox marcado)
+                $ativo = isset($_POST["dia_{$dia_semana}_ativo"]) ? true : false;
                 
-                // Atualizar o arquivo config.php para todas as configurações
-                $config_file = 'includes/config.php';
-                if (file_exists($config_file) && is_writable($config_file)) {
-                    try {
-                        // Escapar caracteres especiais no valor para evitar problemas com aspas
-                        $novo_valor_escapado = str_replace("'", "\'", $novo_valor);
-                        
-                        // Ler o conteúdo do arquivo
-                        $content = file_get_contents($config_file);
-                        
-                        // Mapeamento de chaves de configuração para constantes no config.php
-                        $mapeamento_constantes = [
-                            // Dados da empresa
-                            'empresa_nome' => 'APP_NAME',
-                            'empresa_telefone' => 'EMPRESA_TELEFONE',
-                            'empresa_email' => 'EMPRESA_EMAIL',
-                            'empresa_endereco' => 'EMPRESA_ENDERECO',
-                            'empresa_cnpj' => 'EMPRESA_CNPJ',
-                            
-                            // Configurações de Orçamentos
-                            'taxa_padrao_mao_obra' => 'TAXA_PADRAO_MAO_OBRA',
-                            'desconto_pagamento_vista' => 'DESCONTO_PAGAMENTO_VISTA',
-                            'max_parcelas' => 'MAX_PARCELAS',
-                            'dias_validade_orcamento' => 'DIAS_VALIDADE_ORCAMENTO',
-                            
-                            // Configurações de Horário de Funcionamento
-                            'horario_inicio' => 'HORARIO_INICIO',
-                            'horario_fim' => 'HORARIO_FIM',
-                            'dias_funcionamento' => 'DIAS_FUNCIONAMENTO',
-                            
-                            // Configurações de Indisponibilidade Automática
-                            'aplicar_indisponibilidade_automatica' => 'APLICAR_INDISPONIBILIDADE_AUTOMATICA',
-                            'horario_inicio_almoco' => 'HORARIO_INICIO_ALMOCO',
-                            'horario_fim_almoco' => 'HORARIO_FIM_ALMOCO',
-                            'tempo_indisponivel_entrada' => 'TEMPO_INDISPONIVEL_ENTRADA',
-                            
-                            // Configurações de Estoque
-                            'estoque_alerta_minimo' => 'ESTOQUE_ALERTA_MINIMO',
-                            
-                            // Configurações de Visitas Técnicas
-                            'tempo_visita_tecnica' => 'TEMPO_VISITA_TECNICA',
-                            'unidade_tempo_visita' => 'UNIDADE_TEMPO_VISITA',
-                            
-                            // Configurações de Aparência
-                            'cor_principal' => 'COR_PRINCIPAL',
-                            'cor_secundaria' => 'COR_SECUNDARIA',
-                            'cor_aprovado' => 'COR_APROVADO',
-                            'cor_pendente' => 'COR_PENDENTE',
-                            'cor_rejeitado' => 'COR_REJEITADO',
-                            'tema_sistema' => 'TEMA_SISTEMA',
-                            'estilo_menu' => 'ESTILO_MENU',
-                            
-                            // Configurações de Integrações
-                            'api_previsao_tempo' => 'API_PREVISAO_TEMPO',
-                            'api_previsao_tempo_key' => 'API_PREVISAO_TEMPO_KEY',
-                            'api_previsao_tempo_provider' => 'API_PREVISAO_TEMPO_PROVIDER',
-                            'cidade_previsao_tempo' => 'CIDADE_PREVISAO_TEMPO',
-                            'dias_reagendamento_chuva' => 'DIAS_REAGENDAMENTO_CHUVA'
-                        ];
-                        
-                        // Determinar qual constante atualizar com base no campo
-                        $constante = isset($mapeamento_constantes[$chave]) ? $mapeamento_constantes[$chave] : '';
-                        
-                        // Substituir o valor da constante
-                        if (!empty($constante)) {
-                            $pattern = "/define\('$constante', '.*?'\);/";
-                            $replacement = "define('$constante', '{$novo_valor_escapado}');";
-                            $content = preg_replace($pattern, $replacement, $content);
-                            
-                            // Escrever o conteúdo atualizado no arquivo
-                            file_put_contents($config_file, $content);
-                            error_log("Config.php atualizado: $constante = $novo_valor_escapado");
-                        }
-                    } catch (Exception $e) {
-                        error_log('Erro ao atualizar config.php para ' . $chave . ': ' . $e->getMessage());
-                        // Não lançar a exceção para continuar o processo mesmo se uma constante não puder ser atualizada
-                    }
+                // Obter os demais valores enviados pelo formulário
+                $horario_inicio = isset($_POST["dia_{$dia_semana}_horario_inicio"]) ? $_POST["dia_{$dia_semana}_horario_inicio"] : '07:00';
+                $horario_fim = isset($_POST["dia_{$dia_semana}_horario_fim"]) ? $_POST["dia_{$dia_semana}_horario_fim"] : '17:00';
+                $inicio_almoco = isset($_POST["dia_{$dia_semana}_horario_inicio_almoco"]) ? $_POST["dia_{$dia_semana}_horario_inicio_almoco"] : '11:00';
+                $fim_almoco = isset($_POST["dia_{$dia_semana}_horario_fim_almoco"]) ? $_POST["dia_{$dia_semana}_horario_fim_almoco"] : '12:00';
+                $tempo_indisponivel = isset($_POST["dia_{$dia_semana}_tempo_indisponivel_entrada"]) ? intval($_POST["dia_{$dia_semana}_tempo_indisponivel_entrada"]) : 30;
+                
+                // Verificar se este dia já existe na tabela
+                $stmt = $pdo->prepare("SELECT id FROM configuracoes_dias_semana WHERE dia_semana = ?");
+                $stmt->execute([$dia_semana]);
+                $existe_dia = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($existe_dia) {
+                    // Atualizar dia existente
+                    $stmt = $pdo->prepare("UPDATE configuracoes_dias_semana SET 
+                        horario_inicio = ?, 
+                        horario_fim = ?, 
+                        horario_inicio_almoco = ?, 
+                        horario_fim_almoco = ?, 
+                        tempo_indisponivel_entrada = ?, 
+                        funcionamento_ativo = ?
+                        WHERE dia_semana = ?");
+                    $stmt->execute([$horario_inicio, $horario_fim, $inicio_almoco, $fim_almoco, $tempo_indisponivel, $ativo, $dia_semana]);
                 } else {
-                    error_log('Não foi possível atualizar o arquivo de configuração. Verifique as permissões.');
+                    // Inserir novo dia
+                    $stmt = $pdo->prepare("INSERT INTO configuracoes_dias_semana 
+                        (dia_semana, horario_inicio, horario_fim, horario_inicio_almoco, horario_fim_almoco, tempo_indisponivel_entrada, funcionamento_ativo) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$dia_semana, $horario_inicio, $horario_fim, $inicio_almoco, $fim_almoco, $tempo_indisponivel, $ativo]);
                 }
                 
-                // Atualizar a variável local
-                $configuracoes[$chave] = $novo_valor;
+                // Atualizar as constantes correspondentes no config.php
+                // Exemplo: DIA_0_ATIVO, DIA_0_HORARIO_INICIO, etc.
+                $dia_ativo_config = "dia_{$dia_semana}_ativo";
+                $dia_inicio_config = "dia_{$dia_semana}_horario_inicio";
+                $dia_fim_config = "dia_{$dia_semana}_horario_fim";
+                $dia_inicio_almoco_config = "dia_{$dia_semana}_horario_inicio_almoco";
+                $dia_fim_almoco_config = "dia_{$dia_semana}_horario_fim_almoco";
+                $dia_tempo_indisponivel_config = "dia_{$dia_semana}_tempo_indisponivel_entrada";
+                
+                // Preparar valores para atualizar a tabela configuracoes que será sincronizada no config.php
+                $valor_ativo = $ativo ? 'sim' : 'nao';
+                
+                // Atualizar na tabela configuracoes (que é sincronizada com o config.php)
+                $configs_dia = [
+                    $dia_ativo_config => $valor_ativo,
+                    $dia_inicio_config => $horario_inicio,
+                    $dia_fim_config => $horario_fim,
+                    $dia_inicio_almoco_config => $inicio_almoco,
+                    $dia_fim_almoco_config => $fim_almoco,
+                    $dia_tempo_indisponivel_config => $tempo_indisponivel
+                ];
+                
+                foreach ($configs_dia as $chave => $valor) {
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM configuracoes WHERE chave = ?");
+                    $stmt->execute([$chave]);
+                    $existe = $stmt->fetchColumn();
+                    
+                    if ($existe) {
+                        $stmt = $pdo->prepare("UPDATE configuracoes SET valor = ? WHERE chave = ?");
+                        $stmt->execute([$valor, $chave]);
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (?, ?)");
+                        $stmt->execute([$chave, $valor]);
+                    }
+                }
             }
+        }
+        
+        // Sincronizar configurações com o arquivo config.php usando a função do sincronizador
+        require_once('includes/sincronizador_config.php');
+        if (function_exists('sincronizarConfiguracoesComArquivo')) {
+            sincronizarConfiguracoesComArquivo($pdo, true); // true = banco para arquivo
         }
         
         // Verificar se houve mudanças nas configurações de horário
         $horario_alterado = false;
         $campos_horario = ['horario_inicio', 'horario_fim', 'horario_inicio_almoco', 'horario_fim_almoco', 'tempo_indisponivel_entrada'];
         
+        // Garantir que a variável $config_db existe aqui
+        if (!isset($config_db) || !is_array($config_db)) {
+            $config_db = [];
+            // Recuperar valores atuais do banco
+            try {
+                $stmt = $pdo->query("SELECT chave, valor FROM configuracoes");
+                $config_db = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            } catch (Exception $e) {
+                // Em caso de erro, usar array vazio
+                error_log('Erro ao recuperar configurações atuais: ' . $e->getMessage());
+            }
+        }
+        
+        // Verificar se houve alteração em cada campo de horário
         foreach ($campos_horario as $campo) {
-            if (isset($_POST[$campo]) && $_POST[$campo] != $config_db[$campo]) {
+            if (isset($_POST[$campo]) && isset($config_db[$campo]) && $_POST[$campo] != $config_db[$campo]) {
                 $horario_alterado = true;
                 break;
             }
@@ -816,6 +833,13 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="alert alert-info mt-3">
                         <i class="fas fa-info-circle me-2"></i>As configurações por dia da semana substituem as configurações gerais para cada dia específico.
                         Isso permite, por exemplo, ter um horário reduzido para o sábado ou um período de almoço diferente em determinados dias.
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="criar_tabela_configuracoes_dias.php" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-database me-2"></i> Criar/Atualizar Tabela de Configurações por Dia
+                        </a>
+                        <div class="form-text">Use esta opção se as configurações por dia não estiverem sendo exibidas corretamente.</div>
                     </div>
                 </div>
             </div>
