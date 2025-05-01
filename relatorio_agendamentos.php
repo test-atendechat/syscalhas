@@ -68,7 +68,7 @@ if (!empty($sql_filtros)) {
 // Consulta de agendamentos
 $sql = "SELECT a.*, o.numero as codigo_orcamento, 
         (SELECT nome FROM clientes WHERE id = o.cliente_id) as cliente_nome, 
-        c.nome as colaborador_nome 
+        c.nome as colaborador_nome, c.tipo as colaborador_tipo 
         FROM agendamentos a 
         LEFT JOIN orcamentos o ON a.orcamento_id = o.id 
         LEFT JOIN colaboradores c ON a.instalador_id = c.id 
@@ -117,7 +117,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                         <option value="0">Todos os colaboradores</option>
                         <?php foreach ($colaboradores as $c): ?>
                             <option value="<?php echo $c['id']; ?>" <?php echo $colaborador_id == $c['id'] ? 'selected' : ''; ?>>
-                                <?php echo $c['nome']; ?>
+                                <?php echo $c['nome']; ?> (<?php echo ucfirst($c['tipo']); ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -237,7 +237,12 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <td><?php echo $data_inicio->format('d/m/Y H:i'); ?></td>
                                 <td><?php echo $data_fim->format('d/m/Y H:i'); ?></td>
-                                <td><?php echo $agendamento['colaborador_nome']; ?></td>
+                                <td>
+                                    <?php echo $agendamento['colaborador_nome']; ?>
+                                    <?php if (!empty($agendamento['colaborador_tipo'])): ?>
+                                        <span class="badge bg-info text-white"><?php echo ucfirst($agendamento['colaborador_tipo']); ?></span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo $agendamento['cliente_nome']; ?></td>
                                 <td>
                                     <?php if (!empty($agendamento['codigo_orcamento'])): ?>
