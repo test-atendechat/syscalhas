@@ -57,7 +57,11 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo (isset($titulo) && !empty($titulo)) ? $titulo . ' | ' . APP_NAME : APP_NAME; ?></title>
+    <title><?php 
+    // Usar o nome da empresa atualizado da sessão se existir
+    $nome_empresa = isset($_SESSION['nome_empresa_temp']) ? $_SESSION['nome_empresa_temp'] : APP_NAME;
+    echo (isset($titulo) && !empty($titulo)) ? $titulo . ' | ' . $nome_empresa : $nome_empresa; 
+?></title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -299,7 +303,7 @@ try {
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="dashboard.php">
-                <i class="fas fa-water me-2"></i><?php echo APP_NAME; ?>
+                <i class="fas fa-water me-2"></i><?php echo isset($_SESSION['nome_empresa_temp']) ? $_SESSION['nome_empresa_temp'] : APP_NAME; ?>
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
