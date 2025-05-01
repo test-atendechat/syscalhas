@@ -212,6 +212,29 @@ function formataValor($valor, $simbolo = 'R$') {
 }
 
 /**
+ * Formata um número de telefone para uso no WhatsApp (remove caracteres não numéricos)
+ * 
+ * @param string $telefone Número de telefone a ser formatado
+ * @return string Telefone formatado apenas com números
+ */
+function formataTelefoneWhatsApp($telefone) {
+    // Remove todos os caracteres não numéricos
+    $telefone = preg_replace('/[^0-9]/', '', $telefone);
+    
+    // Se o número começar com 0, remove o 0
+    if (substr($telefone, 0, 1) === '0') {
+        $telefone = substr($telefone, 1);
+    }
+    
+    // Adiciona o código do país (Brasil = 55) se não existir
+    if (strlen($telefone) <= 11 && substr($telefone, 0, 2) !== '55') {
+        $telefone = '55' . $telefone;
+    }
+    
+    return $telefone;
+}
+
+/**
  * Converte uma data no formato brasileiro (dd/mm/aaaa) para MySQL (aaaa-mm-dd)
  * 
  * @param string $data Data no formato brasileiro

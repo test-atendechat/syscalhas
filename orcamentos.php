@@ -73,7 +73,7 @@ $total_registros = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
 // Obter orçamentos
-$stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome, o.codigo_acesso 
+$stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome, c.telefone as cliente_telefone, o.codigo_acesso 
                      FROM orcamentos o
                      LEFT JOIN clientes c ON o.cliente_id = c.id
                      WHERE {$where}
