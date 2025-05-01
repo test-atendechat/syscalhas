@@ -927,7 +927,14 @@ if (!$acesso_interno) {
                     } else {
                         // Exibir mensagem de erro
                         const erroOption = document.createElement('option');
-                        erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
+                        // Verificar se é um erro de horário bloqueado (almoço ou outro período indisponível)
+                        if (data.mensagem && data.mensagem.includes('coincide com o período de almoço')) {
+                            erroOption.text = 'Horário de almoço: ' + data.mensagem;
+                        } else if (data.mensagem && data.mensagem.includes('período indisponível na abertura')) {
+                            erroOption.text = 'Período inicial: ' + data.mensagem;
+                        } else {
+                            erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
+                        }
                         erroOption.disabled = true;
                         colaboradorSelect.appendChild(erroOption);
                     }

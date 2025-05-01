@@ -462,8 +462,17 @@ for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_mi
                         }
                     } else {
                         // Exibir mensagem de erro
-                        mensagemOrcamentistas.textContent = 'Erro ao verificar orçamentistas disponíveis: ' + (data.mensagem || 'Erro desconhecido');
-                        mensagemOrcamentistas.className = 'alert alert-danger mt-2';
+                        // Verificar se é um erro de horário bloqueado (almoço ou outro período indisponível)
+                        if (data.mensagem && data.mensagem.includes('coincide com o período de almoço')) {
+                            mensagemOrcamentistas.textContent = data.mensagem;
+                            mensagemOrcamentistas.className = 'alert alert-warning mt-2';
+                        } else if (data.mensagem && data.mensagem.includes('período indisponível na abertura')) {
+                            mensagemOrcamentistas.textContent = data.mensagem;
+                            mensagemOrcamentistas.className = 'alert alert-warning mt-2';
+                        } else {
+                            mensagemOrcamentistas.textContent = 'Erro ao verificar orçamentistas disponíveis: ' + (data.mensagem || 'Erro desconhecido');
+                            mensagemOrcamentistas.className = 'alert alert-danger mt-2';
+                        }
                         mensagemOrcamentistas.style.display = 'block';
                     }
                 })
