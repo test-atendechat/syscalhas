@@ -24,10 +24,15 @@ try {
     // Define $pdo como alias para $db para compatibilidade com código existente
     $pdo = $db;
     
+    // Importar a funcionalidade de atualização automática
+    require_once('atualizacao_automatica.php');
+    
     // Verificar se deve executar a atualização automática
-    if (isset($verificar_atualizacao_automatica) && $verificar_atualizacao_automatica) {
-        if (function_exists('verificarAtualizacaoAutomatica')) {
+    if (isset($verificar_atualizacao_automatica) && $verificar_atualizacao_automatica && function_exists('verificarAtualizacaoAutomatica')) {
+        try {
             verificarAtualizacaoAutomatica();
+        } catch (Exception $e) {
+            // Silencia erros para não atrapalhar o uso normal do sistema
         }
     }
 } catch (PDOException $e) {
