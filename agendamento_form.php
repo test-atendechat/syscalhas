@@ -230,8 +230,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':hora_fim', $agendamento['hora_fim']);
             $stmt->bindParam(':status', $agendamento['status']);
             $stmt->bindParam(':previsao_tempo', $agendamento['previsao_tempo']);
-            $stmt->bindParam(':temperatura', $agendamento['temperatura']);
-            $stmt->bindParam(':umidade', $agendamento['umidade']);
+            
+            // Corrigir campos numéricos: garantir que valores vazios sejam convertidos para NULL ou 0
+            $temperatura = !empty($agendamento['temperatura']) ? $agendamento['temperatura'] : NULL;
+            $umidade = !empty($agendamento['umidade']) ? $agendamento['umidade'] : NULL;
+            
+            $stmt->bindParam(':temperatura', $temperatura);
+            $stmt->bindParam(':umidade', $umidade);
             $stmt->bindParam(':previsao_chuva', $agendamento['previsao_chuva'], PDO::PARAM_BOOL);
             $stmt->bindParam(':observacoes', $agendamento['observacoes']);
             $stmt->bindParam(':usuario_id', $agendamento['usuario_id'], PDO::PARAM_INT);
@@ -608,21 +613,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Atualizar informações do auxiliar ao selecionar um instalador
-    const instaladorSelect = document.getElementById('instalador_id');
-    const infoAuxiliar = document.getElementById('info-auxiliar');
+    // Funcionalidade para adicionar e remover instaladores
+    const instaladorSelect = document.getElementById('instalador_select');
+    const btnAdicionarInstalador = document.getElementById('adicionar_instalador');
+    const instaladoresSelecionados = document.getElementById('instaladores_selecionados');
     
-    if (instaladorSelect && infoAuxiliar) {
-        instaladorSelect.addEventListener('change', function() {
-            const instaladorId = this.value;
-            
-            if (instaladorId) {
-                infoAuxiliar.innerHTML = '<div class="d-flex align-items-center"><span class="badge bg-secondary me-2">Auxiliar do instalador selecionado</span></div>';
-            } else {
-                infoAuxiliar.innerHTML = '<span class="text-muted">O auxiliar será atribuído automaticamente</span>';
+    // Função para adicionar um instalador à lista
+    function adicionarInstalador() {
+        const instaladorId = instaladorSelect.value;
+        const instaladorNome = instaladorSelect.options[instaladorSelect.selectedIndex].text;
+        
+        // Verificar se já foi selecionado e se um instalador foi escolhido
+        if(!instaladorId) {
+            alert('Por favor, selecione um instalador.');
+            return;
+        }
+        
+        // Verificar se este instalador já foi adicionado
+        const instaladoresExistentes = document.querySelectorAll('input[name="instaladores[]"]');
+        for(let i = 0; i < instaladoresExistentes.length; i++) {
+            if(instaladoresExistentes[i].value === instaladorId) {
+                alert('Este instalador já foi adicionado.');
+                return;
             }
-        });
+        }
+        
+        // Criar elemento para o instalador selecionado
+        const item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+        item.innerHTML = `
+            <div><i class="fas fa-hard-hat me-2"></i>${instaladorNome}</div>
+            <input type="hidden" name="instaladores[]" value="${instaladorId}">
+            <button type="button" class="btn btn-sm btn-danger remover-instalador"><i class="fas fa-times"></i></button>
+        `;
+        
+        // Adicionar à lista
+        instaladoresSelecionados.appendChild(item);
+        
+        // Resetar o select
+        instaladorSelect.value = '';
     }
+    
+    // Adicionar evento de clique ao botão
+    btnAdicionarInstalador.addEventListener('click', adicionarInstalador);
+    
+    // Permitir pressionar Enter no select para adicionar
+    instaladorSelect.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            adicionarInstalador();
+        }
+    });
+    
+    // Lidar com a remoção de instaladores (delegação de eventos)
+    instaladoresSelecionados.addEventListener('click', function(e) {
+        if(e.target.classList.contains('remover-instalador') || e.target.parentElement.classList.contains('remover-instalador')) {
+            // Encontrar o elemento pai mais próximo que é um item da lista
+            const item = e.target.closest('.list-group-item');
+            if(item) {
+                item.remove();
+            }
+        }
+    });
     
     // Iniciar o carregamento dos horários disponíveis se há uma data selecionada
     if (dataInput.value) {
