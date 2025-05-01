@@ -71,6 +71,8 @@ try {
     <script src="https://unpkg.com/imask@7.1.3/dist/imask.js"></script>
     <!-- Estilos personalizados -->
     <link href="css/styles.css" rel="stylesheet">
+    <!-- Estilos específicos para impressão -->
+    <link href="css/print.css" rel="stylesheet" media="print">
     <?php if ($pagina_atual == 'dashboard.php'): ?>
     <link href="css/dashboard.css" rel="stylesheet">
     <?php endif; ?>
