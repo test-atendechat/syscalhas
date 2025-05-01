@@ -51,14 +51,20 @@ if (empty($data) || empty($hora)) {
     exit;
 }
 
-// Obter configurações de horário de funcionamento
-$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'tempo_visita_tecnica')");
+// Obter configurações de horário de funcionamento e indisponibilidade automática
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento', 'tempo_visita_tecnica', 'aplicar_indisponibilidade_automatica', 'tempo_indisponivel_entrada', 'horario_inicio_almoco', 'horario_fim_almoco')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
 $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
 $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
+
+// Configurações de indisponibilidade automática
+$aplicar_indisponibilidade = isset($config['aplicar_indisponibilidade_automatica']) ? ($config['aplicar_indisponibilidade_automatica'] == 'sim') : false;
+$tempo_indisponivel_entrada = isset($config['tempo_indisponivel_entrada']) ? (int)$config['tempo_indisponivel_entrada'] : 30;
+$horario_inicio_almoco = isset($config['horario_inicio_almoco']) ? $config['horario_inicio_almoco'] : '11:00';
+$horario_fim_almoco = isset($config['horario_fim_almoco']) ? $config['horario_fim_almoco'] : '12:00';
 
 // Usar o tempo previsto para visita técnica se estiver configurado (para visitas do site)
 $tempo_visita_tecnica = isset($config['tempo_visita_tecnica']) ? (int)$config['tempo_visita_tecnica'] : 30;
@@ -195,6 +201,44 @@ try {
         
         // Remover duplicatas
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
+    }
+    
+    // 4. Verificar indisponibilidades automáticas (horário de almoço e tempo após chegada)
+    if ($aplicar_indisponibilidade) {
+        // Converter horários para objetos DateTime para comparação
+        $hora_inicio_servico = $data_hora_inicio->format('H:i:s');
+        $hora_fim_servico = $data_hora_fim->format('H:i:s');
+        
+        // Verificar conflito com horário de almoço
+        $inicio_almoco = new DateTime($data . ' ' . $horario_inicio_almoco);
+        $fim_almoco = new DateTime($data . ' ' . $horario_fim_almoco);
+        
+        $conflito_almoco = (
+            ($data_hora_inicio <= $inicio_almoco && $data_hora_fim > $inicio_almoco) || // Serviço começa antes do almoço e termina durante
+            ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco) || // Serviço começa durante o almoço
+            ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $fim_almoco)        // Serviço engloba todo o almoço
+        );
+        
+        // Verificar conflito com tempo indisponível após chegada
+        $hora_chegada = new DateTime($data . ' ' . $horario_inicio); // Horário de abertura da empresa
+        $hora_disponivel = clone $hora_chegada;
+        $hora_disponivel->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
+        
+        $conflito_entrada = ($data_hora_inicio < $hora_disponivel);
+        
+        // Se houver conflito com almoço ou entrada, não há orçamentistas disponíveis
+        if ($conflito_almoco) {
+            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . ').';
+            echo json_encode($resposta);
+            exit;
+        }
+        
+        if ($conflito_entrada) {
+            $hora_disponivel_formatada = $hora_disponivel->format('H:i');
+            $resposta['mensagem'] = 'Este horário coincide com o período indisponível na abertura. Disponível a partir de ' . $hora_disponivel_formatada . '.';
+            echo json_encode($resposta);
+            exit;
+        }
     }
     
     // Buscar APENAS orçamentistas (não instaladores)

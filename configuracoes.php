@@ -539,6 +539,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    // Gerenciar configurações de indisponibilidade automática
+    const switchIndisponibilidade = document.getElementById('aplicar_indisponibilidade_switch');
+    const inputIndisponibilidade = document.getElementById('aplicar_indisponibilidade_automatica');
+    const configIndisponibilidade = document.getElementById('indisponibilidade_config');
+    
+    if (switchIndisponibilidade && inputIndisponibilidade && configIndisponibilidade) {
+        // Quando o switch mudar
+        switchIndisponibilidade.addEventListener('change', function() {
+            inputIndisponibilidade.value = this.checked ? 'sim' : 'nao';
+            if (this.checked) {
+                configIndisponibilidade.classList.remove('d-none');
+            } else {
+                configIndisponibilidade.classList.add('d-none');
+            }
+        });
+    }
 });
 </script>
 
