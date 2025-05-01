@@ -98,17 +98,27 @@ function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, 
  * @param string $hora_inicio Hora de início no formato HH:MM
  * @param string $cliente_nome Nome do cliente
  * @param int $tempo_restante Tempo restante em minutos
+ * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarLembreteAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $tempo_restante) {
+function notificarLembreteAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $tempo_restante, $status = 'agendado') {
     $link = "agendamento.php?id={$agendamento_id}";
     
+    // Determinar o tipo de atendimento com base no status
+    $tipo_atendimento = "Serviço";
+    
+    if ($status === 'orcamento_agendado') {
+        $tipo_atendimento = "Orçamento";
+    } else if ($status === 'instalacao_agendada') {
+        $tipo_atendimento = "Instalação";
+    }
+    
     if ($tempo_restante <= 60) {
-        $mensagem = "LEMBRETE URGENTE: Serviço para {$cliente_nome} agendado HOJE às {$hora_inicio} (em menos de 1 hora)";
+        $mensagem = "LEMBRETE URGENTE: {$tipo_atendimento} para {$cliente_nome} agendado HOJE às {$hora_inicio} (em menos de 1 hora)";
     } else if ($tempo_restante <= 180) {
-        $mensagem = "LEMBRETE PRÓXIMO: Serviço para {$cliente_nome} agendado HOJE às {$hora_inicio} (em menos de 3 horas)";
+        $mensagem = "LEMBRETE PRÓXIMO: {$tipo_atendimento} para {$cliente_nome} agendado HOJE às {$hora_inicio} (em menos de 3 horas)";
     } else {
-        $mensagem = "LEMBRETE: Serviço para {$cliente_nome} agendado para {$data_formatada} às {$hora_inicio}";
+        $mensagem = "LEMBRETE: {$tipo_atendimento} para {$cliente_nome} agendado para {$data_formatada} às {$hora_inicio}";
     }
     
     // Adicionar notificação categorizada

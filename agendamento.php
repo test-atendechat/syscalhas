@@ -228,7 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                     'reagendado', 
                     $data_hora_inicio->format('d/m/Y'),
                     $data_hora_inicio->format('H:i'),
-                    $dados_notificacao['cliente_nome']
+                    $dados_notificacao['cliente_nome'],
+                    $status
                 );
             } else {
                 $mensagem = alerta('Agendamento realizado com sucesso!', 'success');
@@ -239,7 +240,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                     $data_hora_inicio->format('d/m/Y'),
                     $data_hora_inicio->format('H:i'),
                     $dados_notificacao['cliente_nome'],
-                    $orcamento_id
+                    $orcamento_id,
+                    $status
                 );
             }
             
@@ -295,7 +297,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             }
             
             // Buscar dados do agendamento para notificação
-            $stmt = $pdo->prepare("SELECT a.data_agendamento, a.hora_inicio, cl.nome as cliente_nome
+            $stmt = $pdo->prepare("SELECT a.data_agendamento, a.hora_inicio, a.status, cl.nome as cliente_nome
                                FROM agendamentos a
                                JOIN orcamentos o ON o.id = a.orcamento_id
                                JOIN clientes cl ON cl.id = o.cliente_id
@@ -307,12 +309,15 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             // Criar notificação de cancelamento
             if ($dados_notificacao) {
                 $data_formatada = date('d/m/Y', strtotime($dados_notificacao['data_agendamento']));
+                // Pegar o status original antes de cancelar
+                $status_original = $dados_notificacao['status'];
                 notificarAlteracaoAgendamento(
                     $agendamento_id,
                     'cancelado',
                     $data_formatada,
                     $dados_notificacao['hora_inicio'],
-                    $dados_notificacao['cliente_nome']
+                    $dados_notificacao['cliente_nome'],
+                    $status_original
                 );
             }
             
