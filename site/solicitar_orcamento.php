@@ -109,9 +109,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     }
 }
 
-// Definir horários possíveis de trabalho (7h às 16h, intervalo de 1h)
+// Buscar configurações de horário do banco de dados
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Valores padrão caso não existam configurações
+$horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
+$horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+
+// Extrair hora e converter para número
+$hora_inicial = (int)substr($horario_inicio, 0, 2);
+$hora_final = (int)substr($horario_fim, 0, 2);
+
+// Gerar horários disponíveis baseados nas configurações
 $horarios_possiveis = [];
-for ($hora = 7; $hora < 16; $hora++) {
+for ($hora = $hora_inicial; $hora < $hora_final; $hora++) {
     $horarios_possiveis[] = sprintf("%02d:00:00", $hora);
 }
 ?>
