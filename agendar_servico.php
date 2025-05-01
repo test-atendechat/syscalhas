@@ -64,8 +64,11 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                      OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
                                      OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-                $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-                $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+                
+                $data_inicio_str = $data_hora_inicio->format('Y-m-d H:i:s');
+                $data_fim_str = $data_hora_fim->format('Y-m-d H:i:s');
+                $stmt->bindParam(':data_inicio', $data_inicio_str);
+                $stmt->bindParam(':data_fim', $data_fim_str);
                 $stmt->execute();
                 
                 if ($stmt->fetchColumn() > 0) {
@@ -84,8 +87,10 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                          OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
                                      ) 
                                      LIMIT 1");
-                $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-                $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+                $data_inicio_str = $data_hora_inicio->format('Y-m-d H:i:s');
+                $data_fim_str = $data_hora_fim->format('Y-m-d H:i:s');
+                $stmt->bindParam(':data_inicio', $data_inicio_str);
+                $stmt->bindParam(':data_fim', $data_fim_str);
                 $stmt->execute();
                 
                 if ($colaborador_disp = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -107,8 +112,11 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                 'agendado', :codigo_confirmacao, FALSE, NOW())");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-            $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-            $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+            
+            $data_inicio_final = $data_hora_inicio->format('Y-m-d H:i:s');
+            $data_fim_final = $data_hora_fim->format('Y-m-d H:i:s');
+            $stmt->bindParam(':data_inicio', $data_inicio_final);
+            $stmt->bindParam(':data_fim', $data_fim_final);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
             $stmt->execute();
             
