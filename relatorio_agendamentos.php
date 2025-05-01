@@ -94,15 +94,12 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-calendar-alt me-2"></i><?php echo $titulo_relatorio; ?></h1>
         <div>
-            <a href="dashboard.php" class="btn btn-outline-secondary mb-2">
+            <button type="button" class="btn btn-outline-primary me-2" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+            <a href="dashboard.php" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Voltar
             </a>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Relatório de Agendamentos</li>
-                </ol>
-            </nav>
         </div>
     </div>
     
