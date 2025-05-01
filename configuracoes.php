@@ -296,55 +296,93 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':valor', $novo_valor);
                 $stmt->execute();
                 
-                // Atualizar dados da empresa no config.php e salvar no banco simultaneamente
-                if (in_array($chave, ['empresa_nome', 'empresa_telefone', 'empresa_email', 'empresa_endereco', 'empresa_cnpj'])) {
-                    // Armazenar os dados na sessão para atualização imediata da interface
-                    if ($chave === 'empresa_nome') {
-                        $_SESSION['nome_empresa_temp'] = $novo_valor;
-                    } else {
-                        $_SESSION['empresa_' . str_replace('empresa_', '', $chave)] = $novo_valor;
-                    }
-                    
-                    // Atualizar o arquivo config.php
-                    $config_file = 'includes/config.php';
-                    if (file_exists($config_file) && is_writable($config_file)) {
-                        try {
-                            // Escapar caracteres especiais no valor para evitar problemas com aspas
-                            $novo_valor_escapado = str_replace("'", "\'", $novo_valor);
+                // Atualizar todas as configurações no config.php e salvar no banco simultaneamente
+                // Armazenar os dados da empresa na sessão para atualização imediata da interface
+                if ($chave === 'empresa_nome') {
+                    $_SESSION['nome_empresa_temp'] = $novo_valor;
+                } else if (strpos($chave, 'empresa_') === 0) {
+                    $_SESSION['empresa_' . str_replace('empresa_', '', $chave)] = $novo_valor;
+                }
+                
+                // Atualizar o arquivo config.php para todas as configurações
+                $config_file = 'includes/config.php';
+                if (file_exists($config_file) && is_writable($config_file)) {
+                    try {
+                        // Escapar caracteres especiais no valor para evitar problemas com aspas
+                        $novo_valor_escapado = str_replace("'", "\'", $novo_valor);
+                        
+                        // Ler o conteúdo do arquivo
+                        $content = file_get_contents($config_file);
+                        
+                        // Mapeamento de chaves de configuração para constantes no config.php
+                        $mapeamento_constantes = [
+                            // Dados da empresa
+                            'empresa_nome' => 'APP_NAME',
+                            'empresa_telefone' => 'EMPRESA_TELEFONE',
+                            'empresa_email' => 'EMPRESA_EMAIL',
+                            'empresa_endereco' => 'EMPRESA_ENDERECO',
+                            'empresa_cnpj' => 'EMPRESA_CNPJ',
                             
-                            // Ler o conteúdo do arquivo
-                            $content = file_get_contents($config_file);
+                            // Configurações de Orçamentos
+                            'taxa_padrao_mao_obra' => 'TAXA_PADRAO_MAO_OBRA',
+                            'desconto_pagamento_vista' => 'DESCONTO_PAGAMENTO_VISTA',
+                            'max_parcelas' => 'MAX_PARCELAS',
+                            'dias_validade_orcamento' => 'DIAS_VALIDADE_ORCAMENTO',
                             
-                            // Determinar qual constante atualizar com base no campo
-                            $constante = '';
-                            if ($chave === 'empresa_nome') {
-                                $constante = "APP_NAME";
-                            } else if ($chave === 'empresa_telefone') {
-                                $constante = "EMPRESA_TELEFONE";
-                            } else if ($chave === 'empresa_email') {
-                                $constante = "EMPRESA_EMAIL";
-                            } else if ($chave === 'empresa_endereco') {
-                                $constante = "EMPRESA_ENDERECO";
-                            } else if ($chave === 'empresa_cnpj') {
-                                $constante = "EMPRESA_CNPJ";
-                            }
+                            // Configurações de Horário de Funcionamento
+                            'horario_inicio' => 'HORARIO_INICIO',
+                            'horario_fim' => 'HORARIO_FIM',
+                            'dias_funcionamento' => 'DIAS_FUNCIONAMENTO',
                             
-                            // Substituir o valor da constante
-                            if (!empty($constante)) {
-                                $pattern = "/define\('$constante', '.*?'\);/";
-                                $replacement = "define('$constante', '{$novo_valor_escapado}');";
-                                $content = preg_replace($pattern, $replacement, $content);
-                                
-                                // Escrever o conteúdo atualizado no arquivo
-                                file_put_contents($config_file, $content);
-                            }
-                        } catch (Exception $e) {
-                            error_log('Erro ao atualizar config.php: ' . $e->getMessage());
-                            throw new Exception('Não foi possível atualizar o arquivo de configuração: ' . $e->getMessage());
+                            // Configurações de Indisponibilidade Automática
+                            'aplicar_indisponibilidade_automatica' => 'APLICAR_INDISPONIBILIDADE_AUTOMATICA',
+                            'horario_inicio_almoco' => 'HORARIO_INICIO_ALMOCO',
+                            'horario_fim_almoco' => 'HORARIO_FIM_ALMOCO',
+                            'tempo_indisponivel_entrada' => 'TEMPO_INDISPONIVEL_ENTRADA',
+                            
+                            // Configurações de Estoque
+                            'estoque_alerta_minimo' => 'ESTOQUE_ALERTA_MINIMO',
+                            
+                            // Configurações de Visitas Técnicas
+                            'tempo_visita_tecnica' => 'TEMPO_VISITA_TECNICA',
+                            'unidade_tempo_visita' => 'UNIDADE_TEMPO_VISITA',
+                            
+                            // Configurações de Aparência
+                            'cor_principal' => 'COR_PRINCIPAL',
+                            'cor_secundaria' => 'COR_SECUNDARIA',
+                            'cor_aprovado' => 'COR_APROVADO',
+                            'cor_pendente' => 'COR_PENDENTE',
+                            'cor_rejeitado' => 'COR_REJEITADO',
+                            'tema_sistema' => 'TEMA_SISTEMA',
+                            'estilo_menu' => 'ESTILO_MENU',
+                            
+                            // Configurações de Integrações
+                            'api_previsao_tempo' => 'API_PREVISAO_TEMPO',
+                            'api_previsao_tempo_key' => 'API_PREVISAO_TEMPO_KEY',
+                            'api_previsao_tempo_provider' => 'API_PREVISAO_TEMPO_PROVIDER',
+                            'cidade_previsao_tempo' => 'CIDADE_PREVISAO_TEMPO',
+                            'dias_reagendamento_chuva' => 'DIAS_REAGENDAMENTO_CHUVA'
+                        ];
+                        
+                        // Determinar qual constante atualizar com base no campo
+                        $constante = isset($mapeamento_constantes[$chave]) ? $mapeamento_constantes[$chave] : '';
+                        
+                        // Substituir o valor da constante
+                        if (!empty($constante)) {
+                            $pattern = "/define\('$constante', '.*?'\);/";
+                            $replacement = "define('$constante', '{$novo_valor_escapado}');";
+                            $content = preg_replace($pattern, $replacement, $content);
+                            
+                            // Escrever o conteúdo atualizado no arquivo
+                            file_put_contents($config_file, $content);
+                            error_log("Config.php atualizado: $constante = $novo_valor_escapado");
                         }
-                    } else {
-                        throw new Exception('Não foi possível atualizar o arquivo de configuração. Verifique as permissões.');
+                    } catch (Exception $e) {
+                        error_log('Erro ao atualizar config.php para ' . $chave . ': ' . $e->getMessage());
+                        // Não lançar a exceção para continuar o processo mesmo se uma constante não puder ser atualizada
                     }
+                } else {
+                    error_log('Não foi possível atualizar o arquivo de configuração. Verifique as permissões.');
                 }
                 
                 // Atualizar a variável local

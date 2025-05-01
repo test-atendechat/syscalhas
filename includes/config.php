@@ -10,6 +10,46 @@ define('EMPRESA_EMAIL', 'contato@sandrocalhas.com.br');
 define('EMPRESA_ENDERECO', 'Rua Carlos Pulici, 387, Vila Franco, Descalvado - SP');
 define('EMPRESA_CNPJ', '48.998.641/0001-03');
 
+// Configurações de Orçamentos
+define('TAXA_PADRAO_MAO_OBRA', '100');
+define('DESCONTO_PAGAMENTO_VISTA', '10');
+define('MAX_PARCELAS', '12');
+define('DIAS_VALIDADE_ORCAMENTO', '30');
+
+// Configurações de Horário de Funcionamento
+define('HORARIO_INICIO', '07:00');
+define('HORARIO_FIM', '17:00');
+define('DIAS_FUNCIONAMENTO', '1,2,3,4,5');
+
+// Configurações de Indisponibilidade Automática
+define('APLICAR_INDISPONIBILIDADE_AUTOMATICA', 'sim');
+define('HORARIO_INICIO_ALMOCO', '11:00');
+define('HORARIO_FIM_ALMOCO', '12:00');
+define('TEMPO_INDISPONIVEL_ENTRADA', '30');
+
+// Configurações de Estoque
+define('ESTOQUE_ALERTA_MINIMO', '50');
+
+// Configurações de Visitas Técnicas
+define('TEMPO_VISITA_TECNICA', '30');
+define('UNIDADE_TEMPO_VISITA', 'minutos');
+
+// Configurações de Aparência
+define('COR_PRINCIPAL', '#0d6efd');
+define('COR_SECUNDARIA', '#6c757d');
+define('COR_APROVADO', '#198754');
+define('COR_PENDENTE', '#ffc107');
+define('COR_REJEITADO', '#dc3545');
+define('TEMA_SISTEMA', 'light');
+define('ESTILO_MENU', 'black');
+
+// Configurações de Integrações
+define('API_PREVISAO_TEMPO', 'true');
+define('API_PREVISAO_TEMPO_KEY', '');
+define('API_PREVISAO_TEMPO_PROVIDER', 'openweathermap');
+define('CIDADE_PREVISAO_TEMPO', 'São Paulo');
+define('DIAS_REAGENDAMENTO_CHUVA', '2');
+
 // Iniciar sessão se ainda não foi iniciada
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
