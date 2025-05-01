@@ -259,8 +259,25 @@ try {
         }
     }
     
-    // Buscar colaboradores (tanto instaladores quanto orçamentistas)
-    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo'";
+    // Verificar o tipo de orçamento para mostrar apenas colaboradores adequados
+    // Se temos um parâmetro 'orcamento_id', verificar status do orçamento
+    $orcamento_id = isset($_GET['orcamento_id']) ? (int)$_GET['orcamento_id'] : 0;
+    $tipo_colaborador = 'orcamentista'; // Padrão para visitas técnicas
+    
+    if ($orcamento_id > 0) {
+        $stmt_orc = $pdo->prepare("SELECT status FROM orcamentos WHERE id = :id");
+        $stmt_orc->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+        $stmt_orc->execute();
+        $status_orcamento = $stmt_orc->fetchColumn();
+        
+        // Se o orçamento está aprovado, mostrar apenas instaladores
+        if ($status_orcamento == 'aprovado') {
+            $tipo_colaborador = 'instalador';
+        }
+    }
+    
+    // Buscar colaboradores do tipo apropriado
+    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo = :tipo_colaborador AND status = 'ativo'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
@@ -268,9 +285,11 @@ try {
     }
     
     // Adicionar a cláusula ORDER BY depois de todas as condições
-    $sql .= " ORDER BY tipo, nome";
+    $sql .= " ORDER BY nome";
     
-    $stmt = $pdo->query($sql);
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':tipo_colaborador', $tipo_colaborador, PDO::PARAM_STR);
+    $stmt->execute();
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Retornar resultado
