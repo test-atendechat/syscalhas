@@ -385,6 +385,38 @@ require_once('includes/header.php');
 
             </div>
 
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="tempo_previsto" class="form-label required-field">Tempo Previsto para Execução</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="tempo_previsto" name="tempo_previsto" value="<?php echo $tempo_previsto; ?>" min="1" required>
+                        <select class="form-select" id="unidade_tempo" name="unidade_tempo" style="max-width: 120px;">
+                            <option value="minutos" <?php echo ($unidade_tempo == 'minutos') ? 'selected' : ''; ?>>Minutos</option>
+                            <option value="horas" <?php echo ($unidade_tempo == 'horas') ? 'selected' : ''; ?>>Horas</option>
+                            <option value="dias" <?php echo ($unidade_tempo == 'dias') ? 'selected' : ''; ?>>Dias</option>
+                        </select>
+                    </div>
+                    <div class="invalid-feedback">Por favor, informe o tempo previsto de execução.</div>
+                    <small class="text-muted">Este tempo será usado para o agendamento do serviço.</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="colaborador_id" class="form-label">Instalador Responsável</label>
+                    <select class="form-select" id="colaborador_id" name="colaborador_id">
+                        <option value="">Selecione um instalador</option>
+                        <?php
+                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+                        $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        foreach($instaladores as $instalador) {
+                            $selected = ($instalador['id'] == $colaborador_id) ? 'selected' : '';
+                            echo "<option value=\"{$instalador['id']}\" {$selected}>{$instalador['nome']}</option>";
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted">O cliente poderá selecionar outro instalador disponível ao agendar.</small>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-12 mb-3">
                     <label for="observacoes" class="form-label">Observações</label>
