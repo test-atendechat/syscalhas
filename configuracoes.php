@@ -307,7 +307,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Se houve alteração nos horários e a configuração de indisponibilidade automática está ativada
         if ($horario_alterado && isset($_POST['aplicar_indisponibilidade_automatica']) && $_POST['aplicar_indisponibilidade_automatica'] == 'sim') {
             // Atualizar as indisponibilidades globais para todos os colaboradores
-            atualizarIndisponibilidadesColaboradores($pdo, $configuracoes);
+            try {
+                atualizarIndisponibilidadesColaboradores($pdo, $_POST);
+            } catch (Exception $ex) {
+                $mensagem .= alerta('Aviso: Houve um problema ao atualizar as indisponibilidades automáticas: ' . $ex->getMessage(), 'warning');
+            }
         }
         
         // Confirmar transação
@@ -473,6 +477,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         A indisponibilidade de entrada considera o tempo após o horário de abertura, e o período de almoço bloqueia agendamentos nesse intervalo.
                         O sistema também considerará serviços em andamento que se estendam durante o período de almoço, permitindo agendar novos serviços somente após o término destes.
                     </div>
+                    <button type="submit" name="atualizar_indisponibilidades" value="1" class="btn btn-warning">
+                        <i class="fas fa-sync-alt me-2"></i>Atualizar Indisponibilidades Agora
+                    </button>
+                    <div class="form-text">Clique para atualizar imediatamente as indisponibilidades de todos os colaboradores ativos sem precisar alterar outras configurações.</div>
                 </div>
             </div>
             
@@ -711,5 +719,123 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<?php
+/**
+ * Atualiza as indisponibilidades automáticas de todos os colaboradores
+ * com base nas configurações do sistema
+ *
+ * @param PDO $pdo Conexão com o banco de dados
+ * @param array $configs Array com as configurações atualizadas
+ * @return void
+ */
+function atualizarIndisponibilidadesColaboradores($pdo, $configs) {
+    // Obter configurações de horários
+    $horario_inicio = $configs['horario_inicio'] ?? '07:00';
+    $horario_inicio_almoco = $configs['horario_inicio_almoco'] ?? '11:00';
+    $horario_fim_almoco = $configs['horario_fim_almoco'] ?? '12:00';
+    $tempo_indisponivel_entrada = intval($configs['tempo_indisponivel_entrada'] ?? 30);
+    
+    // Buscar todos os colaboradores ativos
+    $stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE status = 'ativo'");
+    $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Iniciar transação para garantir integridade
+    $pdo->beginTransaction();
+    
+    try {
+        // Para cada colaborador, atualizar/criar registros de indisponibilidade automática
+        foreach ($colaboradores as $colaborador) {
+            // 1. Primeiro verificamos o registro de almoço
+            $stmt = $pdo->prepare("SELECT id FROM colaborador_agenda 
+                                 WHERE colaborador_id = :colaborador_id 
+                                 AND tipo = 'sistema' 
+                                 AND observacao LIKE '%Período de almoço%'");
+            $stmt->bindParam(':colaborador_id', $colaborador['id'], PDO::PARAM_INT);
+            $stmt->execute();
+            $registro_almoco = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($registro_almoco) {
+                // Atualizar registro existente de almoço
+                $stmt = $pdo->prepare("UPDATE colaborador_agenda 
+                                     SET hora_inicio = :hora_inicio, 
+                                         hora_fim = :hora_fim, 
+                                         disponivel = 0, 
+                                         recorrente = 1, 
+                                         dia_semana = NULL 
+                                     WHERE id = :id");
+                $stmt->bindParam(':hora_inicio', $horario_inicio_almoco);
+                $stmt->bindParam(':hora_fim', $horario_fim_almoco);
+                $stmt->bindParam(':id', $registro_almoco['id'], PDO::PARAM_INT);
+                $stmt->execute();
+            } else {
+                // Criar novo registro para almoço
+                $stmt = $pdo->prepare("INSERT INTO colaborador_agenda 
+                                    (colaborador_id, data_disponibilidade, hora_inicio, hora_fim, 
+                                     disponivel, observacao, recorrente, tipo) 
+                                    VALUES 
+                                    (:colaborador_id, CURRENT_DATE, :hora_inicio, :hora_fim, 
+                                     0, 'Período de almoço (Automático)', 1, 'sistema')");
+                $stmt->bindParam(':colaborador_id', $colaborador['id'], PDO::PARAM_INT);
+                $stmt->bindParam(':hora_inicio', $horario_inicio_almoco);
+                $stmt->bindParam(':hora_fim', $horario_fim_almoco);
+                $stmt->execute();
+            }
+            
+            // 2. Verificamos o registro de indisponibilidade após a abertura
+            if ($tempo_indisponivel_entrada > 0) {
+                // Calcular horário de fim da indisponibilidade (horário início + tempo indisponível)
+                $inicio_dt = new DateTime(date('Y-m-d') . ' ' . $horario_inicio);
+                $fim_dt = clone $inicio_dt;
+                $fim_dt->add(new DateInterval('PT' . $tempo_indisponivel_entrada . 'M'));
+                $hora_fim_indisponivel = $fim_dt->format('H:i:s');
+                
+                $stmt = $pdo->prepare("SELECT id FROM colaborador_agenda 
+                                     WHERE colaborador_id = :colaborador_id 
+                                     AND tipo = 'sistema' 
+                                     AND observacao LIKE '%Período indisponível após abertura%'");
+                $stmt->bindParam(':colaborador_id', $colaborador['id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $registro_entrada = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($registro_entrada) {
+                    // Atualizar registro existente de indisponibilidade na abertura
+                    $stmt = $pdo->prepare("UPDATE colaborador_agenda 
+                                         SET hora_inicio = :hora_inicio, 
+                                             hora_fim = :hora_fim, 
+                                             disponivel = 0, 
+                                             recorrente = 1, 
+                                             dia_semana = NULL 
+                                         WHERE id = :id");
+                    $stmt->bindParam(':hora_inicio', $horario_inicio);
+                    $stmt->bindParam(':hora_fim', $hora_fim_indisponivel);
+                    $stmt->bindParam(':id', $registro_entrada['id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                } else {
+                    // Criar novo registro para indisponibilidade na abertura
+                    $stmt = $pdo->prepare("INSERT INTO colaborador_agenda 
+                                        (colaborador_id, data_disponibilidade, hora_inicio, hora_fim, 
+                                         disponivel, observacao, recorrente, tipo) 
+                                        VALUES 
+                                        (:colaborador_id, CURRENT_DATE, :hora_inicio, :hora_fim, 
+                                         0, 'Período indisponível após abertura (Automático)', 1, 'sistema')");
+                    $stmt->bindParam(':colaborador_id', $colaborador['id'], PDO::PARAM_INT);
+                    $stmt->bindParam(':hora_inicio', $horario_inicio);
+                    $stmt->bindParam(':hora_fim', $hora_fim_indisponivel);
+                    $stmt->execute();
+                }
+            }
+        }
+        
+        // Confirmar todas as alterações
+        $pdo->commit();
+        return true;
+    } catch (Exception $e) {
+        // Reverter mudanças em caso de erro
+        $pdo->rollBack();
+        throw new Exception('Erro ao atualizar indisponibilidades: ' . $e->getMessage());
+    }
+}
+?>
 
 <?php require_once('includes/footer.php'); ?>
