@@ -68,7 +68,15 @@ $horario_fim_almoco = isset($config['horario_fim_almoco']) ? $config['horario_fi
 
 try {
     // Calcular data e hora de início
-    $data_inicio = $data . ' ' . $hora . ':00';
+    // Verificar se o formato da hora já inclui segundos
+    if (substr_count($hora, ':') >= 2) {
+        $data_inicio = $data . ' ' . $hora;
+    } else if (substr_count($hora, ':') == 1) {
+        $data_inicio = $data . ' ' . $hora . ':00';
+    } else {
+        $data_inicio = $data . ' ' . $hora . ':00:00';
+    }
+    
     $data_hora_inicio = new DateTime($data_inicio);
     
     // Converter tempo previsto para minutos
