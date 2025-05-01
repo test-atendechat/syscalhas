@@ -287,7 +287,7 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
                                 </td>
                                 <td>
                                     <span class="badge bg-<?php echo $badge_class; ?>">
-                                        <?php echo ucfirst($status); ?>
+                                        <?php echo isset($status_nomes[$status]) ? $status_nomes[$status] : ucfirst($status); ?>
                                     </span>
                                 </td>
                                 <td>

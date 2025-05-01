@@ -13,11 +13,22 @@ require_once(__DIR__ . '/includes/notificacoes.php');
  * @param string $hora_inicio Hora de início no formato HH:MM
  * @param string $cliente_nome Nome do cliente
  * @param int $orcamento_id ID do orçamento relacionado
+ * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $orcamento_id) {
+function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $orcamento_id, $status = 'agendado') {
     $link = "agendamento.php?id={$agendamento_id}&orcamento_id={$orcamento_id}";
-    $mensagem = "NOVO AGENDAMENTO: Serviço agendado para {$cliente_nome} no dia {$data_formatada} às {$hora_inicio}";
+    
+    // Determinar o tipo de agendamento com base no status
+    $tipo_agendamento = "Serviço";
+    
+    if ($status === 'orcamento_agendado') {
+        $tipo_agendamento = "Orçamento";
+    } else if ($status === 'instalacao_agendada') {
+        $tipo_agendamento = "Instalação";
+    }
+    
+    $mensagem = "NOVO AGENDAMENTO: {$tipo_agendamento} agendado para {$cliente_nome} no dia {$data_formatada} às {$hora_inicio}";
     
     // Adicionar notificação categorizada
     return adicionarNotificacao($mensagem, 'info', $link, 'agendamentos');
@@ -31,37 +42,47 @@ function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio
  * @param string $data_formatada Data do agendamento no formato dd/mm/aaaa
  * @param string $hora_inicio Hora de início no formato HH:MM
  * @param string $cliente_nome Nome do cliente
+ * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, $hora_inicio, $cliente_nome) {
+function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, $hora_inicio, $cliente_nome, $status = 'agendado') {
     $link = "agendamento.php?id={$agendamento_id}";
     $tipo_titulo = ucfirst($tipo);
     $icone = '';
     $tipo_notificacao = 'info';
     
+    // Determinar o tipo de atendimento com base no status
+    $tipo_atendimento = "Serviço";
+    
+    if ($status === 'orcamento_agendado') {
+        $tipo_atendimento = "Orçamento";
+    } else if ($status === 'instalacao_agendada') {
+        $tipo_atendimento = "Instalação";
+    }
+    
     switch ($tipo) {
         case 'reagendado':
-            $mensagem = "AGENDAMENTO ALTERADO: Serviço para {$cliente_nome} reagendado para {$data_formatada} às {$hora_inicio}";
+            $mensagem = "AGENDAMENTO ALTERADO: {$tipo_atendimento} para {$cliente_nome} reagendado para {$data_formatada} às {$hora_inicio}";
             $tipo_notificacao = 'warning';
             break;
             
         case 'cancelado':
-            $mensagem = "AGENDAMENTO CANCELADO: Serviço para {$cliente_nome} que seria no dia {$data_formatada} às {$hora_inicio} foi cancelado";
+            $mensagem = "AGENDAMENTO CANCELADO: {$tipo_atendimento} para {$cliente_nome} que seria no dia {$data_formatada} às {$hora_inicio} foi cancelado";
             $tipo_notificacao = 'danger';
             break;
             
         case 'finalizado':
-            $mensagem = "SERVIÇO FINALIZADO: Atendimento para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} foi concluído";
+            $mensagem = "{$tipo_atendimento} FINALIZADO: Atendimento para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} foi concluído";
             $tipo_notificacao = 'success';
             break;
             
         case 'andamento':
-            $mensagem = "SERVIÇO EM ANDAMENTO: Atendimento para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} está em execução";
+            $mensagem = "{$tipo_atendimento} EM ANDAMENTO: Atendimento para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} está em execução";
             $tipo_notificacao = 'primary';
             break;
             
         default:
-            $mensagem = "AGENDAMENTO {$tipo_titulo}: Serviço para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} foi atualizado";
+            $mensagem = "AGENDAMENTO {$tipo_titulo}: {$tipo_atendimento} para {$cliente_nome} do dia {$data_formatada} às {$hora_inicio} foi atualizado";
             break;
     }
     
