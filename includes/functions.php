@@ -309,16 +309,15 @@ function formaPagamentoParaTexto($forma) {
 }
 
 /**
- * Gera um número único para orçamento no formato ANO/MÊS/SEQUENCIAL
+ * Gera um número único para orçamento no formato ANO/SEQUENCIAL
  * 
- * @return string Número do orçamento
+ * @return string Número do orçamento no formato YYYY/0000
  */
 function gerarNumeroOrcamento() {
     global $db;
     
     $ano = date('Y');
-    $mes = date('m');
-    $prefixo = "{$ano}/{$mes}/";
+    $prefixo = "{$ano}/";
     
     // Buscar o último número de orçamento com este prefixo
     $stmt = $db->prepare("SELECT numero FROM orcamentos WHERE numero LIKE :prefixo ORDER BY id DESC LIMIT 1");
@@ -329,7 +328,7 @@ function gerarNumeroOrcamento() {
     if ($stmt->rowCount() > 0) {
         $ultimoNumero = $stmt->fetch(PDO::FETCH_COLUMN);
         $partes = explode('/', $ultimoNumero);
-        $sequencial = intval($partes[2]) + 1;
+        $sequencial = intval(end($partes)) + 1;
     } else {
         $sequencial = 1;
     }
