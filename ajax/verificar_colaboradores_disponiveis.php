@@ -4,10 +4,8 @@ require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
 // Garantir que temos uma conexão com o banco de dados
-// Importante: inclui db.php para ter acesso a $db e $pdo
-// Estas variáveis já devem estar definidas pelo include acima
-
-// Se não estiverem definidas, tenta inicializá-las
+// Os arquivos incluídos já devem ter definido as variáveis $db e $pdo
+// Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
 if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
     try {
@@ -184,8 +182,10 @@ try {
                                   OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
                               )");
     $stmt_recorrente->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
-    $stmt_recorrente->bindParam(':hora_inicio', $data_hora_inicio->format('H:i:s'));
-    $stmt_recorrente->bindParam(':hora_fim', $data_hora_fim->format('H:i:s'));
+    $hora_inicio_recorrente = $data_hora_inicio->format('H:i:s');
+    $hora_fim_recorrente = $data_hora_fim->format('H:i:s');
+    $stmt_recorrente->bindParam(':hora_inicio', $hora_inicio_recorrente);
+    $stmt_recorrente->bindParam(':hora_fim', $hora_fim_recorrente);
     $stmt_recorrente->execute();
     
     // Adicionar colaboradores com indisponibilidade recorrente ao array de ocupados

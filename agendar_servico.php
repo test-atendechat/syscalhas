@@ -131,10 +131,10 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Inserir agendamento
             $stmt = $db->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
-                                status, codigo_confirmacao, cliente_agendou, criado_em)
+                                status, codigo_confirmacao, cliente_agendou, criado_em, data_agendamento)
                                 VALUES (
                                 :orcamento_id, :instalador_id, :data_inicio, :data_fim, 
-                                'agendado', :codigo_confirmacao, TRUE, NOW())");
+                                'agendado', :codigo_confirmacao, TRUE, NOW(), :data_agendamento)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
             

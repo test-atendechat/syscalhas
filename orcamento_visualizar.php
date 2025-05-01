@@ -4,10 +4,8 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 
 // Garantir que temos uma conexão com o banco de dados
-// Importante: inclui db.php para ter acesso a $db e $pdo
-// Estas variáveis já devem estar definidas pelo include acima
-
-// Se não estiverem definidas, tenta inicializá-las
+// Os arquivos incluídos já devem ter definido as variáveis $db e $pdo
+// Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
 if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
     try {
