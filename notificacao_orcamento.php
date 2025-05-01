@@ -34,7 +34,6 @@ function notificarOrcamento($orcamento_id, $tipo, $dados_adicionais = []) {
     
     $link = "orcamento_visualizar.php?id={$orcamento_id}";
     $tipo_notificacao = 'info';
-    $som = 'notification';
     
     // Definir mensagem e tipo de notificação com base no tipo de evento
     switch ($tipo) {
@@ -79,8 +78,8 @@ function notificarOrcamento($orcamento_id, $tipo, $dados_adicionais = []) {
             break;
     }
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, $tipo_notificacao, $link, $som);
+    // Adicionar notificação (sem som)
+    return adicionarNotificacao($mensagem, $tipo_notificacao, $link);
 }
 
 /**

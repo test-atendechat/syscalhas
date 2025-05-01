@@ -2,22 +2,10 @@
  * Sistema de Notificações
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // Pré-carregar efeitos sonoros
-    const sons = {
-        notification: new Audio('sounds/notification.mp3'),
-        success: new Audio('sounds/success.mp3'),
-        warning: new Audio('sounds/warning.mp3'),
-        danger: new Audio('sounds/danger.mp3'),
-        cash: new Audio('sounds/cash.mp3')
-    };
-    
-    // Função para reproduzir som
+    // Função vazia para compatibilidade (sons removidos)
     function reproduzirSom(tipo) {
-        if (sons[tipo]) {
-            sons[tipo].play().catch(e => console.log('Não foi possível reproduzir o som:', e));
-        } else {
-            sons.notification.play().catch(e => console.log('Não foi possível reproduzir o som:', e));
-        }
+        // Sons foram removidos conforme solicitado
+        return;
     }
     // Elementos do DOM
     const notificacoesToggle = document.getElementById('notificacoes-toggle');
@@ -133,21 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     renderizarNotificacoes();
                     atualizarContador();
                     
-                    // Verificar se há novas notificações e reproduzir som
-                    if (quantidadeNaoLidas > ultimaQuantidade) {
-                        // Verificar se há notificações de pagamento para reproduzir som de dinheiro
-                        const novasNotificacoes = notificacoes.filter(n => !n.lida);
-                        const temPagamento = novasNotificacoes.some(n => 
-                            n.mensagem.includes('PAGAMENTO') || n.mensagem.includes('pagamento'));
-                        
-                        if (temPagamento) {
-                            reproduzirSom('cash');
-                        } else {
-                            // Usar o tipo da primeira notificação não lida ou som padrão
-                            const tipoSom = novasNotificacoes.length > 0 ? novasNotificacoes[0].tipo : 'notification';
-                            reproduzirSom(tipoSom);
-                        }
-                    }
+                    // As notificações sonoras foram removidas conforme solicitado
+                    // Mantemos apenas a atualização visual
                 }
             })
             .catch(error => console.error('Erro ao buscar notificações:', error));
