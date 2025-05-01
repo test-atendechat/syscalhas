@@ -228,6 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
     $id = intval($_POST['id']);
 
     if ($decisao == 'aprovar' || $decisao == 'rejeitar') {
+        // Incluir bibliotecas necessárias para notificações
+        require_once('includes/notificacoes.php');
+        
         $novo_status = ($decisao == 'aprovar') ? 'aprovado' : 'rejeitado';
 
         $stmt = $pdo->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
@@ -270,6 +273,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
 
                 $pdo->commit();
                 $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
+                
+                // Adicionar notificação de orçamento aprovado
+                adicionarNotificacao(
+                    "Orçamento #{$orcamento['numero']} foi APROVADO!", 
+                    'success', 
+                    "orcamento_visualizar.php?id={$id}"
+                );
             } catch (Exception $e) {
                 try {
                     $pdo->rollBack(); // Corrigido para rollBack() com B maiúsculo
@@ -280,6 +290,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
             }
         } else {
             $mensagem = alerta('Orçamento rejeitado com sucesso.', 'warning');
+            
+            // Adicionar notificação de orçamento rejeitado
+            adicionarNotificacao(
+                "Orçamento #{$orcamento['numero']} foi REJEITADO", 
+                'danger', 
+                "orcamento_visualizar.php?id={$id}"
+            );
         }
 
         // Recarregar orçamento com status atualizado
