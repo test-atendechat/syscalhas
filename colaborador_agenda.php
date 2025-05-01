@@ -152,22 +152,35 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
     $registro_id = intval($_GET['registro_id']);
     
     try {
-        $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
-        $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
-        $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
-        $stmt->execute();
+        // Verificar primeiro se o registro é automático
+        $stmt_verificar = $pdo->prepare("SELECT tipo FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
+        $stmt_verificar->bindParam(':id', $registro_id, PDO::PARAM_INT);
+        $stmt_verificar->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+        $stmt_verificar->execute();
+        $tipo_registro = $stmt_verificar->fetchColumn();
         
-        if ($stmt->rowCount() > 0) {
-            $mensagem = alerta('Registro de disponibilidade excluído com sucesso!', 'success');
-            
-            // Atualizar lista de disponibilidades
-            $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+        // Se o registro for do tipo 'sistema', não permitir exclusão
+        if ($tipo_registro === 'sistema') {
+            $mensagem = alerta('Não é possível excluir registros automáticos de indisponibilidade. Eles são gerenciados pelas configurações do sistema.', 'warning');
+        } else {
+            // Excluir o registro normalmente se não for automático
+            $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id AND (tipo IS NULL OR tipo != 'sistema')");
+            $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->execute();
-            $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $mensagem = alerta('Registro não encontrado ou você não tem permissão para excluí-lo.', 'danger');
+            
+            if ($stmt->rowCount() > 0) {
+                $mensagem = alerta('Registro de disponibilidade excluído com sucesso!', 'success');
+            } else {
+                $mensagem = alerta('Registro não encontrado ou você não tem permissão para excluí-lo.', 'danger');
+            }
         }
+        
+        // Atualizar lista de disponibilidades
+        $stmt = $pdo->prepare("SELECT * FROM colaborador_agenda WHERE colaborador_id = :colaborador_id ORDER BY data_disponibilidade, hora_inicio");
+        $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $disponibilidades = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $mensagem = alerta('Erro ao excluir registro: ' . $e->getMessage(), 'danger');
     }
