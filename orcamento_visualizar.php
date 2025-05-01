@@ -326,6 +326,55 @@ if (isset($_GET['id'])) {
     exit;
 }
 
+// Processar aprovação ou rejeição do agendamento
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])) {
+    $decisao = $_POST['agendamento_decisao'];
+    $id = intval($_POST['id']);
+    $agendamento_id = intval($_POST['agendamento_id']);
+    
+    if ($decisao == 'aprovar' || $decisao == 'reprovar') {
+        // Incluir bibliotecas necessárias para notificações
+        require_once('includes/notificacoes.php');
+        
+        if ($decisao == 'aprovar') {
+            // Atualizar o status do agendamento para 'orcamento_agendado'
+            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
+            $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // Atualizar o status_execucao do orçamento
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'orcamento_agendado' WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $mensagem = alerta('Agendamento aprovado e confirmado com sucesso!', 'success');
+            
+            // Adicionar notificação
+            adicionarNotificacao(
+                "Agendamento do orçamento #{$orcamento['numero']} foi APROVADO!", 
+                'success', 
+                "orcamento_visualizar.php?id={$id}",
+                'agendamentos'
+            );
+        } else {
+            // Reprovar o agendamento
+            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
+            $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $mensagem = alerta('Agendamento reprovado com sucesso.', 'warning');
+            
+            // Adicionar notificação
+            adicionarNotificacao(
+                "Agendamento do orçamento #{$orcamento['numero']} foi REPROVADO!", 
+                'danger', 
+                "orcamento_visualizar.php?id={$id}",
+                'agendamentos'
+            );
+        }
+    }
+}
+
 // Processar decisão do cliente ou administrador (aprovar/rejeitar)
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
     $decisao = $_POST['decisao'];
@@ -848,6 +897,22 @@ if (!$acesso_interno) {
                             <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
                         </button>
                     </form>
+
+                    <?php if (isset($agendamento) && $agendamento && $agendamento['status'] == 'pendente'): ?>
+                    <div class="mt-3 border-top pt-3">
+                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Solicitação de orçamento aguardando verificação</p>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+                            <input type="hidden" name="agendamento_id" value="<?php echo $agendamento['id']; ?>">
+                            <button type="submit" name="agendamento_decisao" value="aprovar" class="btn btn-outline-success mx-2">
+                                <i class="fas fa-calendar-check me-2"></i>Aprovar Agendamento
+                            </button>
+                            <button type="submit" name="agendamento_decisao" value="reprovar" class="btn btn-outline-danger mx-2">
+                                <i class="fas fa-calendar-times me-2"></i>Reprovar Agendamento
+                            </button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>
