@@ -152,19 +152,19 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
     $registro_id = intval($_GET['registro_id']);
     
     try {
-        // Verificar primeiro se o registro é automático
-        $stmt_verificar = $pdo->prepare("SELECT tipo FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
+        // Verificar se é um registro automático pela observação
+        $stmt_verificar = $pdo->prepare("SELECT observacao FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
         $stmt_verificar->bindParam(':id', $registro_id, PDO::PARAM_INT);
         $stmt_verificar->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
         $stmt_verificar->execute();
-        $tipo_registro = $stmt_verificar->fetchColumn();
+        $observacao = $stmt_verificar->fetchColumn();
         
-        // Se o registro for do tipo 'sistema', não permitir exclusão
-        if ($tipo_registro === 'sistema') {
+        // Se o registro tiver texto indicando que é automático, não permitir exclusão
+        if (strpos($observacao, '(automático)') !== false) {
             $mensagem = alerta('Não é possível excluir registros automáticos de indisponibilidade. Eles são gerenciados pelas configurações do sistema.', 'warning');
         } else {
             // Excluir o registro normalmente se não for automático
-            $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id AND (tipo IS NULL OR tipo != 'sistema')");
+            $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id AND (observacao NOT LIKE '%automático%' OR observacao IS NULL)");
             $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->execute();
