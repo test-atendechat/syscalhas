@@ -26,7 +26,7 @@ function atualizarIndisponibilidadesColaboradores($pdo, $config) {
         
         if (!$existe_tabela) {
             // Se a tabela não existe, não há o que atualizar
-            return;
+            return false;
         }
         
         // Calcular horário do fim da indisponibilidade de entrada
@@ -255,9 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['atualizar_indisponibil
         }
         
         $pdo->commit();
+        return true;
     } catch (Exception $e) {
         $pdo->rollback();
         $mensagem = alerta('Erro ao atualizar indisponibilidades: ' . $e->getMessage(), 'danger');
+        return false;
     }
 }
 // Processar formulário geral quando enviado
