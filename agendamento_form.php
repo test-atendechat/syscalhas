@@ -698,6 +698,82 @@ document.addEventListener('DOMContentLoaded', function() {
     btnAdicionarInstalador.addEventListener('click', adicionarInstalador);
     
     // Permitir pressionar Enter no select para adicionar
+    
+    // Lógica para atualizar hora_fim automaticamente com base no tempo previsto do orçamento
+    const horaInicio = document.getElementById('hora_inicio');
+    const horaFim = document.getElementById('hora_fim');
+    const orcamentoSelect = document.getElementById('orcamento_id');
+    
+    // Armazenar o tempo previsto em horas do orçamento
+    const tempoPrevisto = <?php echo $agendamento['tempo_previsto_horas']; ?>;
+    
+    // Função para calcular novo horário de fim com base na hora de início e tempo previsto
+    function calcularHoraFim() {
+        // Obter hora selecionada
+        const horaInicioSelecionada = horaInicio.value;
+        
+        // Converter para objeto Date para facilitar cálculos
+        const [horas, minutos] = horaInicioSelecionada.split(':');
+        const dataBase = new Date();
+        dataBase.setHours(parseInt(horas));
+        dataBase.setMinutes(parseInt(minutos));
+        
+        // Adicionar o tempo previsto em horas
+        dataBase.setTime(dataBase.getTime() + (tempoPrevisto * 60 * 60 * 1000));
+        
+        // Formatar a nova hora
+        const horasNovas = String(dataBase.getHours()).padStart(2, '0');
+        const minutosNovos = String(dataBase.getMinutes()).padStart(2, '0');
+        const horaFimCalculada = `${horasNovas}:${minutosNovos}`;
+        
+        // Selecionar opção mais próxima no select de hora_fim
+        let melhorOpcao = null;
+        let menorDiferenca = Infinity;
+        
+        for (let i = 0; i < horaFim.options.length; i++) {
+            const opcao = horaFim.options[i].value;
+            const [h, m] = opcao.split(':');
+            const dataOpcao = new Date();
+            dataOpcao.setHours(parseInt(h));
+            dataOpcao.setMinutes(parseInt(m));
+            
+            // Calcular diferença em minutos
+            const diferenca = Math.abs(dataOpcao.getTime() - dataBase.getTime()) / (60 * 1000);
+            
+            if (diferenca < menorDiferenca) {
+                menorDiferenca = diferenca;
+                melhorOpcao = i;
+            }
+        }
+        
+        // Selecionar a melhor opção
+        if (melhorOpcao !== null) {
+            horaFim.selectedIndex = melhorOpcao;
+        }
+    }
+    
+    // Atualizar hora de fim quando mudar hora de início
+    horaInicio.addEventListener('change', calcularHoraFim);
+    
+    // Atualizar hora de fim quando mudar orçamento (buscar o tempo previsto via AJAX)
+    orcamentoSelect.addEventListener('change', function() {
+        const orcamentoId = this.value;
+        if (!orcamentoId) return;
+        
+        // Buscar o tempo previsto do orçamento via AJAX
+        fetch(`ajax/buscar_tempo_previsto.php?orcamento_id=${orcamentoId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    // Atualizar o tempo previsto e recalcular hora fim
+                    tempoPrevisto = data.tempo_previsto_horas;
+                    calcularHoraFim();
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar o tempo previsto:', error);
+            });
+    });
     instaladorSelect.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();

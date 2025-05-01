@@ -386,6 +386,7 @@ if (!$acesso_interno) {
                 <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
                 <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
                 <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
+                <p class="mb-0"><strong>Tempo Previsto:</strong> <?php echo isset($orcamento['tempo_previsto_horas']) ? $orcamento['tempo_previsto_horas'] . ' hora(s)' : '2 horas'; ?></p>
 
             </div>
         </div>
