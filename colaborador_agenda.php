@@ -246,7 +246,7 @@ require_once('includes/header.php');
                                     <i class="fas fa-times-circle text-danger me-1"></i> Registrar indisponibilidade
                                 </label>
                                 <div id="motivo_indisponibilidade" class="mt-2" style="display: none;">
-                                    <select class="form-select form-select-sm" id="tipo_indisponibilidade">
+                                    <select class="form-select form-select-sm" id="tipo_indisponibilidade" name="tipo_indisponibilidade">
                                         <option value="Férias">Férias</option>
                                         <option value="Licença médica">Licença médica</option>
                                         <option value="Compromisso pessoal">Compromisso pessoal</option>
@@ -286,7 +286,7 @@ require_once('includes/header.php');
                             <button type="submit" class="btn btn-primary" id="btnSalvar">
                                 <i class="fas fa-save me-2"></i>Salvar Disponibilidade
                             </button>
-                            <button type="submit" class="btn btn-warning" id="btnSalvarIndisponibilidade" style="display: none;">
+                            <button type="submit" class="btn btn-warning" id="btnSalvarIndisponibilidade" name="btnSalvarIndisponibilidade" style="display: none;">
                                 <i class="fas fa-ban me-2"></i>Registrar Indisponibilidade
                             </button>
                         </div>
