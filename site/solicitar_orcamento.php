@@ -31,8 +31,8 @@ function notificarSolicitacaoOrcamento($cliente_id, $cliente_nome, $dados_adicio
         $mensagem .= " para {$data_formatada} às {$dados_adicionais['hora_inicio']}";
     }
     
-    // Adicionar notificação
-    return adicionarNotificacao($mensagem, 'warning', $link);
+    // Adicionar notificação com a categoria "solicitacoes"
+    return adicionarNotificacao($mensagem, 'warning', $link, 'solicitacoes');
 }
 
 function notificarNovoOrcamento($orcamento_id, $numero, $cliente_nome) {
