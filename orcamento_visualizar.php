@@ -766,7 +766,9 @@ if (!$acesso_interno) {
                         // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
                         $selected_id = $orcamento['colaborador_id'] ?? 0;
                         if ($selected_id > 0) {
-                            $stmt = $db->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
+                            // Usar a conexão já estabelecida
+                            require_once 'includes/db.php';
+                            $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
                             $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
                             $stmt->execute();
                             if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {

@@ -78,6 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->bindParam(':valor', $novo_valor);
                 $stmt->execute();
                 
+                // Se estivermos atualizando o nome da empresa, atualizar o arquivo config.php
+                if ($chave === 'nome_empresa') {
+                    $config_file = 'includes/config.php';
+                    $config_content = file_get_contents($config_file);
+                    $config_content = preg_replace("/define\('APP_NAME', '.*?'\);/", "define('APP_NAME', '{$novo_valor}');", $config_content);
+                    file_put_contents($config_file, $config_content);
+                }
+                
                 // Atualizar a variável local
                 $configuracoes[$chave] = $novo_valor;
             }
