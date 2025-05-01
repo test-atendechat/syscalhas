@@ -63,9 +63,30 @@ try {
     $data_inicio = $data . ' ' . $hora;
     $data_hora_inicio = new DateTime($data_inicio);
     
-    // Calcular data e hora de término (1 hora após início para visitas técnicas)
+    // Buscar configurações de tempo para visita técnica
+    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'tempo_visita_tecnica' LIMIT 1");
+    $stmt->execute();
+    $tempo_visita = $stmt->fetchColumn() ?: 60; // Tempo padrão: 60 minutos se não configurado
+    
+    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'unidade_tempo_visita' LIMIT 1");
+    $stmt->execute();
+    $unidade_tempo = $stmt->fetchColumn() ?: 'minutos'; // Unidade padrão: minutos
+    
+    // Calcular duração em minutos
+    $duracao_minutos = ($unidade_tempo == 'horas') ? ($tempo_visita * 60) : $tempo_visita;
+    
+    // Paramètros opcionais da query
+    $tempo_previsto = isset($_GET['tempo_previsto']) ? intval($_GET['tempo_previsto']) : $tempo_visita;
+    $unidade_tempo_param = isset($_GET['unidade_tempo']) ? $_GET['unidade_tempo'] : $unidade_tempo;
+    
+    // Usar os parâmetros fornecidos ou voltar para as configurações
+    if ($tempo_previsto > 0) {
+        $duracao_minutos = ($unidade_tempo_param == 'horas') ? ($tempo_previsto * 60) : $tempo_previsto;
+    }
+    
+    // Calcular data e hora de término com base nas configurações
     $data_hora_fim = clone $data_hora_inicio;
-    $data_hora_fim->add(new DateInterval('PT1H')); // 1 hora
+    $data_hora_fim->add(new DateInterval('PT' . $duracao_minutos . 'M'));
     
     // Verificar se a data é um dia de funcionamento
     $dia_semana = date('N', strtotime($data)); // Retorna 1 (segunda) a 7 (domingo)

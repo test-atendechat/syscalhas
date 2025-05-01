@@ -30,8 +30,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     $observacoes = trim($_POST['observacoes']);
     $orcamentista_id = intval($_POST['orcamentista_id']);
     
-    // Calcular hora de fim (1 hora após a hora de início)
-    $hora_fim = date('H:i:s', strtotime($hora_inicio . ' + 1 hour'));
+    // Buscar configurações de tempo para visita técnica
+    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'tempo_visita_tecnica' LIMIT 1");
+    $stmt->execute();
+    $tempo_visita = $stmt->fetchColumn() ?: 60; // Tempo padrão: 60 minutos se não configurado
+    
+    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'unidade_tempo_visita' LIMIT 1");
+    $stmt->execute();
+    $unidade_tempo = $stmt->fetchColumn() ?: 'minutos'; // Unidade padrão: minutos
+    
+    // Calcular duração em minutos
+    $duracao_minutos = ($unidade_tempo == 'horas') ? ($tempo_visita * 60) : $tempo_visita;
+    
+    // Calcular hora de fim com base nas configurações
+    $hora_fim = date('H:i:s', strtotime($hora_inicio . ' + ' . $duracao_minutos . ' minutes'));
     
     // Validar campos obrigatórios
     if (empty($nome) || empty($telefone) || empty($endereco) || empty($cidade) || empty($data_agendamento) || empty($hora_inicio) || $orcamentista_id <= 0) {

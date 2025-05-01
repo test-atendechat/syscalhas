@@ -27,6 +27,9 @@ $configuracoes = [
     'desconto_pagamento_vista' => 10, // Desconto para pagamento à vista (em %)
     'max_parcelas' => 12, // Número máximo de parcelas permitidas
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
+    // Configurações de tempo para visitas técnicas
+    'tempo_visita_tecnica' => 60, // Tempo padrão para visitas técnicas em minutos
+    'unidade_tempo_visita' => 'minutos', // Unidade de tempo para visitas técnicas (minutos, horas)
     // Horário de funcionamento
     'horario_inicio' => '07:00', // Horário de início do expediente
     'horario_fim' => '17:00', // Horário de término do expediente
@@ -214,13 +217,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h5><i class="fas fa-calendar-alt me-2"></i>Configurações de Agendamentos</h5>
                 <hr>
                 <div class="row">
-                    <div class="col-md-12 mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label for="tempo_visita_tecnica" class="form-label">Tempo Padrão para Visitas Técnicas</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="tempo_visita_tecnica" name="tempo_visita_tecnica" min="15" value="<?php echo $configuracoes['tempo_visita_tecnica']; ?>">
+                            <select class="form-select" id="unidade_tempo_visita" name="unidade_tempo_visita" style="max-width: 120px;">
+                                <option value="minutos" <?php echo $configuracoes['unidade_tempo_visita'] == 'minutos' ? 'selected' : ''; ?>>Minutos</option>
+                                <option value="horas" <?php echo $configuracoes['unidade_tempo_visita'] == 'horas' ? 'selected' : ''; ?>>Horas</option>
+                            </select>
+                        </div>
+                        <div class="form-text">Este tempo é usado para calcular a duração de visitas técnicas agendadas pelo site. Sempre defina um tempo maior que o previsto para permitir agendamentos consecutivos sem conflitos.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
                         <div class="d-grid">
                             <a href="configurar_atualizacao_automatica.php" class="btn btn-primary">
                                 <i class="fas fa-clock me-2"></i>Configurar Atualização Automática de Status
                             </a>
+                            <div class="form-text mt-2">Configure a atualização automática de status de agendamentos com base no horário.</div>
                         </div>
-                        <div class="form-text mt-2">Configure a atualização automática de status de agendamentos com base no horário.</div>
                     </div>
                 </div>
             </div>
