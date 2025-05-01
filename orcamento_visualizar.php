@@ -53,401 +53,658 @@ if (isset($_GET['mensagem'])) {
 
 // Verificar se há mensagem de agendamento
 if (isset($_GET['mensagem_agendamento'])) {
-    $tipo_alerta = isset($_GET['tipo']) ? $_GET['tipo'] : 'info';
+    $tipo_alerta = $_GET['tipo'] ?? 'danger';
     $mensagem = alerta($_GET['mensagem_agendamento'], $tipo_alerta);
 }
 
-// Determinar como carregar o orçamento: por ID (acesso interno) ou por código de acesso (acesso externo)
-if (isset($_GET['id'])) {
-    // Acesso interno (por ID)
-    verificarPermissao('visualizar_orcamentos');
-    $id = (int)$_GET['id'];
+// Processar ações como marcar como finalizado ou reabrir orçamento
+if (isset($_GET['id']) && isset($_GET['acao'])) {
+    // Verificar autenticação primeiro
+    require_once('includes/auth.php');
+    verificarAutenticacao();
     
-    // Aplicar ações sobre o orçamento, se solicitado
-    if (isset($_GET['acao']) && verificarPermissao('editar_orcamentos', false)) {
-        $acao = $_GET['acao'];
+    $id = intval($_GET['id']);
+    $acao = $_GET['acao'];
+    
+    if ($acao == 'finalizar') {
+        // Atualizar status de execução para finalizado
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'finalizado', 
+                            data_finalizacao = CURRENT_DATE 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         
-        switch ($acao) {
-            case 'aprovar':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status = 'aprovado', data_aprovacao = NOW() WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
-                break;
-                
-            case 'rejeitar':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status = 'rejeitado' WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Orçamento rejeitado!', 'danger');
-                break;
-                
-            case 'reabrir':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status = 'pendente', data_aprovacao = NULL WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Orçamento reaberto como pendente!', 'info');
-                break;
-                
-            case 'pendente':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Status de execução atualizado para Pendente!', 'info');
-                break;
-                
-            case 'andamento':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'andamento' WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Status de execução atualizado para Em Andamento!', 'warning');
-                break;
-                
-            case 'finalizar':
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'finalizado' WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                $mensagem = alerta('Serviço marcado como Finalizado!', 'success');
-                break;
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao finalizar orçamento', 'danger');
+        }
+    } elseif ($acao == 'andamento') {
+        // Atualizar status de execução para em andamento
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'andamento' 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao atualizar status de execução', 'danger');
+        }
+    } elseif ($acao == 'pendente') {
+        // Atualizar status de execução para pendente
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                            status_execucao = 'pendente' 
+                            WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
+        }
+    } elseif ($acao == 'reabrir') {
+        // Reabrir orçamento rejeitado (mudar status para pendente)
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                            status = 'pendente'
+                            WHERE id = :id AND status = 'rejeitado'");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        
+        if ($stmt->execute() && $stmt->rowCount() > 0) {
+            $mensagem = alerta('Orçamento reaberto com sucesso!', 'success');
+        } else {
+            $mensagem = alerta('Erro ao reabrir orçamento.', 'danger');
         }
     }
     
-    // Carregar o orçamento
-    $stmt = $pdo->prepare("SELECT o.*, c.nome as cliente_nome, c.id as cliente_id FROM orcamentos o JOIN clientes c ON o.cliente_id = c.id WHERE o.id = :id");
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    if ($stmt->rowCount() > 0) {
-        $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Redirecionar para remover a ação da URL
+    header("Location: orcamento_visualizar.php?id={$id}");
+    exit;
+}
+
+// Verificando tipo de acesso
+if (isset($_GET['id'])) {
+    // Acesso interno (painel administrativo)
+    require_once('includes/auth.php');
+    verificarAutenticacao();
+    require_once('includes/header.php');
+
+    $id = intval($_GET['id']);
+    $orcamento = buscarOrcamento($id);
+
+    if ($orcamento) {
+        $itens = buscarItensOrcamento($id);
+        $cliente = buscarCliente($orcamento['cliente_id']);
         
-        // Carregar itens do orçamento
-        $stmt = $pdo->prepare("SELECT oi.*, p.descricao, p.unidade FROM orcamento_itens oi LEFT JOIN produtos p ON oi.produto_id = p.id WHERE oi.orcamento_id = :orcamento_id ORDER BY oi.id");
-        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Carregar cliente
-        $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = :id");
-        $stmt->bindParam(':id', $orcamento['cliente_id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Carregar pagamentos
-        $stmt = $pdo->prepare("SELECT * FROM pagamentos WHERE orcamento_id = :orcamento_id ORDER BY data_pagamento DESC");
+        // Buscar histórico de pagamentos do orçamento
+        $stmt = $pdo->prepare("SELECT c.*, 
+                          (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                          FROM caixa c 
+                          WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                          ORDER BY c.data_operacao DESC");
         $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
         $stmt->execute();
         $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Título da página
-        $titulo = "Orçamento #{$orcamento['numero']} - {$orcamento['cliente_nome']}";
-        require_once('includes/header.php');
-        
-        // Interface específica para acesso interno
-        echo "<div class='d-flex justify-content-between align-items-center mb-3'>";
-        echo "<h2 class='mb-0'><i class='fas fa-file-invoice-dollar me-2'></i>Orçamento #{$orcamento['numero']}</h2>";
-        echo "<div class='d-flex'>";
-        echo "<a href='orcamentos.php' class='btn btn-outline-secondary me-2'><i class='fas fa-arrow-left me-2'></i>Voltar</a>";
-        
-        // Botões de edição se tiver permissão
-        if (verificarPermissao('editar_orcamentos', false)) {
-            echo "<a href='orcamento_form.php?id={$orcamento['id']}' class='btn btn-primary me-2'><i class='fas fa-edit me-2'></i>Editar</a>";
-            echo "<div class='dropdown'>";
-            echo "<button class='btn btn-info dropdown-toggle' type='button' id='dropdownMenuButton' data-bs-toggle='dropdown' aria-expanded='false'>";
-            echo "<i class='fas fa-cog me-2'></i>Ações";
-            echo "</button>";
-            echo "<ul class='dropdown-menu dropdown-menu-end' aria-labelledby='dropdownMenuButton'>";
-            
-            // Seção de mudança de status do orçamento
-            if ($orcamento['status'] == 'pendente') {
-                echo "<li><a class='dropdown-item' href='?id={$orcamento['id']}&acao=aprovar'><i class='fas fa-check-circle me-2 text-success'></i>Aprovar Orçamento</a></li>";
-                echo "<li><a class='dropdown-item' href='?id={$orcamento['id']}&acao=rejeitar'><i class='fas fa-times-circle me-2 text-danger'></i>Rejeitar Orçamento</a></li>";
-                echo "<li><hr class='dropdown-divider'></li>";
-            }
-            
-            // Seção de mudança de status de pagamento
-            if ($orcamento['status'] == 'aprovado' && $orcamento['status_pagamento'] != 'pago_total') {
-                echo "<li><a class='dropdown-item' href='registrar_pagamento.php?orcamento_id={$orcamento['id']}&tipo=total'><i class='fas fa-money-bill-wave me-2 text-success'></i>Registrar Pagamento Total</a></li>";
-                echo "<li><a class='dropdown-item' href='registrar_pagamento.php?orcamento_id={$orcamento['id']}&tipo=parcial'><i class='fas fa-money-bill-wave me-2 text-warning'></i>Registrar Pagamento Parcial</a></li>";
-                echo "<li><hr class='dropdown-divider'></li>";
-            }
-            
-            // Opções relacionadas a status de execução
-            if ($orcamento['status_execucao'] != 'pendente') {
-                echo "<li>";
-                echo "<a class='dropdown-item' href='?id={$orcamento['id']}&acao=pendente'>";
-                echo "<i class='fas fa-circle me-2 text-secondary'></i>Marcar como Pendente";
-                echo "</a>";
-                echo "</li>";
-            }
-            if ($orcamento['status_execucao'] != 'agendado' && $orcamento['status_execucao'] != 'andamento') {
-                echo "<li>";
-                echo "<a class='dropdown-item' href='agendar_servico.php?orcamento_id={$orcamento['id']}'>";
-                echo "<i class='fas fa-calendar-alt me-2 text-info'></i>Agendar Serviço";
-                echo "</a>";
-                echo "</li>";
-            } elseif ($orcamento['status_execucao'] == 'agendado') {
-                // Verificar se existe um agendamento ativo
-                $stmt = $pdo->prepare("SELECT data_inicio FROM agendamentos WHERE orcamento_id = :orcamento_id AND status = 'agendado' ORDER BY data_inicio ASC LIMIT 1");
-                $stmt->bindParam(':orcamento_id', $orcamento['id'], PDO::PARAM_INT);
-                $stmt->execute();
-                $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                // Se há um agendamento, verificar se está a mais de 24h de distância
-                $pode_reagendar = false;
-                if ($agendamento) {
-                    $data_agendamento = new DateTime($agendamento['data_inicio']);
-                    $agora = new DateTime();
-                    $intervalo = $agora->diff($data_agendamento);
-                    
-                    // Permitir reagendamento se faltam mais de 24h
-                    $pode_reagendar = ($intervalo->days > 0 || ($intervalo->h + ($intervalo->days * 24)) >= 24);
-                }
-                
-                if ($pode_reagendar):
-                echo "<li>";
-                echo "<a class='dropdown-item' href='agendamento.php?orcamento_id={$orcamento['id']}'>";
-                echo "<i class='fas fa-calendar-alt me-2 text-warning'></i>Reagendar Serviço";
-                echo "</a>";
-                echo "</li>";
-                endif;
-            }
-            if ($orcamento['status_execucao'] != 'andamento') {
-                echo "<li>";
-                echo "<a class='dropdown-item' href='?id={$orcamento['id']}&acao=andamento'>";
-                echo "<i class='fas fa-spinner me-2 text-warning'></i>Marcar Em Andamento";
-                echo "</a>";
-                echo "</li>";
-            }
-            if ($orcamento['status_execucao'] != 'finalizado') {
-                echo "<li>";
-                echo "<a class='dropdown-item' href='?id={$orcamento['id']}&acao=finalizar'>";
-                echo "<i class='fas fa-check-circle me-2 text-success'></i>Marcar como Finalizado";
-                echo "</a>";
-                echo "</li>";
-            }
-            echo "<li><hr class='dropdown-divider'></li>";
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
         }
-        
-        // Opções específicas para orçamentos rejeitados
-        if ($orcamento['status'] == 'rejeitado') {
-            echo "<li>";
-            echo "<a class='dropdown-item' href='?id={$orcamento['id']}&acao=reabrir'>";
-            echo "<i class='fas fa-redo-alt me-2'></i>Reabrir Orçamento";
-            echo "</a>";
-            echo "</li>";
-            echo "<li><hr class='dropdown-divider'></li>";
-        }
-        
-        // Opções gerais
-        echo "<li>";
-        echo "<a class='dropdown-item' href='#' onclick=\"imprimirOrcamento(); return false;\">";
-        echo "<i class='fas fa-print me-2'></i>Imprimir";
-        echo "</a>";
-        echo "</li>";
-        echo "<li>";
-        echo "<a class='dropdown-item' href='#' onclick=\"copiarLinkCliente(); return false;\">";
-        echo "<i class='fas fa-link me-2'></i>Copiar Link do Cliente";
-        echo "</a>";
-        echo "</li>";
-        echo "<li>";
-        echo "<a class='dropdown-item' href='mailto:{$cliente['email']}?subject=Orçamento {$orcamento['numero']}&body=Olá {$cliente['nome']}, segue o link para acessar seu orçamento: " . BASE_URL . "orcamento_visualizar.php?codigo={$orcamento['codigo_acesso']}'>";
-        echo "<i class='fas fa-envelope me-2'></i>Enviar por Email";
-        echo "</a>";
-        echo "</li>";
-        echo "<li>";
-        echo "<a class='dropdown-item' href='https://api.whatsapp.com/send?phone=" . preg_replace('/\D/', '', $cliente['telefone']) . "&text=Olá " . urlencode($cliente['nome']) . ", segue o link para acessar seu orçamento: " . urlencode(BASE_URL . 'orcamento_visualizar.php?codigo=' . $orcamento['codigo_acesso']) . "' target='_blank'>";
-        echo "<i class='fab fa-whatsapp me-2 text-success'></i>Enviar por WhatsApp";
-        echo "</a>";
-        echo "</li>";
-        echo "<li><hr class='dropdown-divider'></li>";
-        echo "<li>";
-        echo "<a class='dropdown-item text-danger' href='#' onclick=\"confirmarExclusao({$orcamento['id']}, '{$orcamento['numero']}', 'orcamentos.php'); return false;\">";
-        echo "<i class='fas fa-trash me-2'></i>Excluir";
-        echo "</a>";
-        echo "</li>";
-        echo "</ul>";
-        echo "</div>";
-        echo "</div>";
-        echo "</div>";
-
-        echo $mensagem;
-    }
-}
-else if (isset($_GET['codigo'])) {
-    // Acesso externo (público) via código de acesso
-    $codigo = $_GET['codigo'];
-    $acesso_interno = false;
-    
-    // Carregar o orçamento pelo código de acesso
-    $stmt = $pdo->prepare("SELECT * FROM orcamentos WHERE codigo_acesso = :codigo");
-    $stmt->bindParam(':codigo', $codigo, PDO::PARAM_STR);
-    $stmt->execute();
-    
-    if ($stmt->rowCount() > 0) {
-        $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Carregar itens do orçamento
-        $stmt = $pdo->prepare("SELECT oi.*, p.descricao, p.unidade FROM orcamento_itens oi LEFT JOIN produtos p ON oi.produto_id = p.id WHERE oi.orcamento_id = :orcamento_id ORDER BY oi.id");
-        $stmt->bindParam(':orcamento_id', $orcamento['id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Carregar cliente
-        $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = :id");
-        $stmt->bindParam(':id', $orcamento['cliente_id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Layout para clientes
-        // Iniciar HTML para acesso externo
-        echo "<!DOCTYPE html>";
-        echo "<html lang='pt-br'>";
-        echo "<head>";
-        echo "<meta charset='UTF-8'>";
-        echo "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-        echo "<title>Orçamento #{$orcamento['numero']} - " . APP_NAME . "</title>";
-        echo "<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>";
-        echo "<link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css' rel='stylesheet'>";
-        echo "<link href='css/styles.css' rel='stylesheet'>";
-        echo "<style>";
-        echo "body { background-color: #f8f9fa; }";
-        echo ".container { max-width: 1200px; padding: 20px; }";
-        echo ".card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }";
-        echo ".orcamento-header { margin-bottom: 20px; }";
-        echo ".status-box { padding: 5px 15px; border-radius: 20px; font-weight: bold; display: inline-block; color: white; }";
-        echo ".status-pendente { background-color: #6c757d; }";
-        echo ".status-aprovado { background-color: #28a745; }";
-        echo ".status-rejeitado { background-color: #dc3545; }";
-        echo ".status-pago { background-color: #198754; }";
-        echo ".status-pago-parcial { background-color: #fd7e14; }";
-        echo ".status-agendado { background-color: #0dcaf0; }";
-        echo ".status-andamento { background-color: #ffc107; color: #333; }";
-        echo ".status-finalizado { background-color: #20c997; }";
-        echo "@media print { .no-print, .no-print * { display: none !important; } }";
-        echo ".btn-action-group { margin-top: 20px; }";
-        echo ".btn-action { margin-right: 10px; }";
-        echo ".table-orcamento th, .table-orcamento td { padding: 10px; }";
-        echo "</style>";
-        echo "</head>";
-        echo "<body>";
-        echo "<div class='container bg-white p-4 my-5 rounded shadow'>";
-        echo "<div class='row'>";
-        echo "<div class='col-12'>";
-
-        // Exibir mensagens
-        echo $mensagem;
-        
-        // Carregar e exibir a configuração do nome da empresa
-        $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'nome_empresa'");
-        $stmt->execute();
-        $nome_empresa = APP_NAME; // Valor padrão
-        
-        if ($stmt->rowCount() > 0) {
-            $config = $stmt->fetch(PDO::FETCH_ASSOC);
-            $nome_empresa = $config['valor'];
-        }
-        
-        // Cabeçalho do orçamento para acesso externo
-        echo "<div class='d-flex justify-content-between align-items-center mb-4'>";
-        echo "<h2><i class='fas fa-file-invoice-dollar me-2'></i>Orçamento #{$orcamento['numero']}</h2>";
-        echo "<h3>{$nome_empresa}</h3>";
-        echo "</div>";
     } else {
-        // Código de acesso inválido
-        echo "<!DOCTYPE html>";
-        echo "<html lang='pt-br'>";
-        echo "<head>";
-        echo "<meta charset='UTF-8'>";
-        echo "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-        echo "<title>Orçamento não encontrado - " . APP_NAME . "</title>";
-        echo "<link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>";
-        echo "<link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css' rel='stylesheet'>";
-        echo "<link href='css/styles.css' rel='stylesheet'>";
-        echo "<style>";
-        echo "body { background-color: #f8f9fa; }";
-        echo ".container { max-width: 800px; padding: 20px; }";
-        echo ".card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }";
-        echo "</style>";
-        echo "</head>";
-        echo "<body>";
-        echo "<div class='container bg-white p-4 my-5 rounded shadow'>";
-        echo "<div class='text-center text-danger mb-4'>";
-        echo "<i class='fas fa-exclamation-triangle fa-4x'></i>";
-        echo "<h2 class='mt-3'>Orçamento não encontrado</h2>";
-        echo "<p class='lead'>O código de acesso fornecido é inválido ou expirou.</p>";
-        echo "</div>";
-        echo "<div class='text-center mt-4'>";
-        echo "<p>Por favor, verifique o link ou entre em contato conosco para solicitar um novo acesso.</p>";
-        echo "</div>";
-        echo "</div>";
-        echo "</body>";
-        echo "</html>";
+        $mensagem = alerta('Orçamento não encontrado!', 'danger');
+    }
+} elseif (isset($_GET['codigo'])) {
+    // Acesso externo (cliente)
+    $acesso_interno = false;
+    $codigo = $_GET['codigo'];
+
+    $stmt = $pdo->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
+    $stmt->bindParam(':codigo_acesso', $codigo);
+    $stmt->execute();
+
+    if ($stmt->rowCount() > 0) {
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        $id = $resultado['id'];
+        $orcamento = buscarOrcamento($id);
+        $itens = buscarItensOrcamento($id);
+        $cliente = buscarCliente($orcamento['cliente_id']);
+        
+        // Buscar histórico de pagamentos do orçamento
+        // A variável $pdo já está definida
+        $stmt = $pdo->prepare("SELECT c.*, 
+                         (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                         FROM caixa c 
+                         WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                         ORDER BY c.data_operacao DESC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
+        }
+    } else {
+        // Template HTML mínimo para exibir erro
+        ?>
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Orçamento - <?php echo APP_NAME; ?></title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+            <link href="css/styles.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <h1 class="text-danger mb-4"><i class="fas fa-exclamation-triangle me-2"></i>Erro</h1>
+                        <p class="lead">Código de orçamento inválido ou expirado.</p>
+                        <p>O link que você tentou acessar não está disponível ou foi removido.</p>
+                    </div>
+                </div>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
         exit;
     }
 } else {
-    // Nem ID nem código de acesso fornecidos
+    // Sem parâmetros, redirecionar para a página de orçamentos
     header('Location: orcamentos.php');
     exit;
 }
 
-// AÇÕES ESPECÍFICAS PARA ACESSO EXTERNO
-if (!$acesso_interno) {
-    // Processar ação de aprovação/rejeição quando vindo do acesso externo
-    if (isset($_GET['acao']) && isset($_GET['codigo'])) {
-        $acao = $_GET['acao'];
-        $codigo = $_GET['codigo'];
-        
-        // Verificar se o orçamento está pendente
-        if ($orcamento['status'] == 'pendente') {
-            if ($acao == 'aprovar') {
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status = 'aprovado', data_aprovacao = NOW() WHERE codigo_acesso = :codigo");
-                $stmt->bindParam(':codigo', $codigo, PDO::PARAM_STR);
-                $stmt->execute();
-                $mensagem = alerta('Você aprovou este orçamento! Agora você pode agendar o serviço.', 'success');
-                $orcamento['status'] = 'aprovado'; // Atualizar status na variável
-            } else if ($acao == 'rejeitar') {
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status = 'rejeitado' WHERE codigo_acesso = :codigo");
-                $stmt->bindParam(':codigo', $codigo, PDO::PARAM_STR);
-                $stmt->execute();
-                $mensagem = alerta('Você rejeitou este orçamento. Entre em contato conosco se quiser discutir alterações.', 'danger');
-                $orcamento['status'] = 'rejeitado'; // Atualizar status na variável
+// Processar decisão do cliente ou administrador (aprovar/rejeitar)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
+    $decisao = $_POST['decisao'];
+    $id = intval($_POST['id']);
+
+    if ($decisao == 'aprovar' || $decisao == 'rejeitar') {
+        $novo_status = ($decisao == 'aprovar') ? 'aprovado' : 'rejeitado';
+
+        $stmt = $pdo->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $novo_status);
+        $stmt->execute();
+
+        // Se aprovado, processar baixa no estoque
+        if ($novo_status == 'aprovado') {
+            $pdo->beginTransaction();
+            try {
+                // Buscar itens atualizados
+                $itens = buscarItensOrcamento($id);
+
+                foreach ($itens as $item) {
+                    if ($item['produto_id'] > 0) {
+                        // Registrar movimentação no estoque
+                        $stmt = $pdo->prepare("INSERT INTO estoque_movimentacoes 
+                                        (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id)
+                                        VALUES 
+                                        (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id)");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->bindParam(':valor_unitario', $item['valor_unitario']);
+                        $stmt->bindParam(':valor_total', $item['valor_total']);
+                        $observacao = "Saída automática do orçamento #{$orcamento['numero']}";
+                        $stmt->bindParam(':observacao', $observacao);
+                        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+
+                        // Atualizar estoque do produto
+                        $stmt = $pdo->prepare("UPDATE produtos 
+                                        SET estoque_atual = estoque_atual - :quantidade 
+                                        WHERE id = :produto_id");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->execute();
+                    }
+                }
+
+                $pdo->commit();
+                $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
+            } catch (Exception $e) {
+                try {
+                    $pdo->rollBack(); // Corrigido para rollBack() com B maiúsculo
+                } catch (Exception $rollbackError) {
+                    // Ignora erro de rollback
+                }
+                $mensagem = alerta('Erro ao processar baixa no estoque: ' . $e->getMessage(), 'danger');
             }
+        } else {
+            $mensagem = alerta('Orçamento rejeitado com sucesso.', 'warning');
         }
+
+        // Recarregar orçamento com status atualizado
+        $orcamento = buscarOrcamento($id);
     }
 }
 
-// Seções para aprovação/rejeição de orçamento (apenas para acesso externo/cliente)
-// Esta seção só aparece se o orçamento estiver pendente
-if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
-<div class="card mb-4 no-print">
-    <div class="card-header bg-info text-white">
-        <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Aprovação de Orçamento</h5>
+// Se for acesso externo (cliente)
+if (!$acesso_interno) {
+    // Início do HTML para cliente
+    ?>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?></title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+        <link href="css/styles.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?php echo $orcamento['numero']; ?></h2>
+                </div>
+                <div class="card-body">
+                    <?php echo $mensagem; ?>
+    <?php
+} else {
+    // Cabeçalho para uso interno
+    ?>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?php echo $orcamento['numero']; ?></h1>
+        <div>
+            <a href="orcamentos.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+            <div class="btn-group ms-2">
+                <a href="orcamento_form.php?id=<?php echo $orcamento['id']; ?>" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Editar
+                </a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                    <span class="visually-hidden">Mais opções</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <!-- Opções de status -->
+                    <?php if ($orcamento['status'] == 'aprovado'): ?>
+                        <?php if ($orcamento['status_pagamento'] == 'pendente' || $orcamento['status_pagamento'] == 'pago_parcial'): ?>
+                            <li>
+                                <a class="dropdown-item" href="caixa_form.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <!-- Opções de status de execução -->
+                        <li>
+                            <a class="dropdown-item text-secondary fw-bold">
+                                <i class="fas fa-tasks me-2"></i>Status de Execução
+                            </a>
+                        </li>
+                        <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=pendente">
+                                    <i class="fas fa-circle me-2 text-secondary"></i>Marcar como Pendente
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'agendado' && $orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="agendar_servico.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-alt me-2 text-info"></i>Agendar Serviço
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=andamento">
+                                    <i class="fas fa-spinner me-2 text-warning"></i>Marcar Em Andamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'finalizado'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=finalizar">
+                                    <i class="fas fa-check-circle me-2 text-success"></i>Marcar como Finalizado
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções específicas para orçamentos rejeitados -->
+                    <?php if ($orcamento['status'] == 'rejeitado'): ?>
+                    <li>
+                        <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=reabrir">
+                            <i class="fas fa-redo-alt me-2"></i>Reabrir Orçamento
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções gerais -->
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="imprimirOrcamento(); return false;">
+                            <i class="fas fa-print me-2"></i>Imprimir
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="copiarLinkCliente(); return false;">
+                            <i class="fas fa-link me-2"></i>Copiar Link do Cliente
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="mailto:<?php echo $cliente['email']; ?>?subject=Orçamento <?php echo $orcamento['numero']; ?>&body=Olá <?php echo $cliente['nome']; ?>, segue o link para acessar seu orçamento: <?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+                            <i class="fas fa-envelope me-2"></i>Enviar por Email
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="https://api.whatsapp.com/send?phone=<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>&text=Olá <?php echo urlencode($cliente['nome']); ?>, segue o link para acessar seu orçamento: <?php echo urlencode(BASE_URL . 'orcamento_visualizar.php?codigo=' . $orcamento['codigo_acesso']); ?>" target="_blank">
+                            <i class="fab fa-whatsapp me-2 text-success"></i>Enviar por WhatsApp
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" onclick="confirmarExclusao(<?php echo $orcamento['id']; ?>, '<?php echo $orcamento['numero']; ?>', 'orcamentos.php'); return false;">
+                            <i class="fas fa-trash me-2"></i>Excluir
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        <p>Por favor, analise o orçamento abaixo e decida se deseja aprová-lo ou rejeitá-lo.</p>
-        <div class="d-flex justify-content-center mt-3">
-            <a href="?codigo=<?php echo $orcamento['codigo_acesso']; ?>&acao=aprovar" class="btn btn-success btn-lg me-3">
-                <i class="fas fa-check me-2"></i>Aprovar Orçamento
-            </a>
-            <a href="?codigo=<?php echo $orcamento['codigo_acesso']; ?>&acao=rejeitar" class="btn btn-danger btn-lg" onclick="return confirm('Tem certeza que deseja rejeitar este orçamento?');">
-                <i class="fas fa-times me-2"></i>Rejeitar Orçamento
-            </a>
+
+    <?php echo $mensagem; ?>
+    <?php
+}
+?>
+
+<!-- CONTEÚDO COMUM PARA AMBOS OS TIPOS DE ACESSO -->
+<div class="orcamento-container" id="orcamento-imprimir">
+    <div class="orcamento-header">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <h2 class="mb-0"><?php echo APP_NAME; ?></h2>
+                <p class="text-muted mb-0">Orçamento de Calhas e Rufos</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <!-- Status do orçamento -->
+                <span class="status-box status-<?php echo $orcamento['status']; ?>">
+                    <?php echo ucfirst($orcamento['status']); ?>
+                </span>
+                
+                <!-- Status de pagamento -->
+                <?php if ($orcamento['status_pagamento'] == 'pago_total'): ?>
+                <span class="status-box status-pago ms-2">
+                    Pago Total
+                </span>
+                <?php elseif ($orcamento['status_pagamento'] == 'pago_parcial'): ?>
+                <span class="status-box status-pago-parcial ms-2">
+                    Pago Parcial
+                </span>
+                <?php endif; ?>
+                
+                <!-- Status de execução -->
+                <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                    <?php 
+                    $status_class = '';
+                    switch ($orcamento['status_execucao']) {
+                        case 'agendado':
+                            $status_class = 'status-agendado';
+                            break;
+                        case 'andamento':
+                            $status_class = 'status-andamento';
+                            break;
+                        case 'finalizado':
+                            $status_class = 'status-finalizado';
+                            break;
+                    }
+                    ?>
+                    <span class="status-box <?php echo $status_class; ?> ms-2">
+                        <?php echo ucfirst($orcamento['status_execucao']); ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Dados do Cliente</h5>
+                <p class="mb-0"><strong>Nome:</strong> <?php echo $cliente['nome']; ?></p>
+                <?php if (!empty($cliente['cpf_cnpj'])): ?>
+                    <p class="mb-0"><strong>CPF/CNPJ:</strong> <?php echo $cliente['cpf_cnpj']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['telefone'])): ?>
+                    <p class="mb-0"><strong>Telefone:</strong> <?php echo $cliente['telefone']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['email'])): ?>
+                    <p class="mb-0"><strong>Email:</strong> <?php echo $cliente['email']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['endereco'])): ?>
+                    <p class="mb-0"><strong>Endereço:</strong> <?php echo $cliente['endereco']; ?></p>
+                <?php endif; ?>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <h5>Dados do Orçamento</h5>
+                <p class="mb-0"><strong>Número:</strong> <?php echo $orcamento['numero']; ?></p>
+                <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
+                <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
+
+            </div>
+        </div>
+    </div>
+
+    <h5 class="mb-3">Itens do Orçamento</h5>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-orcamento">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Unidade</th>
+                    <th class="text-center">Quantidade</th>
+                    <th class="text-end">Valor Unitário</th>
+                    <th class="text-end">Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($itens) > 0): ?>
+                    <?php foreach ($itens as $index => $item): ?>
+                        <?php 
+                            $valor_unitario_com_mo = $item['valor_unitario'] * (1 + ($orcamento['taxa_mao_obra'] / 100));
+                            $valor_total_com_mo = $valor_unitario_com_mo * $item['quantidade'];
+                        ?>
+                        <tr>
+                            <td><?php echo $index + 1; ?></td>
+                            <td><?php echo $item['descricao']; ?></td>
+                            <td><?php echo $item['unidade']; ?></td>
+                            <td class="text-center"><?php echo number_format($item['quantidade'], 2, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo formataValor($valor_unitario_com_mo); ?></td>
+                            <td class="text-end"><?php echo formataValor($valor_total_com_mo); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum item encontrado para este orçamento.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <?php if ($orcamento['forma_pagamento'] == 'vista'): 
+                    // Buscar a configuração do percentual de desconto à vista
+                    $desconto_vista = 10; // Valor padrão de 10%
+                    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
+                    $stmt->execute();
+                    if ($stmt->rowCount() > 0) {
+                        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $desconto_vista = floatval($config['valor']);
+                    }
+                    
+                    // Calcular o subtotal (valor antes do desconto)
+                    $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
+                    $valor_desconto = $subtotal - $orcamento['valor_total'];
+                ?>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                    <td class="text-end"><?php echo formataValor($subtotal); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista; ?>%):</td>
+                    <td class="text-end"><?php echo formataValor($valor_desconto); ?></td>
+                </tr>
+                <?php endif; ?>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Valor Total:</td>
+                    <td class="text-end"><strong><?php echo formataValor($orcamento['valor_total']); ?></strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <?php if (count($pagamentos) > 0): ?>
+    <div class="mt-4">
+        <h5><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Forma de Pagamento</th>
+                        <th>Descrição</th>
+                        <?php if ($acesso_interno): ?>
+                        <th>Usuário</th>
+                        <?php endif; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pagamentos as $pagamento): ?>
+                    <tr>
+                        <td><?php echo dataParaBr($pagamento['data_operacao']); ?></td>
+                        <td class="text-end"><?php echo formataValor($pagamento['valor']); ?></td>
+                        <td>
+                            <?php 
+                            switch ($pagamento['forma_pagamento']) {
+                                case 'dinheiro':
+                                    echo '<span class="badge bg-success">Dinheiro</span>';
+                                    break;
+                                case 'cartao_credito':
+                                    echo '<span class="badge bg-primary">Cartão de Crédito</span>';
+                                    break;
+                                case 'cartao_debito':
+                                    echo '<span class="badge bg-info">Cartão de Débito</span>';
+                                    break;
+                                case 'pix':
+                                    echo '<span class="badge bg-warning text-dark">PIX</span>';
+                                    break;
+                                default:
+                                    echo '<span class="badge bg-secondary">Outros</span>';
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo $pagamento['descricao']; ?></td>
+                        <?php if ($acesso_interno): ?>
+                        <td><?php echo $pagamento['usuario_nome'] ?? 'Sistema'; ?></td>
+                        <?php endif; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <td colspan="1"><strong>Total Pago:</strong></td>
+                        <td class="text-end"><strong><?php echo formataValor($total_pago); ?></strong></td>
+                        <td colspan="<?php echo $acesso_interno ? '3' : '2'; ?>">
+                            <?php if ($total_pago > 0 && $total_pago < $orcamento['valor_total']): ?>
+                            <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $total_pago); ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($orcamento['observacoes'])): ?>
+        <div class="mt-4">
+            <h5>Observações</h5>
+            <div class="card">
+                <div class="card-body bg-light">
+                    <?php echo nl2br($orcamento['observacoes']); ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="orcamento-footer mt-5">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                
+                <?php if ($acesso_interno && $orcamento['status'] == 'pendente'): ?>
+                <div class="mt-4">
+                    <form method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+                        <button type="submit" name="decisao" value="aprovar" class="btn btn-success mx-2">
+                            <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                        </button>
+                        <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger mx-2">
+                            <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                        </button>
+                    </form>
+                </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
+
+<?php if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Avaliação do Orçamento</h5>
+        </div>
+        <div class="card-body">
+            <p>Prezado(a) <?php echo $cliente['nome']; ?>, avalie o orçamento acima e informe sua decisão:</p>
+
+            <form method="post" class="mt-3">
+                <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+
+                <div class="d-flex justify-content-center">
+                    <button type="submit" name="decisao" value="aprovar" class="btn btn-success btn-lg mx-2">
+                        <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                    </button>
+
+                    <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger btn-lg mx-2">
+                        <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 <?php elseif (!$acesso_interno && $orcamento['status'] != 'pendente'): ?>
-    <div class="alert alert-<?php echo $orcamento['status'] == 'aprovado' ? 'success' : 'danger'; ?> no-print">
-        <p class="mb-0">
+    <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
+        <h5 class="alert-heading">
             <?php if ($orcamento['status'] == 'aprovado'): ?>
-                <i class="fas fa-check-circle me-2"></i> 
-                Você aprovou este orçamento!
-                <?php if ($orcamento['status_execucao'] == 'pendente'): ?> 
-                    Você pode agendar o serviço usando o formulário abaixo.
-                <?php elseif ($orcamento['status_execucao'] == 'agendado'): ?>
-                    O serviço já está agendado.
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    <i class="fas fa-check-double me-2"></i>Orçamento Finalizado!
+                <?php else: ?>
+                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
                 <?php endif; ?>
             <?php else: ?>
-                <i class="fas fa-times-circle me-2"></i>
+                <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
+            <?php endif; ?>
+        </h5>
+        <p class="mb-0">
+            <?php if ($orcamento['status'] == 'aprovado'): ?>
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
+                <?php else: ?>
+                    Agradecemos por aprovar nosso orçamento. Você pode agendar a execução do serviço diretamente através deste link.
+                <?php endif; ?>
+            <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
             <?php endif; ?>
         </p>
@@ -455,70 +712,17 @@ if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
 <?php endif; ?>
 
 <?php if (isset($_GET['codigo']) && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
-<?php
-    // Verificar se já existe um agendamento ativo
-    $agendamento_existe = false;
-    $pode_reagendar = false;
-    
-    if ($orcamento['status_execucao'] == 'agendado') {
-        $stmt = $pdo->prepare("SELECT data_inicio FROM agendamentos WHERE orcamento_id = :orcamento_id AND status = 'agendado' ORDER BY data_inicio ASC LIMIT 1");
-        $stmt->bindParam(':orcamento_id', $orcamento['id'], PDO::PARAM_INT);
-        $stmt->execute();
-        $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($agendamento) {
-            $agendamento_existe = true;
-            $data_agendamento = new DateTime($agendamento['data_inicio']);
-            $agora = new DateTime();
-            $intervalo = $agora->diff($data_agendamento);
-            
-            // Permitir reagendamento se faltam mais de 24h
-            $pode_reagendar = ($intervalo->days > 0 || ($intervalo->h + ($intervalo->days * 24)) >= 24);
-        }
-    }
-?>
-
 <!-- Seção de agendamento para clientes -->
 <div class="card mb-4" id="agendamento">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>
-        <?php if ($agendamento_existe && $pode_reagendar): ?>
-            Reagendar Serviço
-        <?php elseif ($agendamento_existe): ?>
-            Serviço Agendado
-        <?php else: ?>
-            Agendar Serviço
-        <?php endif; ?>
-        </h5>
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Serviço</h5>
     </div>
     <div class="card-body">
-        <?php if ($agendamento_existe && !$pode_reagendar): ?>
-            <!-- Mostrar informações do agendamento quando já está agendado e não pode reagendar -->
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Seu serviço está agendado!</strong> A data e horário de execução já foram confirmados.<br>
-                <?php
-                    $data_formatada = $data_agendamento->format('d/m/Y');
-                    $hora_formatada = $data_agendamento->format('H:i');
-                ?>
-                <p class="mt-2 mb-0">
-                    <strong>Data:</strong> <?php echo $data_formatada; ?><br>
-                    <strong>Horário:</strong> <?php echo $hora_formatada; ?> horas
-                </p>
-            </div>
-            <div class="alert alert-warning mt-3">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Atenção:</strong> Reagendamentos só são permitidos com pelo menos 24 horas de antecedência.
-            </div>
-        <?php else: ?>
-            <form id="formAgendamento" method="post" action="agendar_servico.php">
-                <input type="hidden" name="orcamento_id" value="<?php echo $orcamento['id']; ?>">
-                <input type="hidden" name="codigo" value="<?php echo $_GET['codigo']; ?>">
-                <input type="hidden" name="tempo_previsto" value="<?php echo $orcamento['tempo_previsto']; ?>">
-                <input type="hidden" name="unidade_tempo" value="<?php echo $orcamento['unidade_tempo']; ?>">
-                <?php if ($agendamento_existe && $pode_reagendar): ?>
-                    <input type="hidden" name="reagendamento" value="1">
-                <?php endif; ?>
+        <form id="formAgendamento" method="post" action="agendar_servico.php">
+            <input type="hidden" name="orcamento_id" value="<?php echo $orcamento['id']; ?>">
+            <input type="hidden" name="codigo" value="<?php echo $_GET['codigo']; ?>">
+            <input type="hidden" name="tempo_previsto" value="<?php echo $orcamento['tempo_previsto']; ?>">
+            <input type="hidden" name="unidade_tempo" value="<?php echo $orcamento['unidade_tempo']; ?>">
             
             <div class="row mb-3">
                 <div class="col-md-6">
@@ -621,7 +825,6 @@ if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
                 <i class="fas fa-calendar-check me-2"></i>Confirmar Agendamento
             </button>
         </form>
-        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>
