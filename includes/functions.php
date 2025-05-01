@@ -400,6 +400,40 @@ function buscarItensOrcamento($orcamento_id) {
 }
 
 /**
+ * Buscar agendamento ativo para um orçamento
+ * 
+ * @param int $orcamento_id ID do orçamento
+ * @return array|false Dados do agendamento ou false se não encontrado
+ */
+function buscarAgendamentoAtivo($orcamento_id) {
+    global $db;
+    
+    $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome, c.tipo as colaborador_tipo, c.telefone as colaborador_telefone
+                      FROM agendamentos a
+                      LEFT JOIN colaboradores c ON a.instalador_id = c.id
+                      WHERE a.orcamento_id = :orcamento_id AND a.status = 'agendado'
+                      ORDER BY a.data_inicio DESC LIMIT 1");
+    $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Armazenar em sessão para uso imediato na impressão
+        $_SESSION['agendamento_info'] = [
+            'data' => date('d/m/Y', strtotime($agendamento['data_agendamento'])),
+            'hora' => substr($agendamento['hora_inicio'], 0, 5),
+            'colaborador_nome' => $agendamento['colaborador_nome'],
+            'colaborador_tipo' => $agendamento['colaborador_tipo'],
+            'colaborador_telefone' => $agendamento['colaborador_telefone'],
+            'observacoes' => $agendamento['observacoes']
+        ];
+        return $agendamento;
+    }
+    
+    return false;
+}
+
+/**
  * Buscar um cliente pelo ID
  * 
  * @param int $id ID do cliente

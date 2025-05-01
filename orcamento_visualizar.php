@@ -213,26 +213,8 @@ if (isset($_GET['id'])) {
         // Buscar dados de agendamento se o status de execução for 'agendado'
         $agendamento = null;
         if ($orcamento['status_execucao'] == 'agendado') {
-            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome, c.tipo as colaborador_tipo, c.telefone as colaborador_telefone
-                              FROM agendamentos a 
-                              LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                              WHERE a.orcamento_id = :orcamento_id AND a.status = 'agendado'
-                              ORDER BY a.data_inicio DESC LIMIT 1");
-            $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            $agendamento = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            // Guardar os dados de agendamento na sessão para uso imediato
-            if ($agendamento) {
-                $_SESSION['agendamento_info'] = [
-                    'data' => date('d/m/Y', strtotime($agendamento['data_agendamento'])),
-                    'hora' => $agendamento['hora_inicio'],
-                    'colaborador_nome' => $agendamento['colaborador_nome'],
-                    'colaborador_tipo' => $agendamento['colaborador_tipo'],
-                    'colaborador_telefone' => $agendamento['colaborador_telefone'],
-                    'observacoes' => $agendamento['observacoes']
-                ];
-            }
+            // Usar a nova função para buscar agendamento ativo
+            $agendamento = buscarAgendamentoAtivo($id);
         }
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
@@ -268,6 +250,13 @@ if (isset($_GET['id'])) {
         $total_pago = 0;
         foreach ($pagamentos as $pagamento) {
             $total_pago += $pagamento['valor'];
+        }
+        
+        // Buscar dados de agendamento se o status de execução for 'agendado'
+        $agendamento = null;
+        if ($orcamento['status_execucao'] == 'agendado') {
+            // Usar a nova função para buscar agendamento ativo
+            $agendamento = buscarAgendamentoAtivo($id);
         }
     } else {
         // Template HTML mínimo para exibir erro
