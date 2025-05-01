@@ -713,13 +713,14 @@ if (!$acesso_interno) {
         </div>
     </div>
 <?php elseif (!$acesso_interno && $orcamento['status'] != 'pendente'): ?>
+    <!-- Status do Orçamento -->
     <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
         <h5 class="alert-heading">
             <?php if ($orcamento['status'] == 'aprovado'): ?>
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     <i class="fas fa-check-double me-2"></i>Orçamento Finalizado!
                 <?php else: ?>
-                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado<?php echo (!empty($agendamentos)) ? ' e Agendado' : ''; ?>!
+                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
                 <?php endif; ?>
             <?php else: ?>
                 <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
@@ -730,35 +731,60 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
                 <?php else: ?>
-                    <?php
-                    // Formatar tempo previsto para exibição (em horas ou dias)
-                    $tempo_texto = "2 horas"; // Valor padrão
-                    if (isset($orcamento['tempo_previsto_horas'])) {
-                        $horas = intval($orcamento['tempo_previsto_horas']);
-                        if ($horas <= 24) {
-                            $tempo_texto = "{$horas} hora" . ($horas > 1 ? 's' : '');
-                        } else {
-                            $dias = ceil($horas / 24);
-                            $tempo_texto = "até {$dias} dia" . ($dias > 1 ? 's' : '');
-                        }
-                    }
-                    ?>
-                    <!-- Status já exibido no título principal acima -->
-                    
-                    <div class="alert alert-info mb-3">
-                        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo Previsto</h5>
-                        <p class="mb-0">O tempo previsto para conclusão após o início do serviço é de <strong><?php echo $tempo_texto; ?></strong>.</p>
-                    </div>
-                    
-                    <?php if (!empty($agendamentos)): ?>
-                        <div class="alert alert-primary mb-3">
-                            <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço já agendado!</h5>
-                            <p class="mb-0">Seu serviço está agendado para <strong><?php echo date('d/m/Y', strtotime($agendamentos[0]['data_agendamento'])); ?></strong> às <strong><?php echo substr($agendamentos[0]['hora_inicio'], 0, 5); ?></strong>.</p>
-                            <div class="mt-2 small text-muted">
-                                <i class="fas fa-info-circle me-1"></i> Em caso de chuva na data agendada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
-                            </div>
-                        </div>
-                        
+                    Seu orçamento foi aprovado com sucesso! Verifique abaixo as informações sobre o tempo previsto e agendamento.
+                <?php endif; ?>
+            <?php else: ?>
+                Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
+            <?php endif; ?>
+        </p>
+    </div>
+
+    <?php if ($orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
+        <?php
+        // Formatar tempo previsto para exibição (em horas ou dias)
+        $tempo_texto = "2 horas"; // Valor padrão
+        if (isset($orcamento['tempo_previsto_horas'])) {
+            $horas = intval($orcamento['tempo_previsto_horas']);
+            if ($horas <= 24) {
+                $tempo_texto = "{$horas} hora" . ($horas > 1 ? 's' : '');
+            } else {
+                $dias = ceil($horas / 24);
+                $tempo_texto = "até {$dias} dia" . ($dias > 1 ? 's' : '');
+            }
+        }
+        ?>
+        
+        <!-- Informação do Tempo Previsto -->
+        <div class="alert alert-info mt-4 mb-4">
+            <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo Previsto</h5>
+            <p class="mb-0">O tempo previsto para conclusão após o início do serviço é de <strong><?php echo $tempo_texto; ?></strong>.</p>
+        </div>
+        
+        <?php if (!empty($agendamentos)): ?>
+            <!-- Informação de Agendamento -->
+            <div class="alert alert-primary mt-4 mb-4">
+                <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço Agendado</h5>
+                <p class="mb-0">Seu serviço está agendado para <strong><?php echo date('d/m/Y', strtotime($agendamentos[0]['data_agendamento'])); ?></strong> às <strong><?php echo substr($agendamentos[0]['hora_inicio'], 0, 5); ?></strong>.</p>
+                <div class="mt-2 small">
+                    <i class="fas fa-info-circle me-1"></i> Em caso de chuva na data agendada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
+                </div>
+                <?php 
+                // Verificar se ainda é possível reagendar (24h antes da execução)
+                $now = new DateTime();
+                $agenda = new DateTime($agendamentos[0]['data_agendamento'] . ' ' . $agendamentos[0]['hora_inicio']);
+                $intervalo = $now->diff($agenda);
+                $horas_ate_execucao = ($intervalo->days * 24) + $intervalo->h;
+                
+                if ($horas_ate_execucao >= 24): 
+                ?>
+                <div class="d-grid gap-2 mt-3">
+                    <a href="agendamento_form.php?orcamento_id=<?php echo $orcamento['id']; ?>&id=<?php echo $agendamentos[0]['id']; ?>" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar-alt me-2"></i>Reagendar
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+            
                     <?php else: ?>
                         <div class="card border mb-3">
                             <div class="card-header bg-primary text-white">
@@ -770,6 +796,68 @@ if (!$acesso_interno) {
                                     <input type="hidden" name="codigo_acesso" value="<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>">
                                     <input type="hidden" name="redirect_url" value="orcamento_visualizar.php?<?php echo $acesso_interno ? 'id='.$id : 'codigo='.$codigo; ?>&agendado=true">
                                     
+                                    <!-- Script para verificar disponibilidade de instaladores -->
+                                    <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const dataInput = document.getElementById('data_agendamento');
+                                        const horaSelect = document.getElementById('hora_inicio');
+                                        const instaladorSelect = document.getElementById('instalador_id');
+                                        const btnConfirmar = document.querySelector('button[type="submit"]');
+                                        
+                                        // Função para verificar disponibilidade
+                                        function verificarDisponibilidade() {
+                                            const data = dataInput.value;
+                                            const hora = horaSelect.value;
+                                            
+                                            if (data && hora) {
+                                                // Atualizar mensagem de carregamento
+                                                instaladorSelect.innerHTML = '<option value="">Verificando disponibilidade...</option>';
+                                                
+                                                // Fazer chamada AJAX para verificar instaladores disponíveis
+                                                fetch(`ajax/verificar_instaladores_disponiveis.php?data=${data}&hora=${hora}&tempo_previsto=<?php echo $tempo_previsto; ?>`)
+                                                    .then(response => response.json())
+                                                    .then(data => {
+                                                        instaladorSelect.innerHTML = '';
+                                                        
+                                                        if (data.disponiveis && data.disponiveis.length > 0) {
+                                                            // Adicionar opção padrão
+                                                            instaladorSelect.innerHTML = '<option value="">Selecione um instalador...</option>';
+                                                            
+                                                            // Adicionar instaladores disponíveis
+                                                            data.disponiveis.forEach(instalador => {
+                                                                const option = document.createElement('option');
+                                                                option.value = instalador.id;
+                                                                option.textContent = instalador.nome;
+                                                                instaladorSelect.appendChild(option);
+                                                            });
+                                                            
+                                                            // Ativar botão e campo
+                                                            instaladorSelect.disabled = false;
+                                                            document.getElementById('div-instaladores').style.display = 'block';
+                                                            btnConfirmar.disabled = false;
+                                                        } else {
+                                                            // Se não há instaladores disponíveis
+                                                            instaladorSelect.innerHTML = '<option value="">Nenhum instalador disponível</option>';
+                                                            instaladorSelect.disabled = true;
+                                                            document.getElementById('div-instaladores').style.display = 'block';
+                                                            document.getElementById('msg-sem-instaladores').style.display = 'block';
+                                                            btnConfirmar.disabled = true;
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        console.error('Erro ao verificar disponibilidade:', error);
+                                                        instaladorSelect.innerHTML = '<option value="">Erro ao verificar disponibilidade</option>';
+                                                        btnConfirmar.disabled = true;
+                                                    });
+                                            }
+                                        }
+                                        
+                                        // Listener para alterações nos campos de data e hora
+                                        dataInput.addEventListener('change', verificarDisponibilidade);
+                                        horaSelect.addEventListener('change', verificarDisponibilidade);
+                                    });
+                                    </script>
+
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <label for="data_agendamento" class="form-label">Data da Instalação</label>
@@ -801,6 +889,19 @@ if (!$acesso_interno) {
                                                 ?>
                                             </select>
                                             <div class="form-text">Horário de chegada dos instaladores ao local.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Seleção de Instalador -->
+                                    <div class="mb-3" id="div-instaladores" style="display: none;">
+                                        <label for="instalador_id" class="form-label">Instalador</label>
+                                        <select class="form-select" id="instalador_id" name="instalador_id[]" required>
+                                            <option value="">Selecione primeiro a data e horário</option>
+                                        </select>
+                                        <div class="form-text">Selecione o instalador disponível para realizar o serviço.</div>
+                                        
+                                        <div class="alert alert-warning mt-2" id="msg-sem-instaladores" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Não há instaladores disponíveis para a data e horário selecionados. Por favor, escolha outra data ou horário.
                                         </div>
                                     </div>
                                     
@@ -853,12 +954,34 @@ if (!$acesso_interno) {
                         <p class="mt-2 mb-0">Por favor, tente novamente ou entre em contato conosco para assistência.</p>
                     </div>
                     <?php endif; ?>
+                    <?php if (isset($_GET['agendado']) && $_GET['agendado'] == 'true'): ?>
+                    <div class="alert alert-success mt-4 mb-4">
+                        <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço Agendado!</h5>
+                        <p class="mb-0">O serviço foi agendado para <strong><?php echo isset($_GET['data']) ? $_GET['data'] : 'data selecionada'; ?></strong> às <strong><?php echo isset($_GET['hora']) ? $_GET['hora'] : 'hora selecionada'; ?></strong>.</p>
+                        <div class="d-flex align-items-center mt-3 p-2 bg-light rounded border">
+                            <i class="fas fa-info-circle text-primary me-2 fs-4"></i>
+                            <div>
+                                <p class="mb-1"><strong>Próximos passos:</strong></p>
+                                <ul class="mb-0 ps-3">
+                                    <li>Nossa equipe estará no local na data e horário agendados</li>
+                                    <li>Em caso de mau tempo, você será notificado com antecedência sobre um possível reagendamento</li>
+                                    <li>Caso precise reagendar, entre em contato conosco com pelo menos 24 horas de antecedência</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($_GET['erro'])): ?>
+                    <div class="alert alert-danger mt-4 mb-4">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Erro no Agendamento</h5>
+                        <p class="mb-0"><?php echo $_GET['erro']; ?></p>
+                        <p class="mt-2 mb-0">Por favor, tente novamente ou entre em contato conosco para assistência.</p>
+                    </div>
+                    <?php endif; ?>
                 <?php endif; ?>
-            <?php else: ?>
-                Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
             <?php endif; ?>
-        </p>
-    </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <?php 
