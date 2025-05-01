@@ -690,6 +690,134 @@ else if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>Estas configurações serão usadas para determinar a disponibilidade dos colaboradores e os horários válidos para agendamento de serviços.
                 </div>
+
+                <!-- Configurações avançadas por dia da semana -->
+                <div class="mb-4 mt-4">
+                    <h6 class="bg-light p-2 rounded"><i class="fas fa-calendar-week me-2"></i>Configurações por Dia da Semana</h6>
+                    
+                    <p class="text-muted small">Configure horários específicos para cada dia da semana. Isso é útil para horários reduzidos aos sábados, por exemplo.</p>
+                    
+                    <div class="accordion" id="accordionDias">
+                        <?php
+                        // Vamos carregar as configurações por dia da semana da tabela do banco
+                        $config_dias = [];
+                        
+                        try {
+                            // Verifica se a tabela existe
+                            $stmt = $pdo->prepare("SELECT to_regclass('configuracoes_dias_semana')");
+                            $stmt->execute();
+                            $existe_tabela_dias = $stmt->fetchColumn();
+                            
+                            if ($existe_tabela_dias) {
+                                $stmt = $pdo->query("SELECT * FROM configuracoes_dias_semana ORDER BY dia_semana");
+                                $config_dias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                            }
+                        } catch (Exception $e) {
+                            // Se houver erro, continua com array vazio
+                            error_log("Erro ao carregar configurações por dia: " . $e->getMessage());
+                        }
+                        
+                        // Array indexado por dia da semana para facilitar acesso
+                        $config_dias_indexado = [];
+                        foreach ($config_dias as $dia) {
+                            $config_dias_indexado[$dia['dia_semana']] = $dia;
+                        }
+                        
+                        // Nome dos dias da semana
+                        $nomes_dias = [
+                            0 => 'Domingo',
+                            1 => 'Segunda-feira',
+                            2 => 'Terça-feira',
+                            3 => 'Quarta-feira',
+                            4 => 'Quinta-feira',
+                            5 => 'Sexta-feira',
+                            6 => 'Sábado'
+                        ];
+                        
+                        // Para cada dia da semana, criar um card accordion
+                        for ($dia_semana = 0; $dia_semana <= 6; $dia_semana++) {
+                            $nome_dia = $nomes_dias[$dia_semana];
+                            $ativo = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['funcionamento_ativo'] : false;
+                            $horario_inicio = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['horario_inicio'] : '07:00';
+                            $horario_fim = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['horario_fim'] : '17:00';
+                            $inicio_almoco = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['horario_inicio_almoco'] : '11:00';
+                            $fim_almoco = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['horario_fim_almoco'] : '12:00';
+                            $tempo_indisponivel = isset($config_dias_indexado[$dia_semana]) ? $config_dias_indexado[$dia_semana]['tempo_indisponivel_entrada'] : 30;
+                            
+                            // Classe para indicar se o dia é ativo ou não
+                            $classe_ativo = $ativo ? 'bg-light' : 'bg-light opacity-50';
+                            $badge_ativo = $ativo ? '<span class="badge bg-success ms-2">Ativo</span>' : '<span class="badge bg-secondary ms-2">Inativo</span>';
+                            
+                            echo "<div class=\"accordion-item mb-1\">\n";
+                            echo "  <h2 class=\"accordion-header\" id=\"heading{$dia_semana}\">\n";
+                            echo "    <button class=\"accordion-button collapsed {$classe_ativo}\" type=\"button\" data-bs-toggle=\"collapse\" 
+                                    data-bs-target=\"#collapse{$dia_semana}\" aria-expanded=\"false\" aria-controls=\"collapse{$dia_semana}\">\n";
+                            echo "      {$nome_dia} {$badge_ativo}\n";
+                            echo "    </button>\n";
+                            echo "  </h2>\n";
+                            echo "  <div id=\"collapse{$dia_semana}\" class=\"accordion-collapse collapse\" aria-labelledby=\"heading{$dia_semana}\" data-bs-parent=\"#accordionDias\">\n";
+                            echo "    <div class=\"accordion-body\">\n";
+                            
+                            // Formulário de configuração para este dia
+                            echo "      <div class=\"form-check form-switch mb-3\">\n";
+                            echo "        <input class=\"form-check-input\" type=\"checkbox\" id=\"dia_{$dia_semana}_ativo\" name=\"dia_{$dia_semana}_ativo\" value=\"1\" " . ($ativo ? 'checked' : '') . ">\n";
+                            echo "        <label class=\"form-check-label\" for=\"dia_{$dia_semana}_ativo\">Ativar este dia para funcionamento</label>\n";
+                            echo "      </div>\n";
+                            
+                            // Horários
+                            echo "      <div class=\"row\">\n";
+                            echo "        <div class=\"col-md-6 mb-3\">\n";
+                            echo "          <label for=\"dia_{$dia_semana}_horario_inicio\" class=\"form-label\">Horário de início</label>\n";
+                            echo "          <input type=\"time\" class=\"form-control\" id=\"dia_{$dia_semana}_horario_inicio\" name=\"dia_{$dia_semana}_horario_inicio\" value=\"{$horario_inicio}\">\n";
+                            echo "        </div>\n";
+                            echo "        <div class=\"col-md-6 mb-3\">\n";
+                            echo "          <label for=\"dia_{$dia_semana}_horario_fim\" class=\"form-label\">Horário de término</label>\n";
+                            echo "          <input type=\"time\" class=\"form-control\" id=\"dia_{$dia_semana}_horario_fim\" name=\"dia_{$dia_semana}_horario_fim\" value=\"{$horario_fim}\">\n";
+                            echo "        </div>\n";
+                            echo "      </div>\n";
+                            
+                            // Almoço e indisponibilidade
+                            echo "      <div class=\"row\">\n";
+                            echo "        <div class=\"col-md-3 mb-3\">\n";
+                            echo "          <label for=\"dia_{$dia_semana}_horario_inicio_almoco\" class=\"form-label\">Início do almoço</label>\n";
+                            echo "          <input type=\"time\" class=\"form-control\" id=\"dia_{$dia_semana}_horario_inicio_almoco\" name=\"dia_{$dia_semana}_horario_inicio_almoco\" value=\"{$inicio_almoco}\">\n";
+                            echo "        </div>\n";
+                            echo "        <div class=\"col-md-3 mb-3\">\n";
+                            echo "          <label for=\"dia_{$dia_semana}_horario_fim_almoco\" class=\"form-label\">Fim do almoço</label>\n";
+                            echo "          <input type=\"time\" class=\"form-control\" id=\"dia_{$dia_semana}_horario_fim_almoco\" name=\"dia_{$dia_semana}_horario_fim_almoco\" value=\"{$fim_almoco}\">\n";
+                            echo "        </div>\n";
+                            echo "        <div class=\"col-md-6 mb-3\">\n";
+                            echo "          <label for=\"dia_{$dia_semana}_tempo_indisponivel_entrada\" class=\"form-label\">Tempo indisponível após início</label>\n";
+                            echo "          <div class=\"input-group\">\n";
+                            echo "            <input type=\"number\" class=\"form-control\" id=\"dia_{$dia_semana}_tempo_indisponivel_entrada\" name=\"dia_{$dia_semana}_tempo_indisponivel_entrada\" value=\"{$tempo_indisponivel}\" min=\"0\">\n";
+                            echo "            <span class=\"input-group-text\">minutos</span>\n";
+                            echo "          </div>\n";
+                            echo "        </div>\n";
+                            echo "      </div>\n";
+                            
+                            if ($dia_semana == 6) { // Sábado
+                                echo "      <div class=\"alert alert-info mt-2 mb-0\">\n";
+                                echo "        <i class=\"fas fa-info-circle me-2\"></i>Por padrão, o sábado tem um horário reduzido de 08:00 até 12:00 e não há período de almoço.\n";
+                                echo "        Para desativar o almoço, deixe os dois horários como 00:00.\n";
+                                echo "      </div>\n";
+                            } else if ($dia_semana == 0) { // Domingo
+                                echo "      <div class=\"alert alert-warning mt-2 mb-0\">\n";
+                                echo "        <i class=\"fas fa-exclamation-triangle me-2\"></i>Por padrão, o domingo é considerado inativo. Ative somente se realmente oferece serviços aos domingos.\n";
+                                echo "      </div>\n";
+                            }
+                            
+                            echo "    </div>\n";
+                            echo "  </div>\n";
+                            echo "</div>\n";
+                        }
+                        ?>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>As configurações por dia da semana substituem as configurações gerais para cada dia específico.
+                        Isso permite, por exemplo, ter um horário reduzido para o sábado ou um período de almoço diferente em determinados dias.
+                    </div>
+                </div>
             </div>
             
             <!-- Configurações de Aparência -->

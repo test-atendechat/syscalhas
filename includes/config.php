@@ -19,7 +19,7 @@ define('DIAS_VALIDADE_ORCAMENTO', '30');
 // Configurações de Horário de Funcionamento
 define('HORARIO_INICIO', '07:00');
 define('HORARIO_FIM', '17:00');
-define('DIAS_FUNCIONAMENTO', '1,2,3,4,5,6'); // Incluindo sábado (6)
+define('DIAS_FUNCIONAMENTO', '1,2,3,4,5'); // Incluindo sábado (6)
 
 // Configurações de Indisponibilidade Automática
 define('APLICAR_INDISPONIBILIDADE_AUTOMATICA', 'sim');
@@ -29,59 +29,59 @@ define('TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Configurações específicas para cada dia da semana
 // Domingo (0)
-define('DIA_0_ATIVO', 'nao');
-define('DIA_0_HORARIO_INICIO', '07:00');
-define('DIA_0_HORARIO_FIM', '17:00');
-define('DIA_0_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_0_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_0_ATIVO', 'sim');
+define('DIA_0_HORARIO_INICIO', '07:00:00');
+define('DIA_0_HORARIO_FIM', '17:00:00');
+define('DIA_0_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_0_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_0_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Segunda-feira (1)
 define('DIA_1_ATIVO', 'sim');
-define('DIA_1_HORARIO_INICIO', '07:00');
-define('DIA_1_HORARIO_FIM', '17:00');
-define('DIA_1_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_1_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_1_HORARIO_INICIO', '07:00:00');
+define('DIA_1_HORARIO_FIM', '17:00:00');
+define('DIA_1_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_1_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_1_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Terça-feira (2)
 define('DIA_2_ATIVO', 'sim');
-define('DIA_2_HORARIO_INICIO', '07:00');
-define('DIA_2_HORARIO_FIM', '17:00');
-define('DIA_2_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_2_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_2_HORARIO_INICIO', '07:00:00');
+define('DIA_2_HORARIO_FIM', '17:00:00');
+define('DIA_2_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_2_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_2_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Quarta-feira (3)
 define('DIA_3_ATIVO', 'sim');
-define('DIA_3_HORARIO_INICIO', '07:00');
-define('DIA_3_HORARIO_FIM', '17:00');
-define('DIA_3_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_3_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_3_HORARIO_INICIO', '07:00:00');
+define('DIA_3_HORARIO_FIM', '17:00:00');
+define('DIA_3_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_3_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_3_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Quinta-feira (4)
 define('DIA_4_ATIVO', 'sim');
-define('DIA_4_HORARIO_INICIO', '07:00');
-define('DIA_4_HORARIO_FIM', '17:00');
-define('DIA_4_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_4_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_4_HORARIO_INICIO', '07:00:00');
+define('DIA_4_HORARIO_FIM', '17:00:00');
+define('DIA_4_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_4_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_4_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Sexta-feira (5)
 define('DIA_5_ATIVO', 'sim');
-define('DIA_5_HORARIO_INICIO', '07:00');
-define('DIA_5_HORARIO_FIM', '17:00');
-define('DIA_5_HORARIO_INICIO_ALMOCO', '11:00');
-define('DIA_5_HORARIO_FIM_ALMOCO', '12:00');
+define('DIA_5_HORARIO_INICIO', '07:00:00');
+define('DIA_5_HORARIO_FIM', '17:00:00');
+define('DIA_5_HORARIO_INICIO_ALMOCO', '11:00:00');
+define('DIA_5_HORARIO_FIM_ALMOCO', '12:00:00');
 define('DIA_5_TEMPO_INDISPONIVEL_ENTRADA', '30');
 
 // Sábado (6)
 define('DIA_6_ATIVO', 'sim');
-define('DIA_6_HORARIO_INICIO', '08:00');
-define('DIA_6_HORARIO_FIM', '12:00');
-define('DIA_6_HORARIO_INICIO_ALMOCO', '00:00'); // Sem almoço no sábado
-define('DIA_6_HORARIO_FIM_ALMOCO', '00:00'); // Sem almoço no sábado
+define('DIA_6_HORARIO_INICIO', '08:00:00');
+define('DIA_6_HORARIO_FIM', '12:00:00');
+define('DIA_6_HORARIO_INICIO_ALMOCO', '00:00:00'); // Sem almoço no sábado
+define('DIA_6_HORARIO_FIM_ALMOCO', '00:00:00'); // Sem almoço no sábado
 define('DIA_6_TEMPO_INDISPONIVEL_ENTRADA', '15');
 
 // Configurações de Estoque
@@ -104,7 +104,7 @@ define('ESTILO_MENU', 'black');
 define('API_PREVISAO_TEMPO', 'true');
 define('API_PREVISAO_TEMPO_KEY', '');
 define('API_PREVISAO_TEMPO_PROVIDER', 'openweathermap');
-define('CIDADE_PREVISAO_TEMPO', 'São Paulo');
+define('CIDADE_PREVISAO_TEMPO', '');
 define('DIAS_REAGENDAMENTO_CHUVA', '2');
 
 // Iniciar sessão se ainda não foi iniciada
