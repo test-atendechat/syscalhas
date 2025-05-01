@@ -181,8 +181,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             }
             
             // Criar o agendamento para visita técnica (orçamento)
-            // Usar status 'orcamento_agendado' pois será um agendamento com orçamentista
-            $status = 'orcamento_agendado';
+            // Usar status 'pendente' para aguardar validação antes de confirmar o agendamento
+            // Isso protege contra solicitações falsas que poderiam ocupar a agenda indevidamente
+            $status = 'pendente';
             
             // Criar orçamento em branco para vincular ao agendamento
             // Calcula a data de validade (30 dias após a data atual)
