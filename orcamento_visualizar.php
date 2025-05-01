@@ -729,26 +729,65 @@ if (!$acesso_interno) {
                         <div class="alert alert-primary mb-3">
                             <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço já agendado!</h5>
                             <p class="mb-0">Seu serviço está agendado para <strong><?php echo date('d/m/Y', strtotime($agendamentos[0]['data_agendamento'])); ?></strong> às <strong><?php echo substr($agendamentos[0]['hora_inicio'], 0, 5); ?></strong>.</p>
-                            <div class="text-center mt-3">
-                                <a href="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-primary"><i class="fas fa-calendar-alt me-2"></i>Visualizar no Calendário</a>
-                            </div>
                             <div class="mt-2 small text-muted">
                                 <i class="fas fa-info-circle me-1"></i> Em caso de chuva na data agendada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
                             </div>
                         </div>
+                        
                     <?php else: ?>
-                        <div class="alert alert-primary mb-3">
-                            <h5 class="alert-heading"><i class="fas fa-calendar-alt me-2"></i>Agendamento</h5>
-                            <p>Selecione abaixo a data e hora para o início do serviço:</p>
-                            
-                            <div id="calendario-container" class="mt-3 mb-3">
-                                <iframe id="iframe-calendario" src="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>&embed=1" 
-                                        style="width:100%; height:600px; border:none; overflow:hidden;" 
-                                        scrolling="no"></iframe>
+                        <div class="card border mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendamento do Serviço</h5>
                             </div>
-                            
-                            <div class="small text-muted">
-                                <i class="fas fa-info-circle me-1"></i> Em caso de previsão de chuva na data selecionada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
+                            <div class="card-body">
+                                <form action="salvar_agendamento.php" method="post" id="form-agendamento">
+                                    <input type="hidden" name="orcamento_id" value="<?php echo $id; ?>">
+                                    <input type="hidden" name="codigo_acesso" value="<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>">
+                                    <input type="hidden" name="redirect_url" value="orcamento_visualizar.php?<?php echo $acesso_interno ? 'id='.$id : 'codigo='.$codigo; ?>&agendado=true">
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="data_agendamento" class="form-label">Data da Instalação</label>
+                                            <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" required 
+                                                   min="<?php echo date('Y-m-d'); ?>">
+                                            <div class="form-text">Selecione uma data a partir de hoje, preferencialmente em dia útil.</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="hora_inicio" class="form-label">Horário de Início</label>
+                                            <select class="form-select" id="hora_inicio" name="hora_inicio" required>
+                                                <option value="">Selecione o horário</option>
+                                                <?php 
+                                                // Horários disponíveis (das 7h às 17h)
+                                                $horarios = array('07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00');
+                                                foreach ($horarios as $hora) {
+                                                    echo "<option value=\"{$hora}\">{$hora}</option>";
+                                                }
+                                                ?>
+                                            </select>
+                                            <div class="form-text">Horário de chegada dos instaladores ao local.</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <?php 
+                                    // Calcular a hora de fim com base no tempo previsto
+                                    $tempo_previsto = isset($orcamento['tempo_previsto_horas']) ? intval($orcamento['tempo_previsto_horas']) : 2;
+                                    ?>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tempo Previsto de Execução</label>
+                                        <input type="text" class="form-control" value="<?php echo $tempo_texto; ?>" readonly>
+                                        <div class="form-text">O horário de término será calculado automaticamente com base neste tempo.</div>
+                                    </div>
+                                    
+                                    <div class="alert alert-warning small">
+                                        <i class="fas fa-umbrella me-1"></i> Em caso de previsão de chuva na data selecionada, o serviço poderá ser reagendado para o próximo dia útil disponível.
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-calendar-check me-2"></i>Confirmar Agendamento
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -757,7 +796,25 @@ if (!$acesso_interno) {
                     <div class="alert alert-success mb-3">
                         <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço Agendado!</h5>
                         <p class="mb-0">O serviço foi agendado para <strong><?php echo isset($_GET['data']) ? $_GET['data'] : 'data selecionada'; ?></strong> às <strong><?php echo isset($_GET['hora']) ? $_GET['hora'] : 'hora selecionada'; ?></strong>.</p>
-                        <p class="mt-2 mb-0">Caso tenha algum imprevisto, por favor entre em contato conosco para reagendar.</p>
+                        <div class="d-flex align-items-center mt-3 p-2 bg-light rounded border">
+                            <i class="fas fa-info-circle text-primary me-2 fs-4"></i>
+                            <div>
+                                <p class="mb-1"><strong>Próximos passos:</strong></p>
+                                <ul class="mb-0 ps-3">
+                                    <li>Nossa equipe estará no local na data e horário agendados</li>
+                                    <li>Em caso de mau tempo, você será notificado com antecedência sobre um possível reagendamento</li>
+                                    <li>Caso precise reagendar, entre em contato conosco com pelo menos 24 horas de antecedência</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($_GET['erro'])): ?>
+                    <div class="alert alert-danger mb-3">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Erro no Agendamento</h5>
+                        <p class="mb-0"><?php echo $_GET['erro']; ?></p>
+                        <p class="mt-2 mb-0">Por favor, tente novamente ou entre em contato conosco para assistência.</p>
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -831,4 +888,65 @@ if (window.location.href.includes('mensagem=pago') || window.location.href.inclu
         sessionStorage.removeItem('recarregouPaginaOrcamento');
     }
 }
+
+// Script para formulário de agendamento
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se o formulário de agendamento existe
+    const formAgendamento = document.getElementById('form-agendamento');
+    if (!formAgendamento) return;
+    
+    const inputData = document.getElementById('data_agendamento');
+    const inputHora = document.getElementById('hora_inicio');
+    
+    // Definir a data mínima como hoje
+    const hoje = new Date();
+    const dataMinima = hoje.toISOString().split('T')[0];
+    inputData.min = dataMinima;
+    
+    // Validar dias da semana (não permitir finais de semana)
+    inputData.addEventListener('change', function() {
+        const dataEscolhida = new Date(this.value);
+        const diaSemana = dataEscolhida.getDay(); // 0 = Domingo, 6 = Sábado
+        
+        // Verificar se é final de semana
+        if (diaSemana === 0 || diaSemana === 6) {
+            alert('Por favor, selecione um dia útil (segunda a sexta-feira) para o agendamento.');
+            this.value = '';
+            return;
+        }
+        
+        // Verificar se a data é no passado
+        if (dataEscolhida < hoje) {
+            alert('Por favor, selecione uma data futura para o agendamento.');
+            this.value = '';
+            return;
+        }
+    });
+    
+    // Calcular o tempo previsto de execução quando o horário for selecionado
+    inputHora.addEventListener('change', function() {
+        if (!this.value || !inputData.value) return;
+        
+        // Aqui poderia ter uma chamada AJAX para verificar conflitos de agendamento
+        // mas por simplicidade, apenas calculamos o horário de término esperado
+        const tempoPrevisto = <?php echo isset($orcamento['tempo_previsto_horas']) ? intval($orcamento['tempo_previsto_horas']) : 2; ?>;
+        const horaInicio = this.value.split(':')[0];
+        const minInicio = this.value.split(':')[1];
+        
+        let horaFim = parseInt(horaInicio) + Math.floor(tempoPrevisto);
+        let minFim = parseInt(minInicio) + ((tempoPrevisto - Math.floor(tempoPrevisto)) * 60);
+        
+        if (minFim >= 60) {
+            horaFim += Math.floor(minFim / 60);
+            minFim = minFim % 60;
+        }
+        
+        // Formatar para exibição
+        const horaFimFormatada = String(horaFim).padStart(2, '0') + ':' + String(minFim).padStart(2, '0');
+        const infoTempo = document.querySelector('.form-text:not(:first-child)');
+        if (infoTempo) {
+            infoTempo.innerHTML = `O serviço está previsto para terminar às <strong>${horaFimFormatada}</strong>, com base no tempo estimado.`;
+        }
+    });
+});
 </script>
