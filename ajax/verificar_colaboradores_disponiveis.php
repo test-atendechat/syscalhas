@@ -40,7 +40,7 @@ $resposta = ['status' => 'erro', 'mensagem' => '', 'colaboradores' => []];
 
 // Verificar se os dados foram enviados
 $data = isset($_GET['data']) ? $_GET['data'] : '';
-$hora = isset($_GET['hora']) ? $_GET['hora'] : '';
+$hora = isset($_GET['hora_inicio']) ? $_GET['hora_inicio'] : (isset($_GET['hora']) ? $_GET['hora'] : '');
 $tempo_previsto = isset($_GET['tempo_previsto']) ? (int)$_GET['tempo_previsto'] : 60;
 $unidade_tempo = isset($_GET['unidade_tempo']) ? $_GET['unidade_tempo'] : 'minutos';
 
