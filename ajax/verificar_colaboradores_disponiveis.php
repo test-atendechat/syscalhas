@@ -123,6 +123,7 @@ try {
                                    OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
                                    OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
                                )");
+    // Nota: colaborador_id refere-se aos IDs da tabela colaboradores, não instaladores
     $stmt_indisponibilidade->bindParam(':data_disponibilidade', $data_apenas);
     $stmt_indisponibilidade->bindParam(':hora_inicio', $data_hora_inicio->format('H:i:s'));
     $stmt_indisponibilidade->bindParam(':hora_fim', $data_hora_fim->format('H:i:s'));
