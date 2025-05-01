@@ -3,6 +3,34 @@ require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 
+// Garantir que temos uma conexão com o banco de dados
+if (!isset($pdo) && isset($db)) {
+    $pdo = $db;
+} elseif (!isset($pdo) && !isset($db)) {
+    // Tentar criar uma nova conexão como último recurso
+    try {
+        if (DB_TYPE == 'mysql') {
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else if (DB_TYPE == 'pgsql') {
+            $dsn = "pgsql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else {
+            throw new Exception("Tipo de banco de dados não suportado");
+        }
+
+        // Opções PDO
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ];
+
+        // Criar conexão
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    } catch (PDOException $e) {
+        die('Erro de conexão com o banco de dados: ' . $e->getMessage());
+    }
+}
+
 // Inicialização de variáveis
 $acesso_interno = true;
 $orcamento = null;
@@ -64,7 +92,7 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         }
     } elseif ($acao == 'pendente') {
         // Atualizar status de execução para pendente
-        $stmt = $db->prepare("UPDATE orcamentos SET 
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
                             status_execucao = 'pendente' 
                             WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -76,7 +104,7 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         }
     } elseif ($acao == 'reabrir') {
         // Reabrir orçamento rejeitado (mudar status para pendente)
-        $stmt = $db->prepare("UPDATE orcamentos SET 
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
                             status = 'pendente'
                             WHERE id = :id AND status = 'rejeitado'");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -108,7 +136,7 @@ if (isset($_GET['id'])) {
         $cliente = buscarCliente($orcamento['cliente_id']);
         
         // Buscar histórico de pagamentos do orçamento
-        $stmt = $db->prepare("SELECT c.*, 
+        $stmt = $pdo->prepare("SELECT c.*, 
                           (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
                           FROM caixa c 
                           WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
@@ -130,7 +158,7 @@ if (isset($_GET['id'])) {
     $acesso_interno = false;
     $codigo = $_GET['codigo'];
 
-    $stmt = $db->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
+    $stmt = $pdo->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
     $stmt->bindParam(':codigo_acesso', $codigo);
     $stmt->execute();
 
@@ -142,8 +170,7 @@ if (isset($_GET['id'])) {
         $cliente = buscarCliente($orcamento['cliente_id']);
         
         // Buscar histórico de pagamentos do orçamento
-        // Usar a variável $db definida em includes/db.php
-        $pdo = $db; // Alias para manter o código consistente
+        // A variável $pdo já está definida
         $stmt = $pdo->prepare("SELECT c.*, 
                          (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
                          FROM caixa c 

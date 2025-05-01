@@ -3,7 +3,36 @@ require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
-// A variável $pdo já deve estar definida no arquivo includes/db.php
+// Garantir que temos uma conexão com o banco de dados
+global $db, $pdo;
+if (!isset($pdo) && isset($db)) {
+    $pdo = $db;
+} elseif (!isset($pdo) && !isset($db)) {
+    // Tentar criar uma nova conexão como último recurso
+    try {
+        if (DB_TYPE == 'mysql') {
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else if (DB_TYPE == 'pgsql') {
+            $dsn = "pgsql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else {
+            throw new Exception("Tipo de banco de dados não suportado");
+        }
+
+        // Opções PDO
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ];
+
+        // Criar conexão
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    } catch (PDOException $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'erro', 'mensagem' => 'Erro de conexão com o banco de dados']);
+        exit;
+    }
+}
 
 // Inicializar resposta JSON
 header('Content-Type: application/json');
