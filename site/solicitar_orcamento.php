@@ -94,27 +94,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             // Calcula a data de validade (30 dias após a data atual)
             $data_validade = date('Y-m-d', strtotime('+30 days'));
             
-            // Gerar um número de orçamento único (ano-mês-sequencial)
+            // Gerar um número de orçamento no formato padrão (ANO/000X)
             $ano_atual = date('Y');
-            $mes_atual = date('m');
             
-            // Buscar o último orçamento deste mês para incrementar o número sequencial
+            // Buscar o último orçamento deste ano para incrementar o número sequencial
             $stmt_ultimo = $pdo->prepare("SELECT MAX(numero) as ultimo FROM orcamentos WHERE numero LIKE :padrao");
-            $padrao = $ano_atual . $mes_atual . '-%';
+            $padrao = $ano_atual . '/%';
             $stmt_ultimo->bindParam(':padrao', $padrao);
             $stmt_ultimo->execute();
             $ultimo = $stmt_ultimo->fetch(PDO::FETCH_ASSOC);
             
-            // Se existir, incrementar o número sequencial
+            // Se existir, extrair e incrementar o número sequencial
             if ($ultimo && $ultimo['ultimo']) {
-                $partes = explode('-', $ultimo['ultimo']);
-                $sequencial = intval(end($partes)) + 1;
+                $partes = explode('/', $ultimo['ultimo']);
+                if (count($partes) > 1) {
+                    $sequencial = intval(end($partes)) + 1;
+                } else {
+                    $sequencial = 1;
+                }
             } else {
                 $sequencial = 1;
             }
             
-            // Formatar o número do orçamento (ANO-MES-SEQUENCIAL)
-            $numero_orcamento = $ano_atual . $mes_atual . '-' . str_pad($sequencial, 3, '0', STR_PAD_LEFT);
+            // Formatar o número do orçamento (ANO/000X)
+            $numero_orcamento = $ano_atual . '/' . str_pad($sequencial, 4, '0', STR_PAD_LEFT);
             
             // Gerar código de acesso único para acompanhamento externo do orçamento
             $codigo_acesso = md5(uniqid(rand(), true));
