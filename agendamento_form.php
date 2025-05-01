@@ -92,26 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agendamento['orcamento_id'] = intval($_POST['orcamento_id']);
     $agendamento['data_agendamento'] = $_POST['data_agendamento'];
     $agendamento['hora_inicio'] = $_POST['hora_inicio'];
+    $agendamento['hora_fim'] = $_POST['hora_fim'];
     $agendamento['status'] = $_POST['status'];
     $agendamento['observacoes'] = $_POST['observacoes'] ?? '';
     $agendamento['usuario_id'] = $_SESSION['usuario']['id'];
     $agendamento['instalador_id'] = !empty($_POST['instalador_id']) ? $_POST['instalador_id'] : [];
-    
-    // Buscar tempo previsto do orçamento
-    if ($agendamento['orcamento_id'] > 0) {
-        $stmt = $db->prepare("SELECT tempo_previsto_horas FROM orcamentos WHERE id = :id");
-        $stmt->bindParam(':id', $agendamento['orcamento_id'], PDO::PARAM_INT);
-        $stmt->execute();
-        
-        if ($stmt->rowCount() > 0) {
-            $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
-            $tempo_previsto_horas = isset($orcamento['tempo_previsto_horas']) && $orcamento['tempo_previsto_horas'] > 0 ? $orcamento['tempo_previsto_horas'] : 2;
-        }
-    }
-    
-    // Calcular hora de fim com base no tempo previsto
-    $hora_fim_timestamp = strtotime("+{$tempo_previsto_horas} hours", strtotime("{$agendamento['data_agendamento']} {$agendamento['hora_inicio']}"));
-    $agendamento['hora_fim'] = date('H:i', $hora_fim_timestamp);
     // Auxiliar não é mais selecionado diretamente, é associado automaticamente ao instalador
     
     // Validar campos obrigatórios
@@ -122,8 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($agendamento['data_agendamento'])) {
         $erros[] = "A data do agendamento é obrigatória.";
     }
-    if (empty($agendamento['hora_inicio'])) {
-        $erros[] = "O horário de início é obrigatório.";
+    if (empty($agendamento['hora_inicio']) || empty($agendamento['hora_fim'])) {
+        $erros[] = "O horário de início e fim é obrigatório.";
     }
     
     // Validar se o horário está disponível
@@ -352,23 +337,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Se chegou até aqui, confirmar transação
             $db->commit();
             
-            // Formatar data e hora para exibição
-            $data_formatada = date('d/m/Y', strtotime($agendamento['data_agendamento']));
-            $hora_formatada = substr($agendamento['hora_inicio'], 0, 5);
-            
-            // Se veio do link direto do orçamento, redirecionar de volta para visualização do orçamento
-            if ($agendamento['orcamento_id'] > 0) {
-                // Obter o ID do orçamento
-                $orcamento_id = $agendamento['orcamento_id'];
-                
-                // Redirecionar para a visualização do orçamento com mensagem de sucesso
-                header("Location: orcamento_visualizar.php?id={$orcamento_id}&mensagem=agendado&data={$data_formatada}&hora={$hora_formatada}");
-                exit;
-            } else {
-                // Redirecionar para página de agendamentos
-                header("Location: agendamentos.php?mensagem=Agendamento " . ($agendamento['id'] > 0 ? 'atualizado' : 'criado') . " com sucesso!");
-                exit;
-            }
+            // Redirecionar para página de agendamentos
+            header("Location: agendamentos.php?mensagem=Agendamento " . ($agendamento['id'] > 0 ? 'atualizado' : 'criado') . " com sucesso!");
+            exit;
             
         } catch (Exception $e) {
             // Se ocorrer um erro, reverter transação
@@ -637,92 +608,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Carregar horários disponíveis ao selecionar a data
     const dataInput = document.getElementById('data_agendamento');
-    const horaInicioInput = document.getElementById('hora_inicio');
-    const horaFimInput = document.getElementById('hora_fim');
-    const instaladorSelect = document.getElementById('instalador_select');
-    
-    // Função para carregar instaladores disponíveis
-    function carregarInstaladoresDisponiveis() {
-        const data = dataInput.value;
-        const horaInicio = horaInicioInput.value;
-        const horaFim = horaFimInput.value;
+    dataInput.addEventListener('change', function() {
+        const data = this.value;
+        // Aqui deve ser implementada uma chamada AJAX para buscar horários disponíveis
+        // Exemplo básico para ilustrar funcionalidade
         
-        if (!data || !horaInicio || !horaFim) {
-            // Não temos todos os dados necessários
-            document.getElementById('horarios-disponiveis').innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Selecione data e horário para verificar instaladores disponíveis.
-                </div>
-            `;
-            return;
-        }
-        
-        // Mostrar indicador de carregamento
         document.getElementById('horarios-disponiveis').innerHTML = `
-            <div class="alert alert-info">
-                <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
-                <span>Verificando instaladores disponíveis para ${data} ${horaInicio} - ${horaFim}...</span>
+            <div class="alert alert-success">
+                <strong><i class="fas fa-check-circle me-2"></i>Horários disponíveis para ${data}:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Manhã: 08:00 - 12:00</li>
+                    <li>Tarde: 13:00 - 17:00</li>
+                </ul>
             </div>
         `;
-        
-        // Fazer requisição AJAX
-        fetch(`ajax/verificar_instaladores_disponiveis.php?data=${data}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Limpar e recarregar o select de instaladores
-                    // Manter apenas a primeira opção (placeholder)
-                    while (instaladorSelect.options.length > 1) {
-                        instaladorSelect.remove(1);
-                    }
-                    
-                    // Adicionar instaladores disponíveis
-                    data.instaladores.forEach(instalador => {
-                        const option = document.createElement('option');
-                        option.value = instalador.id;
-                        option.text = instalador.nome;
-                        instaladorSelect.appendChild(option);
-                    });
-                    
-                    // Atualizar mensagem de disponibilidade
-                    if (data.instaladores.length > 0) {
-                        document.getElementById('horarios-disponiveis').innerHTML = `
-                            <div class="alert alert-success">
-                                <strong><i class="fas fa-check-circle me-2"></i>${data.instaladores.length} instalador(es) disponível(is) para ${data} ${horaInicio} - ${horaFim}</strong>
-                            </div>
-                        `;
-                    } else {
-                        document.getElementById('horarios-disponiveis').innerHTML = `
-                            <div class="alert alert-danger">
-                                <strong><i class="fas fa-times-circle me-2"></i>Nenhum instalador disponível para este horário.</strong>
-                                <p class="mb-0 mt-2">Por favor, selecione outro horário ou data.</p>
-                            </div>
-                        `;
-                    }
-                } else {
-                    document.getElementById('horarios-disponiveis').innerHTML = `
-                        <div class="alert alert-danger">
-                            <strong><i class="fas fa-times-circle me-2"></i>Erro ao verificar disponibilidade:</strong>
-                            <p class="mb-0 mt-2">${data.message}</p>
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Erro na requisição:', error);
-                document.getElementById('horarios-disponiveis').innerHTML = `
-                    <div class="alert alert-danger">
-                        <strong><i class="fas fa-times-circle me-2"></i>Erro ao comunicar com o servidor.</strong>
-                        <p class="mb-0 mt-2">Por favor, tente novamente mais tarde.</p>
-                    </div>
-                `;
-            });
-    }
-    
-    // Eventos para recarregar instaladores quando mudar data ou horário
-    dataInput.addEventListener('change', carregarInstaladoresDisponiveis);
-    horaInicioInput.addEventListener('change', carregarInstaladoresDisponiveis);
-    horaFimInput.addEventListener('change', carregarInstaladoresDisponiveis);
+    });
     
     // Removido código anterior que manipulava o select de hora_fim, agora usamos a função calcularHoraFim()
     
@@ -778,8 +678,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const horaFimDisplay = document.getElementById('hora_fim_display');
     const orcamentoSelect = document.getElementById('orcamento_id');
     
-    // Armazenar o tempo previsto em horas do orçamento (inicialmente vazio)
-    let tempoPrevisto = 0;
+    // Armazenar o tempo previsto em horas do orçamento
+    let tempoPrevisto = <?php echo isset($agendamento['tempo_previsto_horas']) ? $agendamento['tempo_previsto_horas'] : 2; ?>;
     
     // Função para formatar a exibição do tempo previsto (em horas ou dias)
     function formatarTempoPrevisto(horas) {
@@ -796,13 +696,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Obter hora selecionada
         const horaInicioSelecionada = horaInicio.value;
         if (!horaInicioSelecionada) return;
-        
-        // Verificar se um orçamento foi selecionado
-        if (!tempoPrevisto || tempoPrevisto <= 0) {
-            horaFim.value = '';
-            horaFimDisplay.value = 'Selecione um orçamento para calcular';
-            return;
-        }
         
         // Converter para objeto Date para facilitar cálculos
         const [horas, minutos] = horaInicioSelecionada.split(':');

@@ -2,11 +2,10 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('includes/auth.php');
 
-// Verificar permissão para acesso interno
-if (!isset($_GET['cliente_view']) && !isset($_GET['codigo_acesso'])) {
-    verificarPermissao('gerenciar_agendamentos');
-}
+// Verificar autenticação
+verificarAutenticacao();
 
 // Título da página
 $titulo = "Calendário de Agendamentos";
@@ -14,11 +13,9 @@ $titulo = "Calendário de Agendamentos";
 // Parâmetros opcionais
 $orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
 $cliente_view = isset($_GET['cliente_view']) && $_GET['cliente_view'] == 1;
-$embed_mode = isset($_GET['embed']) && $_GET['embed'] == 1;
-$codigo_acesso = isset($_GET['codigo_acesso']) ? $_GET['codigo_acesso'] : '';
 
 // Se for visualização de cliente, verificar se o orçamento existe e está aprovado
-if (($cliente_view || !empty($codigo_acesso)) && $orcamento_id > 0) {
+if ($cliente_view && $orcamento_id > 0) {
     $stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome FROM orcamentos o 
                          INNER JOIN clientes c ON o.cliente_id = c.id 
                          WHERE o.id = :id AND o.status = 'aprovado'");
@@ -55,16 +52,7 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Preparar eventos para o calendário
 $events = [];
-
-// Variável para verificar se este orçamento já está agendado
-$orcamento_atual_agendado = false;
-
 foreach ($agendamentos as $agendamento) {
-    // Se estamos visualizando um orçamento específico, verificar se ele já está agendado
-    if ($orcamento_id > 0 && intval($agendamento['orcamento_numero']) === $orcamento_id) {
-        $orcamento_atual_agendado = true;
-    }
-    
     // Definir cores com base no status
     $color = '#3788d8'; // azul padrão
     switch ($agendamento['status']) {
@@ -160,10 +148,8 @@ foreach ($horarios_disponiveis as $horario) {
     }
 }
 
-// Estrutura de página diferente dependendo do modo
-if (!$embed_mode) {
-    // Incluir cabeçalho normal para página completa
-    require_once('includes/header.php');
+// Incluir cabeçalho
+require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -183,60 +169,17 @@ if (!$embed_mode) {
         <?php endif; ?>
     </div>
 </div>
-<?php } else { ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendamento</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet'>
-    <link href="css/styles.css" rel="stylesheet">
-    <style>
-        body {
-            padding: 0;
-            margin: 0;
-            background: transparent;
-            overflow: hidden;
-        }
-        .btn-dark {
-            background-color: #444;
-        }
-        .fc-theme-standard .fc-scrollgrid {
-            border: 1px solid #ddd;
-        }
-        .fc td, .fc th {
-            border: 1px solid #ddd;
-        }
-    </style>
-</head>
-<body>
-
-<!-- Conteúdo simples para o modo incorporado -->
-<div class="py-2">
-<?php } ?>
 
 <!-- Mensagem para cliente -->
 <?php if ($cliente_view && isset($orcamento)): ?>
-    <?php if ($orcamento_atual_agendado): ?>
-    <div class="alert alert-success mb-4">
-        <i class="fas fa-check-circle me-2"></i>
-        <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Seu orçamento já possui um agendamento.
-        Você pode ver os detalhes da instalação agendada no calendário abaixo.
-    </div>
-    <?php else: ?>
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Selecione uma data disponível no calendário para agendar sua instalação.
-        As datas em <strong>cinza escuro</strong> não estão disponíveis para agendamento.
-    </div>
-    <?php endif; ?>
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Selecione uma data disponível no calendário para agendar sua instalação.
+    As datas em <strong>cinza escuro</strong> não estão disponíveis para agendamento.
+</div>
 <?php endif; ?>
 
-<?php if (!$embed_mode): ?>
-<!-- Container do Calendário e Detalhes para modo normal -->
+<!-- Container do Calendário e Detalhes -->
 <div class="row">
     <!-- Calendário -->
     <div class="col-lg-9">
@@ -290,54 +233,6 @@ if (!$embed_mode) {
         </div>
     </div>
 </div>
-<?php else: ?>
-<!-- Interface simplificada para modo incorporado -->
-<div class="card border-0">
-    <div class="card-body p-0">
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="alert alert-info mb-2">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <span class="fw-bold">Selecione uma data disponível</span> no calendário para agendar sua instalação.
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-8">
-                <!-- Calendário compacto para modo incorporado -->
-                <div id="calendario"></div>
-            </div>
-            <div class="col-md-4">
-                <!-- Painel informativo compacto -->
-                <div id="detalhes-agendamento" class="p-2">
-                    <div class="py-3 text-center">
-                        <i class="fas fa-calendar-day fs-1 text-muted mb-2"></i>
-                        <p class="small text-muted mb-0">Clique em uma data para selecionar o horário de início da instalação.</p>
-                    </div>
-                </div>
-                
-                <!-- Legenda simplificada -->
-                <div class="mt-3 p-2 border-top">
-                    <p class="small fw-bold mb-2">Legenda:</p>
-                    <div class="d-flex flex-column gap-2 small">
-                        <div>
-                            <span class="badge bg-primary me-1" style="width: 15px;"></span>
-                            Agendado
-                        </div>
-                        <div>
-                            <span class="badge me-1" style="width: 15px; background-color: #343a40;"></span>
-                            Indisponível
-                        </div>
-                    </div>
-                    <div class="alert alert-warning mt-3 py-2 small">
-                        <i class="fas fa-umbrella me-1"></i> Em caso de previsão de chuva na data selecionada, o serviço poderá ser reagendado para o próximo dia útil disponível.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
 
 <!-- Modal de Agendamento Rápido -->
 <div class="modal fade" id="agendamentoModal" tabindex="-1" aria-labelledby="agendamentoModalLabel" aria-hidden="true">
@@ -422,70 +317,12 @@ if (!$embed_mode) {
 </div>
 
 <!-- Incluir rodapé -->
-<?php 
-if (!$embed_mode) {
-    require_once('includes/footer.php');
-} else {
-?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-<?php } ?>
+<?php require_once('includes/footer.php'); ?>
 
 <!-- Incluir FullCalendar -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/locales/pt-br.js"></script>
-
-<!-- Estilos personalizados para o calendário -->
-<style>
-    /* Reduzir tamanho das células do calendário */
-    .fc .fc-daygrid-day-frame {
-        min-height: 5em !important;
-    }
-    
-    /* Reduzir tamanho dos eventos */
-    .fc-event {
-        font-size: 0.8rem;
-        line-height: 1.2;
-        padding: 2px 4px;
-        border-radius: 3px;
-        margin-bottom: 1px;
-    }
-    
-    /* Melhorar estilo dos ícones nos eventos */
-    .fc-event-title i {
-        font-size: 0.75rem;
-    }
-    
-    /* Melhorar estilo dos dias indisponíveis */
-    .dia-indisponivel {
-        background-color: #f8f9fa;
-        opacity: 0.6;
-    }
-    
-    /* Estilos para os botões do cabeçalho */
-    .fc-button {
-        padding: 0.3em 0.6em !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Cabeçalho da tabela mais compacto */
-    .fc-col-header-cell {
-        padding: 5px 0 !important;
-    }
-    
-    /* Adicionar hover nos dias */
-    .fc-daygrid-day:not(.dia-indisponivel):hover {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    
-    /* Ajuste para o número do dia */
-    .fc-daygrid-day-number {
-        font-size: 0.9rem;
-        padding: 5px 8px !important;
-    }
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -494,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const horariosPorDia = <?php echo json_encode($horarios_por_dia); ?>;
     const orcamentoId = <?php echo $orcamento_id; ?>;
     const clienteView = <?php echo $cliente_view ? 'true' : 'false'; ?>;
-    const orcamentoJaAgendado = <?php echo $orcamento_atual_agendado ? 'true' : 'false'; ?>;
     const hoje = new Date();
     
     // Função para verificar disponibilidade dos dias
@@ -513,320 +349,389 @@ document.addEventListener('DOMContentLoaded', function() {
             const eventoIndisponivel = events.find(event => 
                 event.extendedProps && event.extendedProps.indisponivel && 
                 event.start === data);
-            return { 
-                disponivel: false, 
-                motivo: eventoIndisponivel ? eventoIndisponivel.extendedProps.motivo : 'Dia indisponível' 
-            };
+            return { disponivel: false, motivo: eventoIndisponivel.extendedProps.motivo };
         }
         
-        // Verificar se é final de semana
-        const dataObj = new Date(data);
-        const diaSemana = dataObj.getDay(); // 0 = Domingo, 6 = Sábado
-        
-        if (diaSemana === 0 || diaSemana === 6) {
-            return { disponivel: false, motivo: 'Final de semana' };
-        }
-        
-        // Verificar se existem horários disponíveis para este dia da semana
+        // Verificar se o dia tem horários disponíveis
+        const diaSemana = new Date(data).getDay();
         if (!horariosPorDia[diaSemana] || horariosPorDia[diaSemana].length === 0) {
-            return { disponivel: false, motivo: 'Sem horários disponíveis neste dia' };
+            return { disponivel: false, motivo: 'Não há horários disponíveis neste dia' };
+        }
+        
+        // Verificar se já existem agendamentos para este dia e se ainda há horários disponíveis
+        const agendamentosNoDia = events.filter(event => 
+            !event.extendedProps?.indisponivel && 
+            event.start.split('T')[0] === data && 
+            event.extendedProps?.status !== 'cancelado');
+            
+        // Se todos os horários estiverem ocupados, o dia não está disponível
+        if (agendamentosNoDia.length >= horariosPorDia[diaSemana].length) {
+            return { disponivel: false, motivo: 'Todos os horários estão ocupados' };
         }
         
         return { disponivel: true };
     }
-    
-    // Inicializar o calendário
+
+    // Função para carregar horários disponíveis para um dia selecionado
+    function carregarHorariosDisponiveis(data) {
+        const diaSemana = new Date(data).getDay();
+        const selectHorario = document.getElementById('horario');
+        selectHorario.innerHTML = '<option value="">Selecione um horário disponível</option>';
+        
+        // Limpar horários anteriores
+        while (selectHorario.options.length > 1) {
+            selectHorario.remove(1);
+        }
+        
+        // Se não há horários para este dia, retornar
+        if (!horariosPorDia[diaSemana] || horariosPorDia[diaSemana].length === 0) {
+            return;
+        }
+        
+        // Obter agendamentos existentes para este dia
+        const agendamentosNoDia = events.filter(event => 
+            !event.extendedProps?.indisponivel && 
+            event.start.split('T')[0] === data && 
+            event.extendedProps?.status !== 'cancelado');
+            
+        // Horários já agendados neste dia
+        const horariosOcupados = agendamentosNoDia.map(event => {
+            return { inicio: event.start.split('T')[1], fim: event.end.split('T')[1] };
+        });
+        
+        // Adicionar apenas horários disponíveis que não estão ocupados
+        horariosPorDia[diaSemana].forEach(horario => {
+            // Verificar se este horário está ocupado
+            const horarioOcupado = horariosOcupados.some(ocupado => 
+                ocupado.inicio === horario.inicio);
+                
+            if (!horarioOcupado) {
+                const option = document.createElement('option');
+                option.value = `${horario.inicio}|${horario.fim}`;
+                option.textContent = `${horario.inicio.substring(0, 5)} às ${horario.fim.substring(0, 5)}`;
+                selectHorario.appendChild(option);
+            }
+        });
+    }
+
+    // Configuração do calendário
     const calendarEl = document.getElementById('calendario');
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
-        locale: 'pt-br',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek'
+            right: 'dayGridMonth,timeGridWeek,listWeek'
         },
+        locale: 'pt-br',
         events: events,
-        selectable: !orcamentoJaAgendado,
+        selectable: true,
         selectConstraint: {
+            // Impedir seleção de dias indisponíveis
             start: hoje.toISOString().split('T')[0], // Hoje
-            end: '2030-12-31' // Data futura distante
+            end: '2099-12-31' // Data futura distante
         },
-        weekends: false, // Não exibir finais de semana
-        contentHeight: 'auto',
-        dayMaxEvents: 3,
-        eventTimeFormat: {
-            hour: '2-digit',
-            minute: '2-digit',
-            meridiem: false,
-            hour12: false
+        selectAllow: function(selectInfo) {
+            const resultado = verificarDisponibilidadeDia(selectInfo.startStr);
+            return resultado.disponivel;
         },
-        dateClick: function(info) {
-            // Verificar se o dia está disponível
-            const disponibilidade = verificarDisponibilidaDia(info.dateStr);
-            if (!disponibilidade.disponivel) {
-                if (clienteView) {
-                    // Mensagem amigável para o cliente
-                    alert(`Este dia não está disponível: ${disponibilidade.motivo}`);
+        dayCellClassNames: function(arg) {
+            // Adicionar classes para dias indisponíveis para estilização
+            const resultado = verificarDisponibilidadeDia(arg.date.toISOString().split('T')[0]);
+            return resultado.disponivel ? [] : ['dia-indisponivel'];
+        },
+        dayCellDidMount: function(arg) {
+            // Adicionar estilo visual para dias indisponíveis
+            const resultado = verificarDisponibilidadeDia(arg.date.toISOString().split('T')[0]);
+            if (!resultado.disponivel) {
+                arg.el.style.backgroundColor = '#343a40';
+                arg.el.style.color = '#aaa';
+                arg.el.style.cursor = 'not-allowed';
+                
+                // Adicionar tooltip com motivo da indisponibilidade
+                if (resultado.motivo) {
+                    arg.el.title = `Indisponível: ${resultado.motivo}`;
                 }
-                return;
             }
+        },
+        select: function(info) {
+            // Verificar se o dia selecionado está indisponível
+            const dataStr = info.startStr;
+            const diaIndisponivel = events.some(event => 
+                event.extendedProps && event.extendedProps.indisponivel && 
+                event.start === dataStr);
             
-            // Preencher o formulário de agendamento com a data selecionada
-            const formDataAgendamento = document.getElementById('data_agendamento');
-            if (formDataAgendamento) {
-                formDataAgendamento.value = info.dateStr;
-            }
-            
-            // Preencher os horários disponíveis com base no dia da semana
-            const diaSemana = new Date(info.dateStr).getDay();
-            const selectHorario = document.getElementById('horario');
-            if (selectHorario) {
-                // Limpar opções atuais
-                selectHorario.innerHTML = '<option value="">Selecione um horário</option>';
+            if (diaIndisponivel) {
+                // Dia indisponível, mostrar mensagem
+                const motivo = events.find(event => 
+                    event.extendedProps && event.extendedProps.indisponivel && 
+                    event.start === dataStr).extendedProps.motivo || 'Não há horários disponíveis';
+                    
+                document.getElementById('detalhes-agendamento').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>Data indisponível</strong><br>
+                        Motivo: ${motivo}
+                    </div>
+                    <p class="text-muted">Por favor, selecione outra data para agendamento.</p>
+                `;
+            } else {
+                // Dia disponível, mostrar opções de agendamento
+                const diaSemana = new Date(info.startStr).getDay();
+                const horariosDisponiveis = horariosPorDia[diaSemana] || [];
                 
-                // Obter o tempo previsto para o orçamento
-                const tempoPrevisto = <?php echo $orcamento_id > 0 ? 'parseInt(document.getElementById("tempo_previsto")?.value || "2")' : '2'; ?>;
-                
-                // Adicionar horários disponíveis para o dia da semana
-                if (horariosPorDia[diaSemana]) {
-                    horariosPorDia[diaSemana].forEach(horario => {
-                        // Verificar se o serviço será concluído no mesmo dia
-                        // Os instaladores trabalham das 7:00 às 17:00
-                        const [horas, minutos] = horario.inicio.split(':');
-                        const horaInicio = parseInt(horas);
-                        const horaFim = horaInicio + tempoPrevisto;
+                if (horariosDisponiveis.length === 0) {
+                    // Sem horários disponíveis neste dia
+                    document.getElementById('detalhes-agendamento').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Sem horários disponíveis</strong><br>
+                            Não há horários disponíveis para esta data.
+                        </div>
+                        <p class="text-muted">Por favor, selecione outra data para agendamento.</p>
+                    `;
+                } else {
+                    // Mostrar detalhes e opções para agendar
+                    const dataFormatada = new Date(info.startStr).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                    
+                    let opcoesHtml = '';
+                    horariosDisponiveis.forEach(horario => {
+                        opcoesHtml += `<option value="${horario.inicio}-${horario.fim}">${horario.inicio} - ${horario.fim}</option>`;
+                    });
+                    
+                    // Mostrar detalhes no painel lateral
+                    document.getElementById('detalhes-agendamento').innerHTML = `
+                        <h5 class="text-primary">${dataFormatada}</h5>
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Data disponível para agendamento</strong>
+                        </div>
+                        <p><strong>Horários disponíveis:</strong></p>
+                        <ul class="list-group mb-3">
+                            ${horariosDisponiveis.map(h => `<li class="list-group-item">${h.inicio} - ${h.fim}</li>`).join('')}
+                        </ul>
+                        <button class="btn btn-primary w-100" id="btn-agendar-modal" data-data="${info.startStr}">
+                            <i class="fas fa-calendar-plus me-2"></i>Agendar instalação
+                        </button>
+                    `;
+                    
+                    // Adicionar evento ao botão de agendamento
+                    document.getElementById('btn-agendar-modal').addEventListener('click', function() {
+                        // Preencher formulário modal
+                        document.getElementById('data_agendamento').value = this.getAttribute('data-data');
                         
-                        // Só adicionar horários que terminam antes das 17:00 (fim do expediente)
-                        if (horaFim <= 17) {
+                        // Preencher select de horários
+                        const selectHorario = document.getElementById('horario');
+                        selectHorario.innerHTML = '<option value="">Selecione um horário disponível</option>';
+                        horariosDisponiveis.forEach(horario => {
                             const option = document.createElement('option');
-                            option.value = horario.inicio;
-                            option.textContent = horario.inicio;
+                            option.value = `${horario.inicio}|${horario.fim}`;
+                            option.textContent = `${horario.inicio} - ${horario.fim}`;
                             selectHorario.appendChild(option);
-                        }
+                        });
+                        
+                        // Consultar previsão do tempo (simulado neste exemplo)
+                        document.getElementById('previsao-container').innerHTML = `
+                            <div class="alert alert-info">
+                                <h6 class="mb-2"><i class="fas fa-cloud-sun me-2"></i>Previsão do Tempo</h6>
+                                <p class="mb-1">Consultando previsão do tempo para ${dataFormatada}...</p>
+                                <div class="small">A previsão detalhada será exibida após o agendamento.</div>
+                            </div>
+                        `;
+                        
+                        // Abrir modal
+                        const modal = new bootstrap.Modal(document.getElementById('agendamentoModal'));
+                        modal.show();
                     });
                 }
-                
-                // Se não houver horários disponíveis devido à duração do serviço
-                if (selectHorario.options.length <= 1) {
-                    const option = document.createElement('option');
-                    option.value = "07:00";
-                    option.textContent = "07:00 (início do dia seguinte)";
-                    selectHorario.appendChild(option);
-                    
-                    // Mensagem explicativa
-                    const mensagem = document.createElement('div');
-                    mensagem.className = 'alert alert-info mt-2';
-                    mensagem.innerHTML = `<small>Como o serviço tem duração de ${tempoPrevisto} horas e não pode ser concluído em um único dia de trabalho, a instalação será agendada para o início do expediente (7h).</small>`;
-                    selectHorario.parentNode.appendChild(mensagem);
-                }
             }
-            
-            // Verificar se há previsão para o dia (simulação)
-            const previsaoContainer = document.getElementById('previsao-container');
-            if (previsaoContainer) {
-                // Aqui poderia fazer uma chamada AJAX para um serviço de previsão do tempo real
-                // Mas usamos uma previsão simulada para este exemplo
-                const temChuvaSim = Math.random() > 0.7; // 30% de chance de chuva
-                const temperatura = Math.round(15 + Math.random() * 15); // Entre 15 e 30 graus
-                
-                const classeChuva = temChuvaSim ? 'alert-warning' : 'alert-info';
-                const iconeChuva = temChuvaSim ? 'fa-umbrella' : 'fa-sun';
-                const textoChuva = temChuvaSim ? 'Há previsão de chuva para esta data' : 'Não há previsão de chuva para esta data';
-                
-                previsaoContainer.innerHTML = `
-                    <div class="alert ${classeChuva} mb-0">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <i class="fas ${iconeChuva} fa-2x me-3"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">Previsão do tempo: ${temperatura}°C</h6>
-                                <p class="mb-0">${textoChuva}</p>
-                                ${temChuvaSim ? '<small class="text-danger">Em caso de chuva forte, o serviço poderá ser reagendado.</small>' : ''}
-                            </div>
-                        </div>
-                    </div>`;
-            }
-            
-            // Exibir modal de agendamento
-            const modal = new bootstrap.Modal(document.getElementById('agendamentoModal'));
-            modal.show();
-            
-            // Também atualizar o painel de detalhes
-            atualizarPainelDetalhes(info.dateStr);
         },
         eventClick: function(info) {
-            // Exibir detalhes do agendamento no painel lateral
-            const detalheEl = document.getElementById('detalhes-agendamento');
-            if (detalheEl) {
-                // Formatar data
-                const dataObj = new Date(info.event.start);
-                const dataFormatada = dataObj.toLocaleDateString('pt-BR');
-                
-                // Obter informações do evento
-                const cliente = info.event.extendedProps.cliente;
-                const orcamento = info.event.extendedProps.orcamento;
-                const status = info.event.extendedProps.status;
-                const previsaoInfo = info.event.extendedProps.previsao || '';
-                
-                // Formatar horários
-                const horaInicio = info.event.start.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                const horaFim = info.event.end ? info.event.end.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '';
-                
-                // Exibir informações
-                detalheEl.innerHTML = `
-                    <h5 class="border-bottom pb-2 mb-3">Agendamento #${orcamento}</h5>
-                    <p><strong>Cliente:</strong> ${cliente}</p>
-                    <p><strong>Data:</strong> ${dataFormatada}</p>
-                    <p><strong>Horário:</strong> ${horaInicio} - ${horaFim}</p>
-                    <p><strong>Status:</strong> <span class="badge ${getBadgeClass(status)}">${ucfirst(status)}</span></p>
-                    ${previsaoInfo ? `<div class="mt-3 pt-2 border-top"><strong>Previsão do Tempo:</strong> ${previsaoInfo}</div>` : ''}
-                    <div class="d-grid gap-2 mt-4">
-                        ${!clienteView ? `<a href="agendamento_form.php?id=${info.event.id}" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Editar</a>` : ''}
+            // Mostrar detalhes do evento no painel lateral
+            const evento = info.event;
+            const props = evento.extendedProps;
+            
+            if (props && props.indisponivel) {
+                // Mostrar informações sobre indisponibilidade
+                document.getElementById('detalhes-agendamento').innerHTML = `
+                    <h5 class="text-danger">${new Date(evento.start).toLocaleDateString('pt-BR')}</h5>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-ban me-2"></i>
+                        <strong>Data indisponível</strong><br>
+                        Motivo: ${props.motivo}
                     </div>
+                    <p class="text-muted">Por favor, selecione outra data para agendamento.</p>
+                `;
+            } else {
+                // Mostrar detalhes do agendamento
+                const dataFormatada = new Date(evento.start).toLocaleDateString('pt-BR');
+                const horaInicio = new Date(evento.start).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                const horaFim = new Date(evento.end).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                
+                let statusHtml = '';
+                switch (props.status) {
+                    case 'agendado':
+                        statusHtml = '<span class="badge bg-primary">Agendado</span>';
+                        break;
+                    case 'concluido':
+                        statusHtml = '<span class="badge bg-success">Concluído</span>';
+                        break;
+                    case 'reagendado':
+                        statusHtml = '<span class="badge bg-warning">Reagendado</span>';
+                        break;
+                }
+                
+                document.getElementById('detalhes-agendamento').innerHTML = `
+                    <h5 class="mb-3">${evento.title}</h5>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Data:</strong> ${dataFormatada}</p>
+                            <p class="mb-2"><strong>Horário:</strong> ${horaInicio} - ${horaFim}</p>
+                            <p class="mb-2"><strong>Status:</strong> ${statusHtml}</p>
+                            ${props.previsao ? `<div class="mt-3 alert alert-info small">${props.previsao}</div>` : ''}
+                        </div>
+                    </div>
+                    ${!clienteView ? `
+                    <div class="d-grid gap-2">
+                        <a href="agendamento_form.php?id=${evento.id}" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Editar Agendamento
+                        </a>
+                    </div>
+                    ` : ''}
                 `;
             }
         },
-        dayCellDidMount: function(info) {
-            // Verificar disponibilidade do dia
-            const disponibilidade = verificarDisponibilidadeDia(info.date.toISOString().split('T')[0]);
-            if (!disponibilidade.disponivel) {
-                // Marcar células indisponíveis
-                info.el.classList.add('dia-indisponivel');
-                // Criar tooltip ou indicador
-                const indicador = document.createElement('div');
-                indicador.className = 'position-absolute bottom-0 end-0 m-1 small text-muted';
-                indicador.innerHTML = '<i class="fas fa-ban"></i>';
-                info.el.style.position = 'relative';
-                info.el.appendChild(indicador);
+        // Renderização personalizada dos eventos
+        eventContent: function(arg) {
+            const evento = arg.event;
+            const props = evento.extendedProps;
+            
+            if (props && props.indisponivel) {
+                // Renderização para dias indisponíveis
+                return { html: '' }; // Apenas o background escuro
+            } else {
+                // Renderização para agendamentos
+                let iconClass = 'fas fa-tools'; // ícone padrão
+                
+                switch (props.status) {
+                    case 'concluido':
+                        iconClass = 'fas fa-check-circle';
+                        break;
+                    case 'reagendado':
+                        iconClass = 'fas fa-sync-alt';
+                        break;
+                }
+                
+                return {
+                    html: `
+                        <div class="fc-event-time">${new Date(evento.start).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="fc-event-title">
+                            <i class="${iconClass} me-1"></i> ${evento.title}
+                        </div>
+                    `
+                };
             }
         }
     });
     
     calendar.render();
     
-    // Função para atualizar o painel de detalhes com informações do dia
-    function atualizarPainelDetalhes(dataStr) {
-        const detalheEl = document.getElementById('detalhes-agendamento');
-        if (!detalheEl) return;
+    // Handler para salvar agendamento
+    document.getElementById('btn-salvar-agendamento').addEventListener('click', function() {
+        const form = document.getElementById('formAgendamentoRapido');
+        const formData = new FormData(form);
         
-        // Verificar disponibilidade
-        const disponibilidade = verificarDisponibilidadeDia(dataStr);
-        if (!disponibilidade.disponivel) {
-            detalheEl.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Dia Indisponível</strong>
-                    <p class="mb-0 mt-2">${disponibilidade.motivo}</p>
-                </div>
-                <div class="text-center py-3">
-                    <i class="fas fa-calendar-times display-1 text-muted mb-3"></i>
-                    <p>Por favor, selecione outra data no calendário.</p>
-                </div>
-            `;
+        // Validar campos obrigatórios
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
             return;
         }
         
-        // Dia disponível, mostrar formulário simplificado
-        const dataObj = new Date(dataStr);
-        const diaSemana = dataObj.getDay();
-        const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-        const dataFormatada = dataObj.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'});
+        // Capturar valores do formulário
+        const orcamentoId = formData.get('orcamento_id');
+        const dataAgendamento = formData.get('data_agendamento');
+        const horarioSplit = formData.get('horario').split('|');
+        const horaInicio = horarioSplit[0];
+        const horaFim = horarioSplit[1];
+        const observacoes = formData.get('observacoes');
         
-        // Horários disponíveis
-        let opcoesHorario = '<option value="">Selecione</option>';
-        if (horariosPorDia[diaSemana]) {
-            horariosPorDia[diaSemana].forEach(horario => {
-                opcoesHorario += `<option value="${horario.inicio}">${horario.inicio}</option>`;
-            });
-        }
+        // Capturar instaladores selecionados
+        const instaladoresSelect = document.getElementById('instaladores');
+        const instaladoresSelecionados = Array.from(instaladoresSelect.selectedOptions).map(option => option.value);
         
-        detalheEl.innerHTML = `
-            <h5 class="border-bottom pb-2 mb-3">${diasSemana[diaSemana]}, ${dataFormatada}</h5>
-            <form action="salvar_agendamento.php" method="post">
-                <input type="hidden" name="data_agendamento" value="${dataStr}">
-                <input type="hidden" name="orcamento_id" value="${orcamentoId}">
-                <div class="mb-3">
-                    <label class="form-label">Horário de Início:</label>
-                    <select class="form-select" name="hora_inicio" required>${opcoesHorario}</select>
-                </div>
-                <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary">Agendar Serviço</button>
-                </div>
-            </form>
-        `;
-    }
-    
-    // Manipulador para salvar agendamento a partir do modal
-    const btnSalvarAgendamento = document.getElementById('btn-salvar-agendamento');
-    if (btnSalvarAgendamento) {
-        btnSalvarAgendamento.addEventListener('click', function() {
-            const form = document.getElementById('formAgendamentoRapido');
-            if (!form) return;
-            
-            // Verificar campos obrigatórios
-            const orcamentoId = form.querySelector('#orcamento_id').value;
-            const dataAgendamento = form.querySelector('#data_agendamento').value;
-            const horario = form.querySelector('#horario').value;
-            
-            if (!orcamentoId || !dataAgendamento || !horario) {
-                alert('Por favor, preencha todos os campos obrigatórios.');
-                return;
-            }
-            
-            // Criar formulário para submissão
-            const formSubmit = document.createElement('form');
-            formSubmit.method = 'post';
-            formSubmit.action = 'salvar_agendamento.php';
-            formSubmit.style.display = 'none';
-            
-            // Adicionar campos
-            const campos = [
-                { name: 'orcamento_id', value: orcamentoId },
-                { name: 'data_agendamento', value: dataAgendamento },
-                { name: 'hora_inicio', value: horario },
-                { name: 'observacoes', value: form.querySelector('#observacoes').value || '' }
-            ];
-            
-            // Adicionar instaladores selecionados
-            const selectInstaladores = form.querySelector('#instaladores');
-            if (selectInstaladores) {
-                const instaladoresSelecionados = Array.from(selectInstaladores.selectedOptions).map(option => option.value);
-                campos.push({ name: 'instaladores', value: JSON.stringify(instaladoresSelecionados) });
-            }
-            
-            // Adicionar campos ao formulário
-            campos.forEach(campo => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = campo.name;
-                input.value = campo.value;
-                formSubmit.appendChild(input);
-            });
-            
-            // Adicionar ao documento e submeter
-            document.body.appendChild(formSubmit);
-            formSubmit.submit();
-        });
-    }
-    
-    // Funções auxiliares
-    function ucfirst(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-    
-    function getBadgeClass(status) {
-        switch (status) {
-            case 'agendado': return 'bg-primary';
-            case 'concluido': return 'bg-success';
-            case 'reagendado': return 'bg-warning';
-            case 'cancelado': return 'bg-danger';
-            default: return 'bg-secondary';
-        }
-    }
-    
-    function verificarDisponibilidaDia(data) {
-        return verificarDisponibilidadeDia(data);
-    }
+        // Criar um objeto com os dados do agendamento
+        const agendamentoData = {
+            orcamento_id: orcamentoId,
+            data_agendamento: dataAgendamento,
+            hora_inicio: horaInicio,
+            hora_fim: horaFim,
+            observacoes: observacoes,
+            instaladores: instaladoresSelecionados
+        };
+        
+        // Simulando o envio do agendamento (em produção, usar AJAX para enviar ao backend)
+        alert('Dados do agendamento capturados com sucesso! Em uma implementação real, estes dados seriam enviados ao servidor.');
+        console.log('Dados do agendamento:', agendamentoData);
+        
+        // Redirecionamento para o formulário de agendamento completo para concluir o processo
+        window.location.href = `agendamento_form.php?orcamento_id=${orcamentoId}&data=${dataAgendamento}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`;
+    });
 });
 </script>
+
+<style>
+/* Estilos personalizados para o calendário */
+.fc-daygrid-day.fc-day-past {
+    opacity: 0.7;
+}
+
+.fc-day-today {
+    background-color: rgba(var(--cor-principal-rgb), 0.1) !important;
+}
+
+.fc-event {
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.fc-event-time {
+    font-weight: bold;
+}
+
+/* Dias indisponíveis */
+.fc-daygrid-day.indisponivel {
+    background-color: #343a40;
+    color: #fff;
+    cursor: not-allowed;
+}
+
+.fc-daygrid-day-events {
+    min-height: 2em;
+}
+
+.fc-day-sat, .fc-day-sun {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.fc .fc-toolbar-title {
+    text-transform: capitalize;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 0.5em;
+    }
+    
+    .fc-view-harness {
+        height: auto !important;
+        min-height: 400px;
+    }
+}
+</style>

@@ -303,10 +303,6 @@ require_once('includes/header.php');
                                                     </li>
                                                 </ul>
                                             </div>
-                                        <?php elseif ($orcamento['status'] == 'aprovado'): ?>
-                                            <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>" class="btn btn-sm btn-success" title="Agendar Instalação">
-                                                <i class="fas fa-calendar-check"></i>
-                                            </a>
                                         <?php endif; ?>
                                     </div>
                                 </td>
