@@ -171,7 +171,7 @@ require_once('includes/header.php');
                                 </td>
                                 <td><?php echo $colaborador['cpf'] ?? '-'; ?></td>
                                 <td><?php echo $colaborador['telefone'] ?? '-'; ?></td>
-                                <td><?php echo dataBr($colaborador['data_admissao']); ?></td>
+                                <td><?php echo date('d/m/Y', strtotime($colaborador['data_admissao'])); ?></td>
                                 <td>
                                     <span class="badge bg-<?php echo $colaborador['status'] === 'ativo' ? 'success' : 'danger'; ?>">
                                         <?php echo ucfirst($colaborador['status']); ?>
