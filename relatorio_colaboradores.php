@@ -117,9 +117,14 @@ require_once('includes/header.php');
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-trophy me-2"></i>Ranking de Colaboradores</h1>
-    <a href="relatorios_vendas.php" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-2"></i>Voltar para Relatórios
-    </a>
+    <div>
+        <button onclick="window.print();" class="btn btn-outline-primary me-2">
+            <i class="fas fa-print me-2"></i>Imprimir
+        </button>
+        <a href="relatorios_vendas.php" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+    </div>
 </div>
 
 <div class="card mb-4">
