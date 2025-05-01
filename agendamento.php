@@ -2,6 +2,8 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('includes/notificacoes.php');
+require_once('notificacao_agendamento.php');
 require_once('includes/auth.php');
 
 // Verificar se o usuário está logado
@@ -197,11 +199,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Commit da transação
             $pdo->commit();
             
+            // Buscar dados para notificação
+            $stmt = $pdo->prepare("SELECT c.nome as colaborador_nome, cl.nome as cliente_nome 
+                               FROM colaboradores c
+                               JOIN orcamentos o ON o.id = :orcamento_id
+                               JOIN clientes cl ON cl.id = o.cliente_id
+                               WHERE c.id = :colaborador_id");
+            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $dados_notificacao = $stmt->fetch(PDO::FETCH_ASSOC);
+            
             // Verificar se foi um reagendamento ou novo agendamento
             if (count($agendamentos_ativos) > 0) {
                 $mensagem = alerta('Reagendamento realizado com sucesso! O agendamento anterior foi cancelado.', 'success');
+                
+                // Notificação de reagendamento
+                notificarAlteracaoAgendamento(
+                    $agendamento_id, 
+                    'reagendado', 
+                    $data_hora_inicio->format('d/m/Y'),
+                    $data_hora_inicio->format('H:i'),
+                    $dados_notificacao['cliente_nome']
+                );
             } else {
                 $mensagem = alerta('Agendamento realizado com sucesso!', 'success');
+                
+                // Notificação de novo agendamento
+                notificarNovoAgendamento(
+                    $agendamento_id, 
+                    $data_hora_inicio->format('d/m/Y'),
+                    $data_hora_inicio->format('H:i'),
+                    $dados_notificacao['cliente_nome'],
+                    $orcamento_id
+                );
             }
             
             // Recarregar agendamentos
@@ -253,6 +284,28 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
                 $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
                 $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
                 $stmt->execute();
+            }
+            
+            // Buscar dados do agendamento para notificação
+            $stmt = $pdo->prepare("SELECT a.data_agendamento, a.hora_inicio, cl.nome as cliente_nome
+                               FROM agendamentos a
+                               JOIN orcamentos o ON o.id = a.orcamento_id
+                               JOIN clientes cl ON cl.id = o.cliente_id
+                               WHERE a.id = :agendamento_id");
+            $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $dados_notificacao = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Criar notificação de cancelamento
+            if ($dados_notificacao) {
+                $data_formatada = date('d/m/Y', strtotime($dados_notificacao['data_agendamento']));
+                notificarAlteracaoAgendamento(
+                    $agendamento_id,
+                    'cancelado',
+                    $data_formatada,
+                    $dados_notificacao['hora_inicio'],
+                    $dados_notificacao['cliente_nome']
+                );
             }
             
             $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
