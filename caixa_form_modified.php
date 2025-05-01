@@ -314,13 +314,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     error_log("Redirecionando após salvar pagamento para orçamento ID: {$orcamento_id_redirect}");
                     
                     // Verificar o status do pagamento
-                    $stmt = $db->prepare("SELECT status_pagamento, numero FROM orcamentos WHERE id = :id");
+                    $stmt = $db->prepare("SELECT status_pagamento FROM orcamentos WHERE id = :id");
                     $stmt->bindParam(':id', $orcamento_id_redirect, PDO::PARAM_INT);
                     $stmt->execute();
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                    // Formatar valor para exibição na notificação
-                    $valor_formatado = 'R$ ' . number_format($movimentacao['valor'], 2, ',',
                     
                     // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
