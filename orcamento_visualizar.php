@@ -800,13 +800,22 @@ if (!$acesso_interno) {
                         // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
                         $selected_id = $orcamento['colaborador_id'] ?? 0;
                         if ($selected_id > 0) {
-                            // A conexão já foi estabelecida no início do arquivo
-                            // Usar a variável $pdo que já está definida
-                            $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
+                            // Tentar encontrar o id correspondente na tabela instaladores
+                            $stmt = $pdo->prepare("SELECT id, nome FROM instaladores WHERE id = :id AND ativo = TRUE");
                             $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
                             $stmt->execute();
+                            
                             if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
+                            } else {
+                                // Se não encontrar na tabela instaladores, verificar na tabela colaboradores
+                                // (para compatibilidade com registros antigos)
+                                $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id AND tipo = 'instalador'");
+                                $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
+                                $stmt->execute();
+                                if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
+                                }
                             }
                         }
                         ?>
