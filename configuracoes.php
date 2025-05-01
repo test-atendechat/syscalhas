@@ -94,11 +94,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt->execute();
                 
                 // Se estivermos atualizando o nome da empresa, atualizar o arquivo config.php
-                if ($chave === 'nome_empresa') {
+                if ($chave === 'empresa_nome') {
                     $config_file = 'includes/config.php';
-                    $config_content = file_get_contents($config_file);
-                    $config_content = preg_replace("/define\('APP_NAME', '.*?'\);/", "define('APP_NAME', '{$novo_valor}');", $config_content);
-                    file_put_contents($config_file, $config_content);
+                    if (file_exists($config_file) && is_writable($config_file)) {
+                        $config_content = file_get_contents($config_file);
+                        // Escapar caracteres especiais no nome da empresa para evitar problemas com aspas
+                        $novo_valor_escapado = str_replace("'", "\'", $novo_valor);
+                        $config_content = preg_replace("/define\('APP_NAME', '.*?'\);/", "define('APP_NAME', '{$novo_valor_escapado}');", $config_content);
+                        file_put_contents($config_file, $config_content);
+                        
+                        // Atualizar a constante APP_NAME na sessão atual
+                        define('APP_NAME', $novo_valor);
+                    } else {
+                        throw new Exception('Não foi possível atualizar o arquivo de configuração. Verifique as permissões.');
+                    }
                 }
                 
                 // Atualizar a variável local

@@ -1,6 +1,6 @@
 <?php
 // Configurações do sistema
-define('APP_NAME', 'Grupo Sandro Calhas LTDA');
+define('APP_NAME', 'Sandro Calhas LTDA');
 define('APP_VERSION', '1.0.0');
 define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
 

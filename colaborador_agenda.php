@@ -1,11 +1,9 @@
 <?php
+$titulo = 'Agenda do Colaborador';
 require_once('includes/config.php');
-require_once('includes/db.php');
 require_once('includes/functions.php');
-require_once('includes/auth.php');
-
-// Verificar se o usuário está logado
-verificarAutenticacao();
+require_once('includes/header.php');
+// O header.php já inclui requisições para db.php e verificação de autenticação
 
 // Verificar permissões
 if (!$_SESSION['usuario']['nivel'] === 'admin' && !verificarPermissao('gerenciar_colaboradores')) {
@@ -175,7 +173,6 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
     }
 }
 
-require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
