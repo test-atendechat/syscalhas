@@ -48,6 +48,9 @@ foreach ($params as $key => $value) {
 $stmt->execute();
 $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Inicializar a variável de mensagem
+$mensagem = '';
+
 // Processar exclusão
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['excluir'])) {
     $id = intval($_POST['id']);
@@ -68,10 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['excluir'])) {
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             
-            $mensagem = alerta('Cliente excluído com sucesso!', 'success');
-            
-            // Recarregar a lista
-            header('Location: clientes.php');
+            // Recarregar a lista com mensagem de sucesso
+            header('Location: clientes.php?mensagem=excluido');
             exit;
         }
     } catch (Exception $e) {
@@ -79,15 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['excluir'])) {
     }
 }
 
-// Mensagem de alerta
-$mensagem = '';
-if (isset($_GET['mensagem'])) {
+// Verificar se há mensagens de redirecionamento
+if (isset($_GET['mensagem']) && empty($mensagem)) {
     switch ($_GET['mensagem']) {
         case 'cadastrado':
             $mensagem = alerta('Cliente cadastrado com sucesso!', 'success');
             break;
         case 'atualizado':
             $mensagem = alerta('Cliente atualizado com sucesso!', 'success');
+            break;
+        case 'excluido':
+            $mensagem = alerta('Cliente excluído com sucesso!', 'success');
             break;
     }
 }
