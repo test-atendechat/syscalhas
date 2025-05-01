@@ -223,11 +223,10 @@ try {
         $inicio_almoco = new DateTime($data . ' ' . $horario_inicio_almoco);
         $fim_almoco = new DateTime($data . ' ' . $horario_fim_almoco);
         
-        $conflito_almoco = (
-            ($data_hora_inicio <= $inicio_almoco && $data_hora_fim > $inicio_almoco) || // Serviço começa antes do almoço e termina durante
-            ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco) || // Serviço começa durante o almoço
-            ($data_hora_inicio < $inicio_almoco && $data_hora_fim > $fim_almoco)        // Serviço engloba todo o almoço
-        );
+        // Verificar apenas se o horário de início coincide com o período de almoço
+        // pois o comportamento desejado é mostrar instaladores disponíveis fora do horário de almoço,
+        // independentemente da duração do serviço
+        $conflito_almoco = ($data_hora_inicio >= $inicio_almoco && $data_hora_inicio < $fim_almoco);
         
         // Verificar conflito com tempo indisponível após chegada
         $hora_chegada = new DateTime($data . ' ' . $horario_inicio); // Horário de abertura da empresa

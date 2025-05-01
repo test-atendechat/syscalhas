@@ -479,8 +479,8 @@ for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_mi
                         mensagemOrcamentistas.style.display = 'none';
                         
                         // Preencher select com orçamentistas disponíveis
-                        if (data.orcamentistas && data.orcamentistas.length > 0) {
-                            data.orcamentistas.forEach(orcamentista => {
+                        if (data.colaboradores && data.colaboradores.length > 0) {
+                            data.colaboradores.forEach(orcamentista => {
                                 const option = document.createElement('option');
                                 option.value = orcamentista.id;
                                 option.text = orcamentista.nome + (orcamentista.tipo ? ' (Orçamentista)' : '');
