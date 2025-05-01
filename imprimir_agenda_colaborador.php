@@ -37,12 +37,11 @@ $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
 $tipo_colaborador = $colaborador['tipo'];
 $where_condition = "";
 
-if ($tipo_colaborador === 'instalador') {
+if ($tipo_colaborador === 'instalador' || $tipo_colaborador === 'orcamentista') {
+    // Todos os tipos de colaboradores usam a mesma coluna agora: instalador_id
     $where_condition = "a.instalador_id = :colaborador_id";
-} elseif ($tipo_colaborador === 'orcamentista') {
-    $where_condition = "a.orcamentista_id = :colaborador_id";
 } else {
-    // Se não for nem instalador nem orçamentista, mostra uma lista vazia
+    // Se não for um tipo válido, mostra uma lista vazia
     $where_condition = "1=0";
 }
 
