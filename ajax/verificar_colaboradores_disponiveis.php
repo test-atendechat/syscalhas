@@ -201,8 +201,8 @@ try {
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
     }
     
-    // Buscar colaboradores do tipo instalador
-    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' AND status = 'ativo'";
+    // Buscar colaboradores (tanto instaladores quanto orçamentistas)
+    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
@@ -210,7 +210,7 @@ try {
     }
     
     // Adicionar a cláusula ORDER BY depois de todas as condições
-    $sql .= " ORDER BY nome";
+    $sql .= " ORDER BY tipo, nome";
     
     $stmt = $pdo->query($sql);
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);

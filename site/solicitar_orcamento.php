@@ -432,7 +432,7 @@ for ($hora = $hora_inicial; $hora < $hora_final; $hora++) {
                             data.orcamentistas.forEach(orcamentista => {
                                 const option = document.createElement('option');
                                 option.value = orcamentista.id;
-                                option.text = orcamentista.nome;
+                                option.text = orcamentista.nome + (orcamentista.tipo ? ' (Orçamentista)' : '');
                                 orcamentistaSelect.appendChild(option);
                             });
                         } else {

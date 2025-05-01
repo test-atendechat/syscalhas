@@ -203,7 +203,7 @@ try {
     }
     
     // Buscar orçamentistas disponíveis
-    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = 'orcamentista' AND status = 'ativo'";
+    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo = 'orcamentista' AND status = 'ativo'";
     
     // Se há orçamentistas ocupados, excluí-los da busca
     if (!empty($orcamentistas_ocupados)) {
