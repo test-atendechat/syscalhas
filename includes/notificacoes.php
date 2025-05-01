@@ -9,23 +9,25 @@
  * @param string $mensagem Texto da notificação
  * @param string $tipo Tipo de notificação (info, success, warning, danger)
  * @param string|null $link Link opcional para direcionar ao clicar
+ * @param string $categoria Categoria da notificação (orcamentos, caixa, agendamentos, etc)
  * @param int|null $destinatario_id ID do usuário destinatário (null = todos)
  * @return int|bool ID da notificação adicionada ou false em caso de erro
  */
-function adicionarNotificacao($mensagem, $tipo = 'info', $link = null, $destinatario_id = null) {
+function adicionarNotificacao($mensagem, $tipo = 'info', $link = null, $categoria = 'geral', $destinatario_id = null) {
     global $db;
     
     // Verificar usuário atual como autor
     $autor_id = isset($_SESSION['usuario']['id']) ? $_SESSION['usuario']['id'] : null;
     
     try {
-        $query = "INSERT INTO notificacoes (mensagem, tipo, link, autor_id, destinatario_id) "
-              . "VALUES (:mensagem, :tipo, :link, :autor_id, :destinatario_id)";
+        $query = "INSERT INTO notificacoes (mensagem, tipo, link, categoria, autor_id, destinatario_id) "
+              . "VALUES (:mensagem, :tipo, :link, :categoria, :autor_id, :destinatario_id)";
         
         $stmt = $db->prepare($query);
         $stmt->bindParam(':mensagem', $mensagem);
         $stmt->bindParam(':tipo', $tipo);
         $stmt->bindParam(':link', $link);
+        $stmt->bindParam(':categoria', $categoria);
         $stmt->bindParam(':autor_id', $autor_id);
         $stmt->bindParam(':destinatario_id', $destinatario_id);
         
@@ -133,6 +135,60 @@ function obterNotificacoes($limite = 0, $apenas_nao_lidas = false) {
  */
 function obterNotificacoesNaoLidas() {
     return obterNotificacoes(0, true);
+}
+
+/**
+ * Obter notificações por categoria para o usuário atual
+ * 
+ * @param string $categoria Categoria das notificações a serem obtidas
+ * @param int $limite Número máximo de notificações (0 = sem limite)
+ * @param bool $apenas_nao_lidas Retornar apenas notificações não lidas
+ * @return array Array com as notificações da categoria especificada
+ */
+function obterNotificacoesPorCategoria($categoria, $limite = 0, $apenas_nao_lidas = false) {
+    global $db;
+    
+    // Verificar usuário atual
+    $usuario_id = $_SESSION['usuario']['id'];
+    
+    try {
+        // Construir a consulta base
+        $sql = "SELECT n.*, 
+                CASE WHEN nl.id IS NOT NULL THEN 1 ELSE 0 END AS lida 
+                FROM notificacoes n 
+                LEFT JOIN notificacoes_lidas nl ON n.id = nl.notificacao_id AND nl.usuario_id = :usuario_id 
+                WHERE (n.destinatario_id IS NULL OR n.destinatario_id = :usuario_id2) 
+                AND n.categoria = :categoria ";
+        
+        // Adicionar filtro para apenas não lidas se solicitado
+        if ($apenas_nao_lidas) {
+            $sql .= "AND nl.id IS NULL ";
+        }
+        
+        // Ordenar por data mais recente
+        $sql .= "ORDER BY n.data_criacao DESC ";
+        
+        // Adicionar limite se especificado
+        if ($limite > 0) {
+            $sql .= "LIMIT :limite";
+        }
+        
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(':usuario_id', $usuario_id);
+        $stmt->bindParam(':usuario_id2', $usuario_id);
+        $stmt->bindParam(':categoria', $categoria);
+        
+        if ($limite > 0) {
+            $stmt->bindParam(':limite', $limite, PDO::PARAM_INT);
+        }
+        
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Erro ao obter notificações por categoria: " . $e->getMessage());
+        return [];
+    }
 }
 
 /**

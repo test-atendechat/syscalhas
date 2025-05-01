@@ -40,19 +40,16 @@ function notificarOrcamento($orcamento_id, $tipo, $dados_adicionais = []) {
         case 'aprovar':
             $mensagem = "ORÇAMENTO APROVADO: #{$dados_adicionais['numero']} para {$dados_adicionais['cliente_nome']} no valor de R$ " . number_format($dados_adicionais['valor_total'], 2, ',', '.');
             $tipo_notificacao = 'success';
-            $som = 'success';
             break;
             
         case 'rejeitar':
             $mensagem = "ORÇAMENTO REJEITADO: #{$dados_adicionais['numero']} para {$dados_adicionais['cliente_nome']}";
             $tipo_notificacao = 'danger';
-            $som = 'danger';
             break;
             
         case 'finalizado':
             $mensagem = "SERVIÇO FINALIZADO: Orçamento #{$dados_adicionais['numero']} para {$dados_adicionais['cliente_nome']} foi concluído";
             $tipo_notificacao = 'success';
-            $som = 'success';
             break;
             
         case 'andamento':
@@ -70,7 +67,6 @@ function notificarOrcamento($orcamento_id, $tipo, $dados_adicionais = []) {
             $valor_formatado = number_format($valor, 2, ',', '.');
             $mensagem = "PAGAMENTO REGISTRADO: R$ {$valor_formatado} para Orçamento #{$dados_adicionais['numero']}";
             $tipo_notificacao = 'success';
-            $som = 'cash';
             break;
             
         default:
@@ -115,6 +111,6 @@ function notificarPagamentoOrcamento($orcamento_id, $valor, $tipo = 'parcial') {
         $mensagem = "PAGAMENTO PARCIAL: R$ {$valor_formatado} para Orçamento #{$orcamento['numero']} - Cliente: {$orcamento['cliente_nome']}";
     }
     
-    // Adicionar notificação com som de caixa registradora
-    return adicionarNotificacao($mensagem, 'success', $link, 'cash');
+    // Adicionar notificação (sem som)
+    return adicionarNotificacao($mensagem, 'success', $link);
 }
