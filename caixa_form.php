@@ -320,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     // Formatar valor para exibição na notificação
-                    $valor_formatado = 'R$ ' . number_format($movimentacao['valor'], 2, ',',
+                    $valor_formatado = 'R$ ' . number_format($movimentacao['valor'], 2, ',', '.');
                     
                     // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
