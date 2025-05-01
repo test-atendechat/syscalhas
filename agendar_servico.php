@@ -74,8 +74,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             
             // Se a hora de início for anterior ao expediente ou se a hora do fim for posterior ao expediente
             if ($data_hora_inicio < $hora_inicio_expediente || $data_hora_fim > $hora_fim_expediente) {
-                throw new Exception('O horário selecionado está fora do horário de funcionamento (' . 
-                                     $horario_inicio . ' - ' . $horario_fim . ').');
+                throw new Exception('O horário selecionado está fora do horário de funcionamento (' . $horario_inicio . ' - ' . $horario_fim . ').');
             }
             
             // Iniciar transação
@@ -167,5 +166,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
 }
 
 // Redirecionar de volta para a página de visualização com a mensagem
-header("Location: orcamento_visualizar.php?codigo={$codigo}&mensagem_agendamento={$mensagem}&tipo={$tipo}");
+// Codificar a mensagem para evitar problemas no header
+$mensagem_codificada = urlencode($mensagem);
+header("Location: orcamento_visualizar.php?codigo={$codigo}&mensagem_agendamento={$mensagem_codificada}&tipo={$tipo}");
 exit;

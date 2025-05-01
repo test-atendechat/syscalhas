@@ -73,7 +73,7 @@ try {
     
     $colaboradores_ocupados = [];
     
-    // Buscar colaboradores ocupados neste horário somente se houver agendamentos
+    // 1. Verificar colaboradores com agendamentos neste horário
     if ($tem_agendamentos) {
         // Verificar colunas na tabela
         $stmt_colunas = $db->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'agendamentos'");
@@ -109,6 +109,31 @@ try {
             
             $colaboradores_ocupados = $stmt->fetchAll(PDO::FETCH_COLUMN);
         }
+    }
+    
+    // 2. Verificar colaboradores com indisponibilidades registradas
+    // Tabela colaborador_indisponibilidade contém: colaborador_id, data_inicio, data_fim, motivo
+    $data_apenas = $data_hora_inicio->format('Y-m-d');
+    // Verificar se a tabela existe antes de consultar
+    $stmt_check = $db->query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'colaborador_indisponibilidade')");
+    $tabela_existe = $stmt_check->fetchColumn();
+    
+    if ($tabela_existe) {
+        // Verificar indisponibilidades para o dia e horário
+        $stmt_indisponibilidade = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_indisponibilidade 
+                                       WHERE (data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
+                                       OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
+                                       OR (data_inicio >= :data_inicio AND data_fim <= :data_fim)");
+        $stmt_indisponibilidade->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
+        $stmt_indisponibilidade->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
+        $stmt_indisponibilidade->execute();
+        
+        // Adicionar colaboradores indisponíveis ao array de ocupados
+        $indisponiveis = $stmt_indisponibilidade->fetchAll(PDO::FETCH_COLUMN);
+        $colaboradores_ocupados = array_merge($colaboradores_ocupados, $indisponiveis);
+        
+        // Remover duplicatas
+        $colaboradores_ocupados = array_unique($colaboradores_ocupados);
     }
     
     // Buscar colaboradores disponíveis (instaladores)
