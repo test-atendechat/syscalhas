@@ -351,8 +351,14 @@ if (!$acesso_interno) {
                         <?php endif; ?>
                         <?php if ($orcamento['status_execucao'] != 'agendado' && $orcamento['status_execucao'] != 'andamento'): ?>
                             <li>
-                                <a class="dropdown-item" href="agendar_servico.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                <a class="dropdown-item" href="agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
                                     <i class="fas fa-calendar-alt me-2 text-info"></i>Agendar Serviço
+                                </a>
+                            </li>
+                        <?php else: ?>
+                            <li>
+                                <a class="dropdown-item" href="agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-alt me-2 text-warning"></i>Gerenciar Agendamento
                                 </a>
                             </li>
                         <?php endif; ?>
@@ -715,7 +721,14 @@ if (!$acesso_interno) {
 <!-- Seção de agendamento para clientes -->
 <div class="card mb-4" id="agendamento">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendar Serviço</h5>
+        <h5 class="mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>
+            <?php if ($orcamento['status_execucao'] == 'agendado'): ?>
+                Reagendar Serviço
+            <?php else: ?>
+                Agendar Serviço
+            <?php endif; ?>
+        </h5>
     </div>
     <div class="card-body">
         <form id="formAgendamento" method="post" action="agendar_servico.php">

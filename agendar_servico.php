@@ -6,10 +6,17 @@ require_once('includes/functions.php');
 // Garantir acesso às variáveis globais da conexão com o banco de dados
 global $db, $pdo;
 
-// Verificar se é uma requisição POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
+// Verificar se é uma requisição GET ou POST
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Se for GET, vamos redirecionar para a página de agendamento
+    $orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
+    if ($orcamento_id > 0) {
+        header("Location: agendamento.php?orcamento_id=$orcamento_id");
+        exit;
+    } else {
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Inicializar variáveis

@@ -67,6 +67,15 @@ else if ($orcamento_id > 0) {
     $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
     $stmt->execute();
     $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Verificar se há agendamentos ativos (pendentes ou agendados)
+    $has_agendamento_ativo = false;
+    foreach ($agendamentos as $agendamento) {
+        if ($agendamento['status'] == 'agendado' || $agendamento['status'] == 'pendente') {
+            $has_agendamento_ativo = true;
+            break;
+        }
+    }
 }
 
 // Processar formulário de novo agendamento
