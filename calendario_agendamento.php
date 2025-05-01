@@ -52,7 +52,16 @@ $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Preparar eventos para o calendário
 $events = [];
+
+// Variável para verificar se este orçamento já está agendado
+$orcamento_atual_agendado = false;
+
 foreach ($agendamentos as $agendamento) {
+    // Se estamos visualizando um orçamento específico, verificar se ele já está agendado
+    if ($orcamento_id > 0 && intval($agendamento['orcamento_numero']) === $orcamento_id) {
+        $orcamento_atual_agendado = true;
+    }
+    
     // Definir cores com base no status
     $color = '#3788d8'; // azul padrão
     switch ($agendamento['status']) {
@@ -172,11 +181,19 @@ require_once('includes/header.php');
 
 <!-- Mensagem para cliente -->
 <?php if ($cliente_view && isset($orcamento)): ?>
-<div class="alert alert-info mb-4">
-    <i class="fas fa-info-circle me-2"></i>
-    <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Selecione uma data disponível no calendário para agendar sua instalação.
-    As datas em <strong>cinza escuro</strong> não estão disponíveis para agendamento.
-</div>
+    <?php if ($orcamento_atual_agendado): ?>
+    <div class="alert alert-success mb-4">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Seu orçamento já possui um agendamento.
+        Você pode ver os detalhes da instalação agendada no calendário abaixo.
+    </div>
+    <?php else: ?>
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Olá, <?php echo $orcamento['cliente_nome']; ?>!</strong> Selecione uma data disponível no calendário para agendar sua instalação.
+        As datas em <strong>cinza escuro</strong> não estão disponíveis para agendamento.
+    </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <!-- Container do Calendário e Detalhes -->
@@ -381,6 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const horariosPorDia = <?php echo json_encode($horarios_por_dia); ?>;
     const orcamentoId = <?php echo $orcamento_id; ?>;
     const clienteView = <?php echo $cliente_view ? 'true' : 'false'; ?>;
+    const orcamentoJaAgendado = <?php echo $orcamento_atual_agendado ? 'true' : 'false'; ?>;
     const hoje = new Date();
     
     // Função para verificar disponibilidade dos dias
@@ -580,13 +598,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         <ul class="list-group mb-3">
                             ${horariosDisponiveis.map(h => `<li class="list-group-item">${h.inicio} - ${h.fim}</li>`).join('')}
                         </ul>
+                        ${(!orcamentoJaAgendado || !clienteView) ? `
                         <button class="btn btn-primary w-100" id="btn-agendar-modal" data-data="${info.startStr}">
                             <i class="fas fa-calendar-plus me-2"></i>Agendar instalação
                         </button>
+                        ` : `
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Orçamento já agendado!</strong><br>
+                            Este orçamento já possui um agendamento ativo. Selecione a data com o agendamento para ver os detalhes.
+                        </div>
+                        `}
                     `;
                     
-                    // Adicionar evento ao botão de agendamento
-                    document.getElementById('btn-agendar-modal').addEventListener('click', function() {
+                    // Adicionar evento ao botão de agendamento se ele existir
+                    const btnAgendar = document.getElementById('btn-agendar-modal');
+                    if (btnAgendar) {
+                        btnAgendar.addEventListener('click', function() {
                         // Preencher formulário modal
                         document.getElementById('data_agendamento').value = this.getAttribute('data-data');
                         
