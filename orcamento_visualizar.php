@@ -768,6 +768,8 @@ if (!$acesso_interno) {
                         if ($selected_id > 0) {
                             // Usar a conexão já estabelecida
                             require_once 'includes/db.php';
+                            // Usar a variável $db definida em includes/db.php
+                            $pdo = $db; // Alias para manter o código consistente
                             $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
                             $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
                             $stmt->execute();

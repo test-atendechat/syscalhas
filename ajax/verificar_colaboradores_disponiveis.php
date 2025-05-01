@@ -3,6 +3,9 @@ require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
+// Usar a variável $db definida em includes/db.php
+$pdo = $db; // Alias para manter o código consistente
+
 // Inicializar resposta JSON
 header('Content-Type: application/json');
 $resposta = ['status' => 'erro', 'mensagem' => '', 'colaboradores' => []];
@@ -21,7 +24,7 @@ if (empty($data) || empty($hora)) {
 }
 
 // Obter configurações de horário de funcionamento
-$stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
@@ -68,7 +71,7 @@ try {
     }
     
     // Verificar se a tabela agendamentos tem registros
-    $resultado = $db->query("SELECT COUNT(*) FROM agendamentos");
+    $resultado = $pdo->query("SELECT COUNT(*) FROM agendamentos");
     $tem_agendamentos = ($resultado->fetchColumn() > 0);
     
     $colaboradores_ocupados = [];
@@ -76,12 +79,12 @@ try {
     // 1. Verificar colaboradores com agendamentos neste horário
     if ($tem_agendamentos) {
         // Verificar colunas na tabela
-        $stmt_colunas = $db->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'agendamentos'");
+        $stmt_colunas = $pdo->query("SELECT column_name FROM information_schema.columns WHERE table_name = 'agendamentos'");
         $colunas = $stmt_colunas->fetchAll(PDO::FETCH_COLUMN);
         
         // Verificar se existem as colunas data_inicio e data_fim
         if (in_array('data_inicio', $colunas) && in_array('data_fim', $colunas)) {
-            $stmt = $db->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
+            $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
                              WHERE status = 'agendado' 
                              AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                              OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
@@ -97,7 +100,7 @@ try {
             $hora_inicio_apenas = $data_hora_inicio->format('H:i:s');
             $hora_fim_apenas = $data_hora_fim->format('H:i:s');
             
-            $stmt = $db->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
+            $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
                              WHERE status = 'agendado' AND data_agendamento = :data_agendamento 
                              AND ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
                              OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
@@ -115,7 +118,7 @@ try {
     $data_apenas = $data_hora_inicio->format('Y-m-d');
 
     // Consultar colaboradores indisponíveis em colaborador_agenda
-    $stmt_indisponibilidade = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
+    $stmt_indisponibilidade = $pdo->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
                                WHERE data_disponibilidade = :data_disponibilidade 
                                AND disponivel = FALSE 
                                AND (
@@ -140,7 +143,7 @@ try {
     
     // 3. Verificar indisponibilidades recorrentes (baseadas no dia da semana)
     $dia_semana = (int)$data_hora_inicio->format('w'); // 0 (domingo) até 6 (sábado)
-    $stmt_recorrente = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
+    $stmt_recorrente = $pdo->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
                               WHERE recorrente = TRUE 
                               AND dia_semana = :dia_semana 
                               AND disponivel = FALSE 
@@ -171,7 +174,7 @@ try {
         $sql .= " AND id NOT IN (" . implode(',', $colaboradores_ocupados) . ")";
     }
     
-    $stmt = $db->query($sql);
+    $stmt = $pdo->query($sql);
     $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Retornar resultado
