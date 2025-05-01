@@ -753,7 +753,7 @@ if (!$acesso_interno) {
                         }
                         ?>
                     </select>
-                    <small class="text-muted">Horário de trabalho: 07:00 às 17:00.</small>
+                    <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?>.</small>
                 </div>
             </div>
             
@@ -782,7 +782,7 @@ if (!$acesso_interno) {
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Importante:</strong> Apenas colaboradores disponíveis para este horário são mostrados na lista.
-                Os horários de trabalho são das 07:00 às 17:00 horas.
+                Os horários de trabalho são das <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?> horas.
             </div>
             
             <button type="submit" class="btn btn-primary">
@@ -885,7 +885,11 @@ if (!$acesso_interno) {
             
             const [hora, minuto] = horaInicioStr.split(':').map(Number);
             const horaInicioMinutos = hora * 60 + minuto;
-            const fimExpedienteMinutos = 17 * 60; // 17:00
+            
+            // Obter horário de fim do expediente das configurações PHP
+            const horarioFim = '<?php echo $horario_fim; ?>';
+            const [horaFim, minutoFim] = horarioFim.split(':').map(Number);
+            const fimExpedienteMinutos = horaFim * 60 + minutoFim;
             
             // Verificar se o serviço pode ser concluído no mesmo dia
             if (horaInicioMinutos + duracaoMinutos > fimExpedienteMinutos) {
