@@ -513,6 +513,15 @@ for ($minuto = $inicio_minutos; $minuto < $fim_minutos; $minuto += $intervalo_mi
                     if (data.status === 'sucesso') {
                         mensagemOrcamentistas.style.display = 'none';
                         
+                        // Verificar se existe mensagem informativa sobre almoço
+                        if (data.mensagem_info) {
+                            mensagemOrcamentistas.textContent = data.mensagem_info;
+                            mensagemOrcamentistas.className = 'alert alert-info mt-2';
+                            mensagemOrcamentistas.style.display = 'block';
+                        } else {
+                            mensagemOrcamentistas.style.display = 'none';
+                        }
+                        
                         // Preencher select com orçamentistas disponíveis
                         if (data.colaboradores && data.colaboradores.length > 0) {
                             data.colaboradores.forEach(orcamentista => {
