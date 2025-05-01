@@ -126,8 +126,17 @@ body {
     background-color: #fd7e14; /* Laranja */
 }
 
+/* Status de execução */
+.status-agendado {
+    background-color: #0dcaf0; /* Info - Azul claro */
+}
+
+.status-andamento {
+    background-color: #fd7e14; /* Warning - Laranja */
+}
+
 .status-finalizado {
-    background-color: #6610f2;
+    background-color: #6610f2; /* Purple */
 }
 
 /* Estoque */

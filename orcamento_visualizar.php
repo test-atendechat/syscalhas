@@ -302,10 +302,37 @@ if (!$acesso_interno) {
                                 </a>
                             </li>
                         <?php endif; ?>
-                        <?php if ($orcamento['status_execucao'] == 'pendente'): ?>
+                        <!-- Opções de status de execução -->
+                        <li>
+                            <a class="dropdown-item text-secondary fw-bold">
+                                <i class="fas fa-tasks me-2"></i>Status de Execução
+                            </a>
+                        </li>
+                        <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=pendente">
+                                    <i class="fas fa-circle me-2 text-secondary"></i>Marcar como Pendente
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'agendado' && $orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="agendar_servico.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-alt me-2 text-info"></i>Agendar Serviço
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=andamento">
+                                    <i class="fas fa-spinner me-2 text-warning"></i>Marcar Em Andamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'finalizado'): ?>
                             <li>
                                 <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=finalizar">
-                                    <i class="fas fa-check-circle me-2"></i>Marcar como Finalizado
+                                    <i class="fas fa-check-circle me-2 text-success"></i>Marcar como Finalizado
                                 </a>
                             </li>
                         <?php endif; ?>
@@ -385,10 +412,24 @@ if (!$acesso_interno) {
                 <?php endif; ?>
                 
                 <!-- Status de execução -->
-                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
-                <span class="status-box status-finalizado ms-2">
-                    Finalizado
-                </span>
+                <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                    <?php 
+                    $status_class = '';
+                    switch ($orcamento['status_execucao']) {
+                        case 'agendado':
+                            $status_class = 'status-agendado';
+                            break;
+                        case 'andamento':
+                            $status_class = 'status-andamento';
+                            break;
+                        case 'finalizado':
+                            $status_class = 'status-finalizado';
+                            break;
+                    }
+                    ?>
+                    <span class="status-box <?php echo $status_class; ?> ms-2">
+                        <?php echo ucfirst($orcamento['status_execucao']); ?>
+                    </span>
                 <?php endif; ?>
             </div>
         </div>

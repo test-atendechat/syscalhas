@@ -284,7 +284,21 @@ require_once('includes/header.php');
                                 </td>
                                 <td>
                                     <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
-                                    <span class="status-box status-<?php echo $orcamento['status_execucao']; ?>">
+                                    <?php 
+                                    $status_class = '';
+                                    switch ($orcamento['status_execucao']) {
+                                        case 'agendado':
+                                            $status_class = 'status-agendado';
+                                            break;
+                                        case 'andamento':
+                                            $status_class = 'status-andamento';
+                                            break;
+                                        case 'finalizado':
+                                            $status_class = 'status-finalizado';
+                                            break;
+                                    }
+                                    ?>
+                                    <span class="status-box <?php echo $status_class; ?>">
                                         <?php echo ucfirst($orcamento['status_execucao']); ?>
                                     </span>
                                     <?php else: ?>
@@ -407,13 +421,13 @@ require_once('includes/header.php');
                     <span class="badge bg-secondary">Pendentes:</span> <?php echo isset($totais_execucao['pendente']) ? $totais_execucao['pendente'] : 0; ?>
                 </div>
                 <div class="col-md-3">
-                    <span class="badge bg-info">Agendados:</span> <?php echo isset($totais_execucao['agendado']) ? $totais_execucao['agendado'] : 0; ?>
+                    <span class="badge" style="background-color: #0dcaf0;">Agendados:</span> <?php echo isset($totais_execucao['agendado']) ? $totais_execucao['agendado'] : 0; ?>
                 </div>
                 <div class="col-md-3">
-                    <span class="badge bg-warning">Em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
+                    <span class="badge" style="background-color: #fd7e14;">Em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
                 </div>
                 <div class="col-md-3">
-                    <span class="badge bg-success">Finalizados:</span> <?php echo isset($totais_execucao['finalizado']) ? $totais_execucao['finalizado'] : 0; ?>
+                    <span class="badge" style="background-color: #6610f2;">Finalizados:</span> <?php echo isset($totais_execucao['finalizado']) ? $totais_execucao['finalizado'] : 0; ?>
                 </div>
             </div>
         </div>
