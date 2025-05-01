@@ -205,7 +205,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
                     <div class="agendamento-header">
                         <div class="row">
                             <div class="col-md-6">
-                                <i class="fas fa-clock me-2"></i>Horário: <?php echo substr($agendamento['hora_inicio'], 0, 5); ?>
+                                <i class="fas fa-clock me-2"></i>Horário: <?php echo substr($agendamento['hora_inicio'], 0, 5); ?> até <?php echo substr($agendamento['hora_fim'], 0, 5); ?>
                             </div>
                             <div class="col-md-6 text-md-end">
                                 <i class="fas fa-file-invoice-dollar me-2"></i>Orçamento: #<?php echo $agendamento['orcamento_numero']; ?>
@@ -245,7 +245,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
                             <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Data:</strong> <?php echo $data_formatada; ?></p>
-                                    <p><strong>Horário:</strong> <?php echo substr($agendamento['hora_inicio'], 0, 5); ?></p>
+                                    <p><strong>Horário:</strong> <?php echo substr($agendamento['hora_inicio'], 0, 5); ?> até <?php echo substr($agendamento['hora_fim'], 0, 5); ?></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Profissional:</strong> <?php echo $colaborador['nome']; ?></p>

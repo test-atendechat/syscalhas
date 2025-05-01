@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $pdo->beginTransaction();
             
             // Verificar se já existem agendamentos ativos para este orçamento
-            $stmt = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+            $stmt = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada')");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             $agendamentos_ativos = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -167,8 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                                 data_agendamento, hora_inicio, hora_fim)
                                 VALUES (
                                 :orcamento_id, :colaborador_id, :data_inicio, :data_fim, 
-                                'agendado', :observacoes, :codigo_confirmacao, :usuario_id, TRUE,
+                                :status, :observacoes, :codigo_confirmacao, :usuario_id, TRUE,
                                 :data_agendamento, :hora_inicio, :hora_fim)");
+            
+            // Define o status baseado no tipo de colaborador
+            $status = ($tipo_agendamento == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             
@@ -178,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             
             $stmt->bindParam(':data_inicio', $data_inicio_valor);
             $stmt->bindParam(':data_fim', $data_fim_valor);
+            $stmt->bindParam(':status', $status);
             $stmt->bindParam(':observacoes', $observacoes);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
             $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
