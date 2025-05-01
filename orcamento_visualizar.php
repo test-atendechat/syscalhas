@@ -39,7 +39,7 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
     
     if ($acao == 'finalizar') {
         // Atualizar status de execução para finalizado
-        $stmt = $db->prepare("UPDATE orcamentos SET 
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
                             status_execucao = 'finalizado', 
                             data_finalizacao = CURRENT_DATE 
                             WHERE id = :id");
@@ -52,7 +52,7 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         }
     } elseif ($acao == 'andamento') {
         // Atualizar status de execução para em andamento
-        $stmt = $db->prepare("UPDATE orcamentos SET 
+        $stmt = $pdo->prepare("UPDATE orcamentos SET 
                             status_execucao = 'andamento' 
                             WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -704,7 +704,7 @@ if (!$acesso_interno) {
                         <option value="">Selecione o horário</option>
                         <?php
                         // Obter configurações de horário de funcionamento
-                        $stmt_conf = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim')");
+                        $stmt_conf = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim')");
                         $config = $stmt_conf->fetchAll(PDO::FETCH_KEY_PAIR);
 
                         // Valores padrão caso não existam configurações
@@ -768,10 +768,8 @@ if (!$acesso_interno) {
                         // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
                         $selected_id = $orcamento['colaborador_id'] ?? 0;
                         if ($selected_id > 0) {
-                            // Usar a conexão já estabelecida
-                            require_once 'includes/db.php';
-                            // Usar a variável $db definida em includes/db.php
-                            $pdo = $db; // Alias para manter o código consistente
+                            // A conexão já foi estabelecida no início do arquivo
+                            // Usar a variável $pdo que já está definida
                             $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
                             $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
                             $stmt->execute();

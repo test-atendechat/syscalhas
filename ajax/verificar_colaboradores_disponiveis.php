@@ -3,8 +3,7 @@ require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
-// Usar a variável $db definida em includes/db.php
-$pdo = $db; // Alias para manter o código consistente
+// A variável $pdo já deve estar definida no arquivo includes/db.php
 
 // Inicializar resposta JSON
 header('Content-Type: application/json');
