@@ -376,10 +376,10 @@ require_once('includes/header.php');
                 <div class="col-md-2 mb-3">
                     <label for="tempo_previsto_horas" class="form-label required-field">Tempo Previsto (horas)</label>
                     <div class="input-group">
-                        <input type="number" class="form-control" id="tempo_previsto_horas" name="tempo_previsto_horas" value="<?php echo isset($tempo_previsto_horas) ? $tempo_previsto_horas : 2; ?>" min="1" max="24" required>
+                        <input type="number" class="form-control" id="tempo_previsto_horas" name="tempo_previsto_horas" value="<?php echo isset($tempo_previsto_horas) ? $tempo_previsto_horas : 2; ?>" min="1" max="240" required>
                         <span class="input-group-text">h</span>
                     </div>
-                    <div class="form-text">Tempo estimado para a execução do serviço.</div>
+                    <div class="form-text">Tempo estimado para a execução do serviço. Pode ser superior a 24h para serviços que levam vários dias.</div>
                 </div>
 
             </div>

@@ -598,7 +598,20 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
                     Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
                 <?php else: ?>
-                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço.
+                    <?php
+                    // Formatar tempo previsto para exibição (em horas ou dias)
+                    $tempo_texto = "2 horas"; // Valor padrão
+                    if (isset($orcamento['tempo_previsto_horas'])) {
+                        $horas = intval($orcamento['tempo_previsto_horas']);
+                        if ($horas <= 24) {
+                            $tempo_texto = "{$horas} hora" . ($horas > 1 ? 's' : '');
+                        } else {
+                            $dias = ceil($horas / 24);
+                            $tempo_texto = "até {$dias} dia" . ($dias > 1 ? 's' : '');
+                        }
+                    }
+                    ?>
+                    Agradecemos por aprovar nosso orçamento. Em breve entraremos em contato para agendar a execução do serviço. <strong>O tempo previsto para conclusão após o início do serviço é de <?php echo $tempo_texto; ?>.</strong>
                 <?php endif; ?>
             <?php else: ?>
                 Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
