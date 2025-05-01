@@ -6,10 +6,14 @@ require_once('../includes/functions.php');
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
 
-// Definir constantes para o horário de funcionamento
-$horario_inicio = "08:00"; // 8h da manhã
-$horario_fim = "18:00";     // 6h da tarde
-$dias_funcionamento = [1, 2, 3, 4, 5]; // Segunda a sexta (1-5)
+// Obter configurações de horário de funcionamento do banco de dados
+$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$config = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Valores padrão caso não existam configurações
+$horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '08:00';
+$horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '18:00';
+$dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
 
 // Inicializar variáveis
 $mensagem = '';
@@ -120,9 +124,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
 
 // Verificar horários disponíveis do orçamentista selecionado
 if ($orcamentista_id > 0 && !empty($data_selecionada)) {
-    // Definir horários possíveis de trabalho (8h às 18h, intervalo de 1h)
+    // Definir horários possíveis de trabalho com base nas configurações
     $horarios_possiveis = [];
-    for ($hora = 8; $hora < 18; $hora++) {
+    $horario_inicio_partes = explode(':', $horario_inicio);
+    $horario_fim_partes = explode(':', $horario_fim);
+    $hora_inicio = intval($horario_inicio_partes[0]);
+    $hora_fim = intval($horario_fim_partes[0]);
+    
+    // Considerar apenas horas completas para agendar visitas
+    for ($hora = $hora_inicio; $hora < $hora_fim; $hora++) {
         $horarios_possiveis[] = sprintf("%02d:00:00", $hora);
     }
     
