@@ -55,7 +55,7 @@ $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
 $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
-$horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+$horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '16:00';
 $dias_funcionamento = isset($config['dias_funcionamento']) ? explode(',', $config['dias_funcionamento']) : [1, 2, 3, 4, 5]; // Padrão: Segunda a Sexta
 
 try {

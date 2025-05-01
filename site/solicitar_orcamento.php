@@ -109,9 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     }
 }
 
-// Definir horários possíveis de trabalho (8h às 18h, intervalo de 1h)
+// Definir horários possíveis de trabalho (7h às 16h, intervalo de 1h)
 $horarios_possiveis = [];
-for ($hora = 8; $hora < 18; $hora++) {
+for ($hora = 7; $hora < 16; $hora++) {
     $horarios_possiveis[] = sprintf("%02d:00:00", $hora);
 }
 ?>
