@@ -250,42 +250,58 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
     
     try {
         // Verificar se o agendamento existe
-        $stmt = $pdo->prepare("SELECT orcamento_id FROM agendamentos WHERE id = :id");
+        $stmt = $pdo->prepare("SELECT orcamento_id, cliente_id FROM agendamentos WHERE id = :id");
         $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
         $stmt->execute();
         
         if ($resultado = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $orcamento_id = $resultado['orcamento_id'];
+            $cliente_id = $resultado['cliente_id'];
             
             // Cancelar agendamento
-            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado', observacoes = CONCAT(COALESCE(observacoes, ''), ' [Cancelado pelo usuário]') WHERE id = :id");
             $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
-            // Verificar se há outros agendamentos ativos para este orçamento
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
-                               WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
-            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            // Se não houver outros agendamentos, volta para pendente
-            if ($stmt->fetchColumn() == 0) {
-                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
-                $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+            // Se for um agendamento ligado a um orçamento, atualizar o status do orçamento
+            if (!empty($orcamento_id)) {
+                // Verificar se há outros agendamentos ativos para este orçamento
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
+                                   WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+                $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
                 $stmt->execute();
+                
+                // Se não houver outros agendamentos, volta para pendente
+                if ($stmt->fetchColumn() == 0) {
+                    $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'pendente' WHERE id = :id");
+                    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+                
+                $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
+                
+                // Recarregar agendamentos do orçamento
+                $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
+                                 FROM agendamentos a 
+                                 LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                                 WHERE a.orcamento_id = :orcamento_id 
+                                 ORDER BY a.data_inicio DESC");
+                $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+                $stmt->execute();
+                $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                // É um agendamento direto do site (sem orçamento vinculado)
+                $mensagem = alerta('Visita técnica cancelada com sucesso!', 'success');
+                
+                // Para agendamentos sem orçamento, apenas incluir o próprio agendamento na lista
+                $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
+                                 FROM agendamentos a 
+                                 LEFT JOIN colaboradores c ON a.instalador_id = c.id 
+                                 WHERE a.id = :id");
+                $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+                $stmt->execute();
+                $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
-            
-            $mensagem = alerta('Agendamento cancelado com sucesso!', 'success');
-            
-            // Recarregar agendamentos
-            $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
-                             FROM agendamentos a 
-                             LEFT JOIN colaboradores c ON a.instalador_id = c.id 
-                             WHERE a.orcamento_id = :orcamento_id 
-                             ORDER BY a.data_inicio DESC");
-            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
-            $stmt->execute();
-            $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $mensagem = alerta('Agendamento não encontrado.', 'danger');
         }
