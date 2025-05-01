@@ -40,9 +40,9 @@ $stmt = $pdo->prepare("SELECT a.*,
                           c.nome as cliente_nome, 
                           c.telefone as cliente_telefone, 
                           c.endereco as cliente_endereco,
-                          c.bairro as cliente_bairro,
                           c.cidade as cliente_cidade,
-                          c.estado as cliente_estado
+                          c.estado as cliente_estado,
+                          c.cep as cliente_cep
                      FROM agendamentos a
                      JOIN orcamentos o ON a.orcamento_id = o.id
                      JOIN clientes c ON o.cliente_id = c.id
@@ -210,9 +210,12 @@ $data_formatada = date('d/m/Y', strtotime($data));
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Endereço:</strong> <?php echo $agendamento['cliente_endereco']; ?></p>
-                                    <p><strong>Bairro:</strong> <?php echo $agendamento['cliente_bairro']; ?>
+                                    <p><strong>Localização:</strong> 
                                        <?php if (!empty($agendamento['cliente_cidade'])): ?>
-                                       - <?php echo $agendamento['cliente_cidade']; ?>/<?php echo $agendamento['cliente_estado']; ?>
+                                       <?php echo $agendamento['cliente_cidade']; ?>/<?php echo $agendamento['cliente_estado']; ?>
+                                       <?php endif; ?>
+                                       <?php if (!empty($agendamento['cliente_cep'])): ?>
+                                       - CEP: <?php echo $agendamento['cliente_cep']; ?>
                                        <?php endif; ?>
                                     </p>
                                 </div>

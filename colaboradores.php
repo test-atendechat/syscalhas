@@ -30,7 +30,7 @@ if (isset($_GET['acao'])) {
     // Excluir colaborador (marca como inativo)
     if ($acao === 'excluir' && $id > 0) {
         try {
-            $stmt = $db->prepare("UPDATE colaboradores SET status = 'inativo', ultima_atualizacao = NOW() WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE colaboradores SET status = 'inativo', ultima_atualizacao = NOW() WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             
@@ -43,7 +43,7 @@ if (isset($_GET['acao'])) {
     // Reativar colaborador
     if ($acao === 'reativar' && $id > 0) {
         try {
-            $stmt = $db->prepare("UPDATE colaboradores SET status = 'ativo', ultima_atualizacao = NOW() WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE colaboradores SET status = 'ativo', ultima_atualizacao = NOW() WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             
@@ -83,7 +83,7 @@ if ($filtro_status !== 'todos') {
 $sql .= " ORDER BY nome ASC";
 
 try {
-    $stmt = $db->prepare($sql);
+    $stmt = $pdo->prepare($sql);
     foreach ($params as $param => $value) {
         $stmt->bindValue($param, $value);
     }
