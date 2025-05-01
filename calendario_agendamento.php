@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Se for visualização do cliente, redirecionar para o orçamento com mensagem de sucesso
             const codigo = new URLSearchParams(window.location.search).get('codigo_acesso');
             if (codigo) {
-                window.location.href = `orcamento_visualizar.php?codigo=${codigo}&mensagem=agendado&data=${dataFormatada}&hora=${horaFormatada}`;
+                window.location.href = `orcamento_visualizar.php?codigo=${codigo}&mensagem=agendado&data=${dataFormatada}&hora=${horaFormatada}&agendado=true`;
             } else {
                 // Redirecionar para o formulário de agendamento completo
                 window.location.href = `agendamento_form.php?orcamento_id=${orcamentoId}&data=${dataAgendamento}&hora_inicio=${horaInicio}&hora_fim=${horaFim}`;

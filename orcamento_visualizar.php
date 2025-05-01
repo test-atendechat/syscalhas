@@ -95,6 +95,19 @@ if (isset($_GET['id'])) {
         foreach ($pagamentos as $pagamento) {
             $total_pago += $pagamento['valor'];
         }
+        
+        // Buscar agendamentos do orçamento (acesso interno)
+        $stmt = $db->prepare("SELECT a.*, 
+                          (SELECT GROUP_CONCAT(i.nome SEPARATOR ', ') 
+                           FROM agendamento_instaladores ai 
+                           JOIN instaladores i ON ai.instalador_id = i.id 
+                           WHERE ai.agendamento_id = a.id) as instaladores
+                          FROM agendamentos a 
+                          WHERE a.orcamento_id = :orcamento_id AND a.status != 'cancelado'
+                          ORDER BY a.data_agendamento DESC, a.hora_inicio ASC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
     }
