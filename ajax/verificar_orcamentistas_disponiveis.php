@@ -95,7 +95,7 @@ try {
     // Se a hora de início for anterior ao expediente ou se a hora do fim for posterior ao expediente
     if ($data_hora_inicio < $hora_inicio_expediente || $data_hora_fim > $hora_fim_expediente) {
         $resposta['mensagem'] = 'O horário selecionado está fora do horário de funcionamento (' . 
-                                $horario_inicio . ' - ' . $horario_fim . ').';
+                            $horario_inicio . ' - ' . $horario_fim . ').';
         echo json_encode($resposta);
         exit;
     }
@@ -228,14 +228,18 @@ try {
         
         // Se houver conflito com almoço ou entrada, não há orçamentistas disponíveis
         if ($conflito_almoco) {
-            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . ').';
+            $resposta['status'] = 'erro';
+            $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . ')';
+            $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
         }
         
         if ($conflito_entrada) {
             $hora_disponivel_formatada = $hora_disponivel->format('H:i');
+            $resposta['status'] = 'erro';
             $resposta['mensagem'] = 'Este horário coincide com o período indisponível na abertura. Disponível a partir de ' . $hora_disponivel_formatada . '.';
+            $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
         }

@@ -228,14 +228,18 @@ try {
         
         // Se houver conflito com almoço ou entrada, não há colaboradores disponíveis
         if ($conflito_almoco) {
+            $resposta['status'] = 'erro';
             $resposta['mensagem'] = 'Este horário coincide com o período de almoço (' . $horario_inicio_almoco . ' - ' . $horario_fim_almoco . '). Caso o serviço seja longo, considere a duração completa depois do período de almoço.';
+            $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
         }
         
         if ($conflito_entrada) {
             $hora_disponivel_formatada = $hora_disponivel->format('H:i');
+            $resposta['status'] = 'erro';
             $resposta['mensagem'] = 'Este horário coincide com o período indisponível na abertura da empresa. Disponível a partir de ' . $hora_disponivel_formatada . '.';
+            $resposta['colaboradores'] = [];
             echo json_encode($resposta);
             exit;
         }
