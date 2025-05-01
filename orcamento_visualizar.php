@@ -603,20 +603,31 @@ if (!$acesso_interno) {
                 <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
                     <?php 
                     $status_class = '';
+                    $texto_status = '';
+                    
                     switch ($orcamento['status_execucao']) {
                         case 'agendado':
                             $status_class = 'status-agendado';
+                            $texto_status = 'Instalação Agendada';
+                            break;
+                        case 'orcamento_agendado':
+                            $status_class = 'status-agendado';
+                            $texto_status = 'Orçamento Agendado';
                             break;
                         case 'andamento':
                             $status_class = 'status-andamento';
+                            $texto_status = 'Em Andamento';
                             break;
                         case 'finalizado':
                             $status_class = 'status-finalizado';
+                            $texto_status = 'Finalizado';
                             break;
+                        default:
+                            $texto_status = ucfirst($orcamento['status_execucao']);
                     }
                     ?>
                     <span class="status-box <?php echo $status_class; ?> ms-2">
-                        <?php echo ucfirst($orcamento['status_execucao']); ?>
+                        <?php echo $texto_status; ?>
                     </span>
                 <?php endif; ?>
             </div>
