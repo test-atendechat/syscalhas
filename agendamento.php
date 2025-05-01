@@ -22,8 +22,8 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Buscar colaboradores instaladores
-$stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+// Buscar colaboradores instaladores e orcamentistas
+$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
 $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
@@ -82,9 +82,16 @@ else if ($orcamento_id > 0) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['acao'] == 'agendar') {
     $orcamento_id = intval($_POST['orcamento_id']);
     $colaborador_id = intval($_POST['colaborador_id']);
+    $tipo_agendamento = $_POST['tipo_agendamento'];
     $data_servico = $_POST['data_servico'];
     $hora_inicio = $_POST['hora_inicio'];
     $observacoes = limpaString($_POST['observacoes'] ?? '');
+    
+    if($tipo_agendamento == 'orcamentista') {
+        $observacoes = '[Visita Técnica] ' . $observacoes;
+    } else {
+        $observacoes = '[Execução do Serviço] ' . $observacoes;
+    }
     
     if (empty($orcamento_id) || empty($colaborador_id) || empty($data_servico) || empty($hora_inicio)) {
         $mensagem = alerta('Todos os campos obrigatórios devem ser preenchidos.', 'danger');
@@ -407,16 +414,26 @@ require_once('includes/header.php');
                     </div>
                     
                     <div class="mb-3">
-                        <label for="colaborador_id" class="form-label required-field">Instalador Responsável</label>
+                        <label for="tipo_agendamento" class="form-label required-field">Tipo de Agendamento</label>
+                        <select class="form-select" id="tipo_agendamento" name="tipo_agendamento" required>
+                            <option value="">Selecione o tipo de agendamento</option>
+                            <option value="orcamentista" <?php echo isset($_GET['tipo']) && $_GET['tipo'] == 'visita' ? 'selected' : ''; ?>>Visita Técnica (Orçamentista)</option>
+                            <option value="instalador" <?php echo !isset($_GET['tipo']) || $_GET['tipo'] != 'visita' ? 'selected' : ''; ?>>Execução do Serviço (Instalador)</option>
+                        </select>
+                        <small class="text-muted">Selecione se este é um agendamento de visita técnica (orçamentista) ou de execução do serviço (instalador).</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="colaborador_id" class="form-label required-field">Profissional Responsável</label>
                         <select class="form-select" id="colaborador_id" name="colaborador_id" required>
-                            <option value="">Selecione um instalador</option>
+                            <option value="">Selecione um profissional</option>
                             <?php foreach($colaboradores as $colaborador): ?>
-                                <option value="<?php echo $colaborador['id']; ?>">
-                                    <?php echo $colaborador['nome']; ?>
+                                <option value="<?php echo $colaborador['id']; ?>" data-tipo="<?php echo $colaborador['tipo']; ?>">
+                                    <?php echo $colaborador['nome']; ?> (<?php echo ucfirst($colaborador['tipo']); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="text-muted">Selecione data e horário primeiro para ver apenas colaboradores disponíveis.</small>
+                        <small class="text-muted">Selecione data e horário primeiro para ver apenas profissionais disponíveis.</small>
                     </div>
                     
                     <div class="mb-3">
@@ -451,7 +468,7 @@ require_once('includes/header.php');
                             <th>ID</th>
                             <th>Data/Hora Início</th>
                             <th>Data/Hora Fim</th>
-                            <th>Instalador</th>
+                            <th>Profissional</th>
                             <th>Status</th>
                             <th>Observações</th>
                             <th>Ações</th>
@@ -515,19 +532,55 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataServico = document.getElementById('data_servico');
     const horaInicio = document.getElementById('hora_inicio');
     const colaboradorSelect = document.getElementById('colaborador_id');
+    const tipoAgendamentoSelect = document.getElementById('tipo_agendamento');
     
-    if (!dataServico || !horaInicio || !colaboradorSelect) return;
+    if (!dataServico || !horaInicio || !colaboradorSelect || !tipoAgendamentoSelect) return;
     
     const tempoPrevisto = <?php echo $orcamento ? $orcamento['tempo_previsto'] : 60; ?>;
     const unidadeTempo = '<?php echo $orcamento ? $orcamento['unidade_tempo'] : 'minutos'; ?>';
+    
+    // Função para filtrar colaboradores por tipo
+    function filtrarColaboradoresPorTipo() {
+        const tipoSelecionado = tipoAgendamentoSelect.value;
+        
+        if (!tipoSelecionado) return;
+        
+        for (let i = 0; i < colaboradorSelect.options.length; i++) {
+            const option = colaboradorSelect.options[i];
+            const tipo = option.getAttribute('data-tipo');
+            
+            // Se não tem valor ou não tem data-tipo (primeira opção), mantém visível
+            if (!option.value || !tipo) continue;
+            
+            // Oculta ou exibe com base no tipo
+            if (tipo === tipoSelecionado) {
+                option.style.display = '';
+                option.disabled = false;
+            } else {
+                option.style.display = 'none';
+                option.disabled = true;
+            }
+        }
+        
+        // Redefinir seleção se o tipo selecionado não corresponder
+        if (colaboradorSelect.selectedIndex > 0) {
+            const selectedOption = colaboradorSelect.options[colaboradorSelect.selectedIndex];
+            const selectedTipo = selectedOption.getAttribute('data-tipo');
+            
+            if (selectedTipo !== tipoSelecionado) {
+                colaboradorSelect.selectedIndex = 0;
+            }
+        }
+    }
     
     // Função para carregar colaboradores disponíveis
     function carregarColaboradoresDisponiveis() {
         const dataValue = dataServico.value;
         const horaValue = horaInicio.value;
+        const tipoSelecionado = tipoAgendamentoSelect.value;
         
-        // Verificar se ambos os campos estão preenchidos
-        if (!dataValue || !horaValue) return;
+        // Verificar se todos os campos estão preenchidos
+        if (!dataValue || !horaValue || !tipoSelecionado) return;
         
         // Salvar opção selecionada atualmente
         const selectedValue = colaboradorSelect.value;
@@ -539,13 +592,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Definir mensagem de carregamento
         const loadingOption = document.createElement('option');
-        loadingOption.text = 'Carregando colaboradores disponíveis...';
+        loadingOption.text = 'Carregando profissionais disponíveis...';
         loadingOption.disabled = true;
         colaboradorSelect.appendChild(loadingOption);
         colaboradorSelect.selectedIndex = 1;
         
         // Buscar colaboradores disponíveis via AJAX
-        fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+        fetch(`ajax/verificar_colaboradores_disponiveis.php?tipo=${tipoSelecionado}&data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
             .then(response => response.json())
             .then(data => {
                 // Remover opção de carregamento
@@ -559,7 +612,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.colaboradores.forEach(colaborador => {
                             const option = document.createElement('option');
                             option.value = colaborador.id;
-                            option.text = colaborador.nome;
+                            option.text = colaborador.nome + ' (' + (colaborador.tipo.charAt(0).toUpperCase() + colaborador.tipo.slice(1)) + ')';
+                            option.setAttribute('data-tipo', colaborador.tipo);
                             
                             // Verificar se este era o valor selecionado anteriormente
                             if (selectedValue && colaborador.id == selectedValue) {
@@ -577,14 +631,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         // Se não há colaboradores disponíveis
                         const naoDisponivelOption = document.createElement('option');
-                        naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
+                        naoDisponivelOption.text = 'Nenhum profissional disponível neste horário';
                         naoDisponivelOption.disabled = true;
                         colaboradorSelect.appendChild(naoDisponivelOption);
                     }
                 } else {
                     // Exibir mensagem de erro
                     const erroOption = document.createElement('option');
-                    erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
+                    erroOption.text = 'Erro ao carregar profissionais: ' + data.mensagem;
                     erroOption.disabled = true;
                     colaboradorSelect.appendChild(erroOption);
                 }
@@ -595,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Exibir mensagem de erro de conexão
                 const erroOption = document.createElement('option');
-                erroOption.text = 'Erro de conexão ao buscar colaboradores';
+                erroOption.text = 'Erro de conexão ao buscar profissionais';
                 erroOption.disabled = true;
                 colaboradorSelect.appendChild(erroOption);
                 console.error('Erro:', error);
@@ -605,6 +659,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Eventos para acionar a busca de colaboradores disponíveis
     dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
     horaInicio.addEventListener('change', carregarColaboradoresDisponiveis);
+    tipoAgendamentoSelect.addEventListener('change', carregarColaboradoresDisponiveis);
+    
+    // Inicializar filtragem ao carregar
+    if (tipoAgendamentoSelect.value) {
+        filtrarColaboradoresPorTipo();
+    }
 });
 </script>
 
