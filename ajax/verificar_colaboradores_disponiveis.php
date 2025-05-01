@@ -231,7 +231,7 @@ try {
     }
 
     // Buscar colaboradores do tipo especificado
-    $sql = "SELECT id, nome FROM colaboradores WHERE tipo = :tipo_colaborador AND status = 'ativo'";
+    $sql = "SELECT id, nome, tipo FROM colaboradores WHERE tipo = :tipo_colaborador AND status = 'ativo'";
     
     // Se há colaboradores ocupados, excluí-los da busca
     if (!empty($colaboradores_ocupados)) {
