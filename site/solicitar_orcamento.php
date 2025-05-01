@@ -2,6 +2,8 @@
 require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
+require_once('../includes/notificacoes.php');
+require_once('../notificacao_solicitacao.php');
 
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
@@ -161,6 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $stmt_orcamento->bindParam(':codigo_acesso', $codigo_acesso);
             $stmt_orcamento->execute();
             $orcamento_id = $pdo->lastInsertId();
+            
+            // Gerar notificações para a nova solicitação de orçamento
+            $dados_notificacao = [
+                'telefone' => $telefone,
+                'data_agendamento' => $data_servico,
+                'hora_inicio' => $hora_inicio
+            ];
+            notificarSolicitacaoOrcamento($cliente_id, $nome, $dados_notificacao);
+            notificarNovoOrcamento($orcamento_id, $numero_orcamento, $nome);
 
             // Observações ajustadas para incluir o título como parte das observações
             $observacoes_completas = "Visita para Orçamento - " . $nome . "\n\n" . $observacoes;

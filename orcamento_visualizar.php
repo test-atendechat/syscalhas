@@ -2,6 +2,8 @@
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
+require_once('includes/notificacoes.php');
+require_once('notificacao_orcamento.php');
 
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
