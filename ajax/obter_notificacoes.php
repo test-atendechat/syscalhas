@@ -5,7 +5,7 @@ require_once('../includes/auth.php');
 require_once('../includes/notificacoes.php');
 
 // Certificar que o usuário está autenticado
-if (!verificarAutenticado()) {
+if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario'])) {
     header('Content-Type: application/json');
     echo json_encode([
         'sucesso' => false,

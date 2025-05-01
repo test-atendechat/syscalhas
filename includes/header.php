@@ -448,6 +448,32 @@ try {
 
                 <div class="d-flex align-items-center">
                     <!-- Botão de alternar tema -->
+                    <!-- Notificações -->
+                    <div id="notificacoes-toggle" class="notificacoes-toggle me-2">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificacoes-contador" class="notificacoes-contador" style="display: none;">0</span>
+                        
+                        <!-- Dropdown de notificações -->
+                        <div id="notificacoes-dropdown" class="notificacoes-dropdown">
+                            <div class="notificacoes-header">
+                                <span class="notificacoes-titulo">Notificações</span>
+                                <a id="marcar-todas-lidas" class="notificacoes-marcar-lidas">Marcar todas como lidas</a>
+                            </div>
+                            
+                            <ul id="notificacoes-lista" class="notificacoes-lista"></ul>
+                            
+                            <div id="notificacoes-vazia" class="notificacoes-vazia">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>Nenhuma notificação disponível</p>
+                            </div>
+                            
+                            <div class="notificacoes-footer">
+                                <a href="#" class="notificacoes-ver-todas">Ver todas</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tema -->  
                     <button id="toggle-theme-btn" class="toggle-theme-btn me-2" title="<?php echo ($tema_sistema == 'dark') ? 'Mudar para tema claro' : 'Mudar para tema escuro'; ?>">
                         <?php if ($tema_sistema == 'dark'): ?>
                         <i class="fas fa-sun"></i>
