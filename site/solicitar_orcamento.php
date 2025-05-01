@@ -40,8 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     $nome = trim($_POST['nome']);
     $telefone = trim($_POST['telefone']);
     $email = trim($_POST['email']);
+    $cpf_cnpj = trim($_POST['cpf_cnpj']);
     $endereco = trim($_POST['endereco']);
     $cidade = trim($_POST['cidade']);
+    $estado = trim($_POST['estado']);
+    $cep = trim($_POST['cep']);
     $data_servico = $_POST['data_servico'];
     $hora_inicio = $_POST['hora_inicio'];
     $observacoes = trim($_POST['observacoes']);
@@ -63,13 +66,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             
             // Se o cliente não existe, criar um novo
             if (!$cliente) {
-                $stmt = $pdo->prepare("INSERT INTO clientes (nome, telefone, email, endereco, cidade, data_cadastro) 
-                                    VALUES (:nome, :telefone, :email, :endereco, :cidade, NOW())");
+                $stmt = $pdo->prepare("INSERT INTO clientes (nome, cpf_cnpj, telefone, email, endereco, cidade, estado, cep, data_cadastro, observacoes) 
+                                    VALUES (:nome, :cpf_cnpj, :telefone, :email, :endereco, :cidade, :estado, :cep, NOW(), :observacoes)");
                 $stmt->bindParam(':nome', $nome);
+                $stmt->bindParam(':cpf_cnpj', $cpf_cnpj);
                 $stmt->bindParam(':telefone', $telefone);
                 $stmt->bindParam(':email', $email);
                 $stmt->bindParam(':endereco', $endereco);
                 $stmt->bindParam(':cidade', $cidade);
+                $stmt->bindParam(':estado', $estado);
+                $stmt->bindParam(':cep', $cep);
+                $stmt->bindParam(':observacoes', $observacoes);
                 $stmt->execute();
                 
                 $cliente_id = $pdo->lastInsertId();
@@ -77,12 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
                 $cliente_id = $cliente['id'];
                 
                 // Atualizar dados do cliente se necessário
-                $stmt = $pdo->prepare("UPDATE clientes SET nome = :nome, email = :email, endereco = :endereco, cidade = :cidade 
+                $stmt = $pdo->prepare("UPDATE clientes SET 
+                                    nome = :nome, 
+                                    cpf_cnpj = :cpf_cnpj, 
+                                    email = :email, 
+                                    endereco = :endereco, 
+                                    cidade = :cidade,
+                                    estado = :estado,
+                                    cep = :cep,
+                                    observacoes = :observacoes
                                     WHERE id = :id");
                 $stmt->bindParam(':nome', $nome);
+                $stmt->bindParam(':cpf_cnpj', $cpf_cnpj);
                 $stmt->bindParam(':email', $email);
                 $stmt->bindParam(':endereco', $endereco);
                 $stmt->bindParam(':cidade', $cidade);
+                $stmt->bindParam(':estado', $estado);
+                $stmt->bindParam(':cep', $cep);
+                $stmt->bindParam(':observacoes', $observacoes);
                 $stmt->bindParam(':id', $cliente_id, PDO::PARAM_INT);
                 $stmt->execute();
             }
@@ -127,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $mensagem = alerta('Solicitação de orçamento agendada com sucesso! Em breve entraremos em contato.', 'success');
             
             // Limpar formulário após sucesso
-            $nome = $telefone = $email = $endereco = $cidade = $observacoes = '';
+            $nome = $telefone = $email = $cpf_cnpj = $endereco = $cidade = $estado = $cep = $observacoes = '';
             $data_selecionada = date('Y-m-d');
             $orcamentista_id = 0;
             
@@ -492,6 +511,50 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                 } else if (value.length > 2) {
                     // Telefone com DDD (é digitando ainda)
                     e.target.value = value.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+                } else {
+                    e.target.value = value;
+                }
+            });
+        }
+        
+        // Formatar CEP
+        const inputCep = document.getElementById('cep');
+        if (inputCep) {
+            inputCep.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 8) value = value.substring(0, 8);
+                
+                if (value.length > 5) {
+                    e.target.value = value.replace(/^(\d{5})(\d{0,3})$/, '$1-$2');
+                } else {
+                    e.target.value = value;
+                }
+            });
+        }
+        
+        // Formatar CPF/CNPJ
+        const inputCpfCnpj = document.getElementById('cpf_cnpj');
+        if (inputCpfCnpj) {
+            inputCpfCnpj.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                
+                if (value.length > 14) {
+                    // Limita a 14 dígitos (CNPJ)
+                    value = value.substring(0, 14);
+                }
+                
+                if (value.length > 11) {
+                    // CNPJ
+                    e.target.value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+                } else if (value.length > 9) {
+                    // CPF
+                    e.target.value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+                } else if (value.length > 6) {
+                    // CPF parcial
+                    e.target.value = value.replace(/^(\d{3})(\d{3})(\d{0,3})$/, '$1.$2.$3');
+                } else if (value.length > 3) {
+                    // CPF parcial
+                    e.target.value = value.replace(/^(\d{3})(\d{0,3})$/, '$1.$2');
                 } else {
                     e.target.value = value;
                 }
