@@ -22,9 +22,8 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Buscar colaboradores instaladores e orcamentistas
-$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE tipo IN ('instalador', 'orcamentista') AND status = 'ativo' ORDER BY tipo, nome");
-$colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Não pré-carregamos mais os colaboradores aqui, eles serão carregados via AJAX
+$colaboradores = [];
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
 if ($agendamento_id > 0) {
@@ -426,14 +425,9 @@ require_once('includes/header.php');
                     <div class="mb-3">
                         <label for="colaborador_id" class="form-label required-field">Profissional Responsável</label>
                         <select class="form-select" id="colaborador_id" name="colaborador_id" required>
-                            <option value="">Selecione um profissional</option>
-                            <?php foreach($colaboradores as $colaborador): ?>
-                                <option value="<?php echo $colaborador['id']; ?>" data-tipo="<?php echo $colaborador['tipo']; ?>">
-                                    <?php echo $colaborador['nome']; ?> (<?php echo ucfirst($colaborador['tipo']); ?>)
-                                </option>
-                            <?php endforeach; ?>
+                            <option value="">Selecione data, horário e tipo de agendamento primeiro</option>
                         </select>
-                        <small class="text-muted">Selecione data e horário primeiro para ver apenas profissionais disponíveis.</small>
+                        <small class="text-muted">Os profissionais disponíveis serão carregados após selecionar data, horário e tipo de agendamento.</small>
                     </div>
                     
                     <div class="mb-3">
