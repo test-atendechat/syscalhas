@@ -319,8 +319,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->execute();
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    // Formatar valor para exibição na notificação
-                    $valor_formatado = 'R$ ' . number_format($movimentacao['valor'], 2, ',', '.');
+                    // Incluir script para adicionar notificações de pagamento
+                    include_once('notificacao_pagamento.php');
                     
                     // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
@@ -333,10 +333,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } elseif (isset($_POST['orcamento_id_get']) && !empty($_POST['orcamento_id_get'])) {
                     $orcamento_id_redirect = intval($_POST['orcamento_id_get']);
                     // Verificar o status do pagamento
-                    $stmt = $db->prepare("SELECT status_pagamento FROM orcamentos WHERE id = :id");
+                    $stmt = $db->prepare("SELECT status_pagamento, numero FROM orcamentos WHERE id = :id");
                     $stmt->bindParam(':id', $orcamento_id_redirect, PDO::PARAM_INT);
                     $stmt->execute();
                     $status_data = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    // Incluir script para adicionar notificações de pagamento
+                    include_once('notificacao_pagamento.php');
                     
                     // Redirecionar para a página de visualização do orçamento em qualquer caso
                     if ($status_data && $status_data['status_pagamento'] == 'pago_total') {
