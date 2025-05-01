@@ -300,6 +300,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->execute();
                 }
                 
+                // Incluir biblioteca de notificações
+                require_once('includes/notificacoes.php');
+                
                 // Finalizar transação
                 $db->commit();
 
