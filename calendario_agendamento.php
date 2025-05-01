@@ -333,6 +333,87 @@ document.addEventListener('DOMContentLoaded', function() {
     const clienteView = <?php echo $cliente_view ? 'true' : 'false'; ?>;
     const hoje = new Date();
     
+    // Função para verificar disponibilidade dos dias
+    function verificarDisponibilidadeDia(data) {
+        // Verificar se a data está no passado
+        if (new Date(data) < new Date(hoje.setHours(0, 0, 0, 0))) {
+            return { disponivel: false, motivo: 'Data no passado' };
+        }
+        
+        // Verificar se o dia está na lista de indisponibilidades
+        const diaIndisponivel = events.some(event => 
+            event.extendedProps && event.extendedProps.indisponivel && 
+            event.start === data);
+            
+        if (diaIndisponivel) {
+            const eventoIndisponivel = events.find(event => 
+                event.extendedProps && event.extendedProps.indisponivel && 
+                event.start === data);
+            return { disponivel: false, motivo: eventoIndisponivel.extendedProps.motivo };
+        }
+        
+        // Verificar se o dia tem horários disponíveis
+        const diaSemana = new Date(data).getDay();
+        if (!horariosPorDia[diaSemana] || horariosPorDia[diaSemana].length === 0) {
+            return { disponivel: false, motivo: 'Não há horários disponíveis neste dia' };
+        }
+        
+        // Verificar se já existem agendamentos para este dia e se ainda há horários disponíveis
+        const agendamentosNoDia = events.filter(event => 
+            !event.extendedProps?.indisponivel && 
+            event.start.split('T')[0] === data && 
+            event.extendedProps?.status !== 'cancelado');
+            
+        // Se todos os horários estiverem ocupados, o dia não está disponível
+        if (agendamentosNoDia.length >= horariosPorDia[diaSemana].length) {
+            return { disponivel: false, motivo: 'Todos os horários estão ocupados' };
+        }
+        
+        return { disponivel: true };
+    }
+
+    // Função para carregar horários disponíveis para um dia selecionado
+    function carregarHorariosDisponiveis(data) {
+        const diaSemana = new Date(data).getDay();
+        const selectHorario = document.getElementById('horario');
+        selectHorario.innerHTML = '<option value="">Selecione um horário disponível</option>';
+        
+        // Limpar horários anteriores
+        while (selectHorario.options.length > 1) {
+            selectHorario.remove(1);
+        }
+        
+        // Se não há horários para este dia, retornar
+        if (!horariosPorDia[diaSemana] || horariosPorDia[diaSemana].length === 0) {
+            return;
+        }
+        
+        // Obter agendamentos existentes para este dia
+        const agendamentosNoDia = events.filter(event => 
+            !event.extendedProps?.indisponivel && 
+            event.start.split('T')[0] === data && 
+            event.extendedProps?.status !== 'cancelado');
+            
+        // Horários já agendados neste dia
+        const horariosOcupados = agendamentosNoDia.map(event => {
+            return { inicio: event.start.split('T')[1], fim: event.end.split('T')[1] };
+        });
+        
+        // Adicionar apenas horários disponíveis que não estão ocupados
+        horariosPorDia[diaSemana].forEach(horario => {
+            // Verificar se este horário está ocupado
+            const horarioOcupado = horariosOcupados.some(ocupado => 
+                ocupado.inicio === horario.inicio);
+                
+            if (!horarioOcupado) {
+                const option = document.createElement('option');
+                option.value = `${horario.inicio}|${horario.fim}`;
+                option.textContent = `${horario.inicio.substring(0, 5)} às ${horario.fim.substring(0, 5)}`;
+                selectHorario.appendChild(option);
+            }
+        });
+    }
+
     // Configuração do calendário
     const calendarEl = document.getElementById('calendario');
     const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -351,9 +432,27 @@ document.addEventListener('DOMContentLoaded', function() {
             end: '2099-12-31' // Data futura distante
         },
         selectAllow: function(selectInfo) {
-            const dia = new Date(selectInfo.start).getDay();
-            // Verificar se o dia tem horários disponíveis
-            return horariosPorDia[dia] && horariosPorDia[dia].length > 0;
+            const resultado = verificarDisponibilidadeDia(selectInfo.startStr);
+            return resultado.disponivel;
+        },
+        dayCellClassNames: function(arg) {
+            // Adicionar classes para dias indisponíveis para estilização
+            const resultado = verificarDisponibilidadeDia(arg.date.toISOString().split('T')[0]);
+            return resultado.disponivel ? [] : ['dia-indisponivel'];
+        },
+        dayCellDidMount: function(arg) {
+            // Adicionar estilo visual para dias indisponíveis
+            const resultado = verificarDisponibilidadeDia(arg.date.toISOString().split('T')[0]);
+            if (!resultado.disponivel) {
+                arg.el.style.backgroundColor = '#343a40';
+                arg.el.style.color = '#aaa';
+                arg.el.style.cursor = 'not-allowed';
+                
+                // Adicionar tooltip com motivo da indisponibilidade
+                if (resultado.motivo) {
+                    arg.el.title = `Indisponível: ${resultado.motivo}`;
+                }
+            }
         },
         select: function(info) {
             // Verificar se o dia selecionado está indisponível

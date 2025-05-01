@@ -248,7 +248,7 @@ require_once('includes/header.php');
                             <select class="form-select" id="hora_inicio" name="hora_inicio" required>
                                 <?php
                                 $horarios_inicio = [
-                                    '08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'
+                                    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'
                                 ];
                                 
                                 foreach ($horarios_inicio as $hora) {
@@ -262,7 +262,7 @@ require_once('includes/header.php');
                             <select class="form-select" id="hora_fim" name="hora_fim" required>
                                 <?php
                                 $horarios_fim = [
-                                    '10:00', '11:00', '12:00', '13:00', '15:00', '16:00', '17:00', '18:00'
+                                    '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'
                                 ];
                                 
                                 foreach ($horarios_fim as $hora) {
