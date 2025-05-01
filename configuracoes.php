@@ -28,12 +28,17 @@ $configuracoes = [
     'max_parcelas' => 12, // Número máximo de parcelas permitidas
     'dias_validade_orcamento' => 30, // Validade padrão dos orçamentos em dias
     // Configurações de tempo para visitas técnicas
-    'tempo_visita_tecnica' => 60, // Tempo padrão para visitas técnicas em minutos
+    'tempo_visita_tecnica' => 30, // Tempo padrão para visitas técnicas em minutos
     'unidade_tempo_visita' => 'minutos', // Unidade de tempo para visitas técnicas (minutos, horas)
     // Horário de funcionamento
     'horario_inicio' => '07:00', // Horário de início do expediente
     'horario_fim' => '17:00', // Horário de término do expediente
     'dias_funcionamento' => '1,2,3,4,5', // Dias da semana (1=Segunda, 7=Domingo)
+    // Tempos indisponíveis fixos (entrada e almoço)
+    'tempo_indisponivel_entrada' => 30, // Tempo indisponível após horário de entrada (em minutos)
+    'horario_inicio_almoco' => '11:00', // Horário de início do almoço
+    'horario_fim_almoco' => '12:00', // Horário de término do almoço
+    'aplicar_indisponibilidade_automatica' => 'sim', // Aplicar indisponibilidade automática (sim/nao)
     // Cores padrão do sistema
     'cor_principal' => '#0d6efd', // Azul bootstrap
     'cor_secundaria' => '#6c757d', // Secondary bootstrap
@@ -235,6 +240,85 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </a>
                             <div class="form-text mt-2">Configure a atualização automática de status de agendamentos com base no horário.</div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Horários de Funcionamento -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h6><i class="fas fa-clock me-2"></i>Horários de Funcionamento</h6>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_inicio" class="form-label">Horário de Abertura</label>
+                        <input type="time" class="form-control" id="horario_inicio" name="horario_inicio" value="<?php echo $configuracoes['horario_inicio']; ?>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="horario_fim" class="form-label">Horário de Fechamento</label>
+                        <input type="time" class="form-control" id="horario_fim" name="horario_fim" value="<?php echo $configuracoes['horario_fim']; ?>">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Dias de Funcionamento</label>
+                        <div class="row">
+                            <?php 
+                            $dias_semana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+                            $dias_funcionamento = explode(',', $configuracoes['dias_funcionamento']);
+                            for ($i = 1; $i <= 7; $i++): 
+                                $checked = in_array($i, $dias_funcionamento) ? 'checked' : '';
+                            ?>
+                            <div class="col-auto">
+                                <div class="form-check">
+                                    <input class="form-check-input dia-funcionamento" type="checkbox" value="<?php echo $i; ?>" id="dia_<?php echo $i; ?>" <?php echo $checked; ?>>
+                                    <label class="form-check-label" for="dia_<?php echo $i; ?>">
+                                        <?php echo $dias_semana[$i-1]; ?>
+                                    </label>
+                                </div>
+                            </div>
+                            <?php endfor; ?>
+                            <input type="hidden" name="dias_funcionamento" id="dias_funcionamento" value="<?php echo $configuracoes['dias_funcionamento']; ?>">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configurações de Indisponibilidade Automática -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h6><i class="fas fa-ban me-2"></i>Configurações de Indisponibilidade Automática</h6>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="aplicar_indisponibilidade_switch" 
+                                <?php echo $configuracoes['aplicar_indisponibilidade_automatica'] == 'sim' ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="aplicar_indisponibilidade_switch">Aplicar indisponibilidade automática</label>
+                            <input type="hidden" name="aplicar_indisponibilidade_automatica" id="aplicar_indisponibilidade_automatica" 
+                                value="<?php echo $configuracoes['aplicar_indisponibilidade_automatica']; ?>">
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="indisponibilidade_config" class="<?php echo $configuracoes['aplicar_indisponibilidade_automatica'] == 'sim' ? '' : 'd-none'; ?>">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tempo_indisponivel_entrada" class="form-label">Tempo Indisponível Após Chegada</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="tempo_indisponivel_entrada" name="tempo_indisponivel_entrada" min="0" value="<?php echo $configuracoes['tempo_indisponivel_entrada']; ?>">
+                                <span class="input-group-text">minutos</span>
+                            </div>
+                            <div class="form-text">Tempo indisponível no início do expediente (ex: 30 minutos após a chegada)</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Período de Almoço</label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Início</span>
+                                <input type="time" class="form-control" id="horario_inicio_almoco" name="horario_inicio_almoco" value="<?php echo $configuracoes['horario_inicio_almoco']; ?>">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">Fim</span>
+                                <input type="time" class="form-control" id="horario_fim_almoco" name="horario_fim_almoco" value="<?php echo $configuracoes['horario_fim_almoco']; ?>">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> Estas configurações serão aplicadas automaticamente a todos os colaboradores. 
+                        A indisponibilidade de entrada considera o tempo após o horário de abertura, e o período de almoço bloqueia agendamentos nesse intervalo.
+                        O sistema também considerará serviços em andamento que se estendam durante o período de almoço, permitindo agendar novos serviços somente após o término destes.
                     </div>
                 </div>
             </div>

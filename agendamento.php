@@ -507,14 +507,15 @@ require_once('includes/header.php');
                     <div class="mb-3">
                         <label for="colaborador_id" class="form-label required-field">Responsável</label>
                         <select class="form-select" id="colaborador_id" name="colaborador_id" required>
-                            <option value="">Selecione um responsável</option>
-                            <?php foreach($colaboradores as $colaborador): ?>
-                                <option value="<?php echo $colaborador['id']; ?>">
-                                    <?php echo $colaborador['nome']; ?> (<?php echo ucfirst($colaborador['tipo']); ?>)
-                                </option>
-                            <?php endforeach; ?>
+                            <option value="">Selecione data e horário primeiro</option>
                         </select>
-                        <small class="text-muted">Selecione data e horário primeiro para ver apenas colaboradores disponíveis.</small>
+                        <small class="text-muted" id="colaborador_help">
+                            <?php if (isset($_GET['id']) && intval($_GET['id']) > 0): ?>
+                                Selecione data e horário primeiro para ver orçamentistas disponíveis.
+                            <?php else: ?>
+                                Selecione data e horário primeiro para ver colaboradores disponíveis.
+                            <?php endif; ?>
+                        </small>
                     </div>
                     
                     <div class="mb-3">
