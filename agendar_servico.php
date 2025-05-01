@@ -55,7 +55,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Iniciar transação
             $db->beginTransaction();
             
-            // Verificar se o colaborador está disponível no horário
+            // Verificar se o colaborador está disponível no horário (se especificado)
             if ($colaborador_id > 0) {
                 $stmt = $db->prepare("SELECT COUNT(*) FROM agendamentos 
                                      WHERE colaborador_id = :colaborador_id 
@@ -69,26 +69,8 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 $stmt->execute();
                 
                 if ($stmt->fetchColumn() > 0) {
-                    // Colaborador ocupado, tentar buscar outro disponível
-                    $stmt = $db->prepare("SELECT id FROM colaboradores 
-                                         WHERE tipo = 'instalador' 
-                                         AND id NOT IN (
-                                             SELECT DISTINCT colaborador_id FROM agendamentos 
-                                             WHERE status = 'agendado' 
-                                             AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                                             OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                                             OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
-                                         ) 
-                                         LIMIT 1");
-                    $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-                    $stmt->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
-                    $stmt->execute();
-                    
-                    if ($colaborador_alt = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $colaborador_id = $colaborador_alt['id'];
-                    } else {
-                        throw new Exception('O colaborador selecionado não está disponível neste horário e não há outros colaboradores disponíveis. Por favor, selecione outro horário ou data.');
-                    }
+                    // Se o colaborador selecionado não está disponível, lançar erro
+                    throw new Exception('O colaborador selecionado não está disponível neste horário. Por favor, selecione outro colaborador ou horário.');
                 }
             } else {
                 // Se não foi selecionado um colaborador, buscar qualquer um disponível

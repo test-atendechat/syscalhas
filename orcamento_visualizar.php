@@ -636,8 +636,26 @@ if (!$acesso_interno) {
                     <select class="form-select" id="hora_inicio" name="hora_inicio" required>
                         <option value="">Selecione o horário</option>
                         <?php
-                        // Gerar opções de horário das 7h às 17h
-                        for ($hora = 7; $hora <= 17; $hora++) {
+                        // Calcular hora máxima possível com base no tempo previsto
+                        $tempo_previsto = $orcamento['tempo_previsto'];
+                        $unidade_tempo = $orcamento['unidade_tempo'];
+                        
+                        // Converter tempo previsto para minutos
+                        $duracao_minutos = $tempo_previsto;
+                        if ($unidade_tempo === 'horas') {
+                            $duracao_minutos = $tempo_previsto * 60;
+                        } else if ($unidade_tempo === 'dias') {
+                            $duracao_minutos = $tempo_previsto * 60 * 8; // 8 horas por dia
+                        }
+                        
+                        // Calcular hora máxima para início (17:00 - duração em minutos)
+                        $hora_maxima = floor((17 * 60 - $duracao_minutos) / 60);
+                        
+                        // Garantir que não seja menor que 7h (início do expediente)
+                        $hora_maxima = max(7, $hora_maxima);
+                        
+                        // Gerar opções de horário das 7h até a hora máxima calculada
+                        for ($hora = 7; $hora <= $hora_maxima; $hora++) {
                             $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':00';
                             echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
                         }
@@ -653,12 +671,15 @@ if (!$acesso_interno) {
                     <select class="form-select" id="colaborador_id" name="colaborador_id">
                         <option value="">Selecione um instalador ou deixe em branco para qualquer disponível</option>
                         <?php
-                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
-                        $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                        
-                        foreach($instaladores as $instalador) {
-                            $selected = ($instalador['id'] == $orcamento['colaborador_id']) ? 'selected' : '';
-                            echo "<option value=\"{$instalador['id']}\" {$selected}>{$instalador['nome']}</option>";
+                        // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
+                        $selected_id = $orcamento['colaborador_id'] ?? 0;
+                        if ($selected_id > 0) {
+                            $stmt = $db->prepare("SELECT id, nome FROM colaboradores WHERE id = :id");
+                            $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
+                            $stmt->execute();
+                            if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
+                            }
                         }
                         ?>
                     </select>
@@ -668,8 +689,8 @@ if (!$acesso_interno) {
             
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Importante:</strong> O agendamento está sujeito à disponibilidade dos instaladores. 
-                Após confirmar, entraremos em contato para confirmar o agendamento.
+                <strong>Importante:</strong> Apenas colaboradores disponíveis para este horário são mostrados na lista.
+                Os horários de trabalho são das 07:00 às 17:00 horas.
             </div>
             
             <button type="submit" class="btn btn-primary">
@@ -682,10 +703,11 @@ if (!$acesso_interno) {
 
 <?php if (!$acesso_interno && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
 <script>
-    // Script para validar o horário com base no tempo previsto
+    // Script para validar o horário e carregar colaboradores disponíveis
     document.addEventListener('DOMContentLoaded', function() {
         const dataServico = document.getElementById('data_servico');
         const horaInicio = document.getElementById('hora_inicio');
+        const colaboradorSelect = document.getElementById('colaborador_id');
         const tempoPrevisto = <?php echo $orcamento['tempo_previsto']; ?>;
         const unidadeTempo = '<?php echo $orcamento['unidade_tempo']; ?>';
         
@@ -697,7 +719,74 @@ if (!$acesso_interno) {
             duracaoMinutos = tempoPrevisto * 60 * 8; // Considerando 8 horas por dia
         }
         
-        // Ao selecionar hora, validar se há tempo suficiente para concluir o serviço
+        // Função para carregar colaboradores disponíveis
+        function carregarColaboradoresDisponiveis() {
+            const dataValue = dataServico.value;
+            const horaValue = horaInicio.value;
+            
+            // Verificar se ambos os campos estão preenchidos
+            if (!dataValue || !horaValue) return;
+            
+            // Limpar opções atuais exceto a primeira
+            const firstOption = colaboradorSelect.options[0];
+            colaboradorSelect.innerHTML = '';
+            colaboradorSelect.appendChild(firstOption);
+            
+            // Definir mensagem de carregamento
+            const loadingOption = document.createElement('option');
+            loadingOption.text = 'Carregando colaboradores disponíveis...';
+            loadingOption.disabled = true;
+            colaboradorSelect.appendChild(loadingOption);
+            colaboradorSelect.selectedIndex = 1;
+            
+            // Buscar colaboradores disponíveis via AJAX
+            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    if (data.status === 'sucesso') {
+                        // Preencher select com colaboradores disponíveis
+                        if (data.colaboradores.length > 0) {
+                            data.colaboradores.forEach(colaborador => {
+                                const option = document.createElement('option');
+                                option.value = colaborador.id;
+                                option.text = colaborador.nome;
+                                colaboradorSelect.appendChild(option);
+                            });
+                        } else {
+                            // Se não há colaboradores disponíveis
+                            const naoDisponivelOption = document.createElement('option');
+                            naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
+                            naoDisponivelOption.disabled = true;
+                            colaboradorSelect.appendChild(naoDisponivelOption);
+                        }
+                    } else {
+                        // Exibir mensagem de erro
+                        const erroOption = document.createElement('option');
+                        erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
+                        erroOption.disabled = true;
+                        colaboradorSelect.appendChild(erroOption);
+                    }
+                })
+                .catch(error => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    // Exibir mensagem de erro de conexão
+                    const erroOption = document.createElement('option');
+                    erroOption.text = 'Erro de conexão ao buscar colaboradores';
+                    erroOption.disabled = true;
+                    colaboradorSelect.appendChild(erroOption);
+                    console.error('Erro:', error);
+                });
+        }
+        
+        // Eventos para acionar a busca de colaboradores disponíveis
+        dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
+        
+        // Ao selecionar hora, validar se há tempo suficiente e buscar colaboradores
         horaInicio.addEventListener('change', function() {
             const horaInicioStr = this.value;
             if (!horaInicioStr) return;
@@ -710,6 +799,8 @@ if (!$acesso_interno) {
             if (horaInicioMinutos + duracaoMinutos > fimExpedienteMinutos) {
                 alert('Atenção: O serviço não poderá ser concluído no mesmo dia com este horário de início.\nO serviço será continuado no próximo dia disponível.');
             }
+            
+            carregarColaboradoresDisponiveis();
         });
     });
 </script>
