@@ -37,6 +37,9 @@ $data_agendamento = isset($_POST['data_agendamento']) ? $_POST['data_agendamento
 $hora_inicio = isset($_POST['hora_inicio']) ? $_POST['hora_inicio'] : null;
 $codigo_acesso = isset($_POST['codigo_acesso']) ? $_POST['codigo_acesso'] : null;
 
+// Verificar instaladores selecionados
+$instaladores = isset($_POST['instalador_id']) ? (array)$_POST['instalador_id'] : [];
+
 // Validar dados
 if (empty($data_agendamento) || empty($hora_inicio)) {
     $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
@@ -45,6 +48,17 @@ if (empty($data_agendamento) || empty($hora_inicio)) {
     $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
     
     header("Location: {$redirect_url}{$separador}erro=" . urlencode('Data e hora de início são obrigatórios'));
+    exit;
+}
+
+// Validar se pelo menos um instalador foi selecionado
+if (empty($instaladores)) {
+    $redirect_url = isset($_POST['redirect_url']) ? $_POST['redirect_url'] : 'orcamentos.php';
+    
+    // Verificar se a URL já tem parâmetros
+    $separador = (strpos($redirect_url, '?') !== false) ? '&' : '?';
+    
+    header("Location: {$redirect_url}{$separador}erro=" . urlencode('Selecione pelo menos um instalador disponível'));
     exit;
 }
 
@@ -109,6 +123,36 @@ try {
     $stmt->execute();
     
     $agendamento_id = $db->lastInsertId();
+    
+    // Inserir os instaladores selecionados
+    foreach ($instaladores as $instalador_id) {
+        if (!empty($instalador_id)) {
+            $stmt = $db->prepare("INSERT INTO agendamento_instaladores 
+                                 (agendamento_id, instalador_id) 
+                                 VALUES (:agendamento_id, :instalador_id)");
+            $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+            $stmt->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // Verificar se o instalador tem auxiliar associado
+            $stmt_auxiliar = $db->prepare("SELECT auxiliar_id FROM instaladores WHERE id = :instalador_id AND auxiliar_id IS NOT NULL");
+            $stmt_auxiliar->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+            $stmt_auxiliar->execute();
+            
+            if ($stmt_auxiliar->rowCount() > 0) {
+                $auxiliar_info = $stmt_auxiliar->fetch(PDO::FETCH_ASSOC);
+                if (!empty($auxiliar_info['auxiliar_id'])) {
+                    $stmt = $db->prepare("INSERT INTO agendamento_auxiliares 
+                                         (agendamento_id, instalador_id, auxiliar_id) 
+                                         VALUES (:agendamento_id, :instalador_id, :auxiliar_id)");
+                    $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                    $stmt->bindParam(':instalador_id', $instalador_id, PDO::PARAM_INT);
+                    $stmt->bindParam(':auxiliar_id', $auxiliar_info['auxiliar_id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+            }
+        }
+    }
     
     // Atualizar status de execução do orçamento
     $stmt = $db->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");

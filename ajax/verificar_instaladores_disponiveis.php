@@ -3,71 +3,123 @@ require_once('../includes/config.php');
 require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
+// Definir header como JSON
 header('Content-Type: application/json');
 
-// Verificar parâmetros
-if (!isset($_GET['data']) || !isset($_GET['hora']) || !isset($_GET['tempo_previsto'])) {
-    echo json_encode(['erro' => 'Parâmetros incompletos']);
+// Verificar acesso
+if (!temPermissao('agendar_instalacao')) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Você não tem permissão para acessar este recurso',
+        'instaladores' => []
+    ]);
     exit;
 }
 
-$data = $_GET['data'];
-$hora_inicio = $_GET['hora'];
-$tempo_previsto = floatval($_GET['tempo_previsto']);
+// Verificar se recebeu os dados necessários
+$data = isset($_GET['data']) ? $_GET['data'] : null;
+$hora_inicio = isset($_GET['hora_inicio']) ? $_GET['hora_inicio'] : null;
+$hora_fim = isset($_GET['hora_fim']) ? $_GET['hora_fim'] : null;
 
-// Calcular hora de fim
-$hora_fim_timestamp = strtotime("+{$tempo_previsto} hours", strtotime("{$data} {$hora_inicio}"));
-$hora_fim = date('H:i', $hora_fim_timestamp);
-
-// Obter dia da semana
-$dia_semana = date('w', strtotime($data));
-
-// Verificar se o horário está disponível
-$stmt = $db->prepare("SELECT * FROM horarios_disponiveis 
-                    WHERE dia_semana = :dia_semana 
-                    AND hora_inicio = :hora_inicio
-                    AND disponivel = true");
-$stmt->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
-$stmt->bindParam(':hora_inicio', $hora_inicio);
-$stmt->execute();
-
-if ($stmt->rowCount() === 0) {
-    echo json_encode(['disponiveis' => [], 'mensagem' => 'Horário indisponível']);
+if (empty($data) || empty($hora_inicio)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Data e hora são obrigatórias',
+        'instaladores' => []
+    ]);
     exit;
 }
 
-// Verificar se não existe indisponibilidade para esta data
-$stmt = $db->prepare("SELECT * FROM indisponibilidades 
-                    WHERE :data BETWEEN data_inicio AND data_fim");
-$stmt->bindParam(':data', $data);
-$stmt->execute();
-
-if ($stmt->rowCount() > 0) {
-    $indisponibilidade = $stmt->fetch(PDO::FETCH_ASSOC);
-    echo json_encode(['disponiveis' => [], 'mensagem' => "Data bloqueada: {$indisponibilidade['motivo']}"]);
-    exit;
+// Se não foi informada hora de fim, assume que é 1 hora depois
+if (empty($hora_fim)) {
+    // Suporta formato HH:MM
+    if (strpos($hora_inicio, ':') !== false) {
+        $partes = explode(':', $hora_inicio);
+        $hora = (int)$partes[0];
+        $minutos = (int)$partes[1];
+        
+        $hora++; // Adiciona 1 hora
+        if ($hora > 23) $hora = 23; // Limita a 23h
+        
+        $hora_fim = sprintf("%02d:%02d", $hora, $minutos);
+    } else {
+        // Caso não tenha formato válido
+        $hora_fim = "18:00";
+    }
 }
 
-// Buscar instaladores que não estão ocupados nesta data/horário
-$sql = "SELECT i.id, i.nome, i.especialidade 
-        FROM instaladores i
-        WHERE i.ativo = true 
-        AND i.id NOT IN (
-            -- Instaladores já agendados para a mesma data e hora
-            SELECT ai.instalador_id
+// Buscar instaladores disponíveis para esta data e horário
+try {
+    // 1. Buscar todos os instaladores ativos
+    $stmt = $db->prepare("SELECT id, nome, telefone, auxiliar_id FROM instaladores WHERE ativo = TRUE ORDER BY nome");
+    $stmt->execute();
+    $todos_instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // 2. Buscar instaladores já agendados para esta data e horário
+    $sql = "SELECT DISTINCT ai.instalador_id 
             FROM agendamentos a
-            JOIN agendamento_instaladores ai ON a.id = ai.agendamento_id
-            WHERE a.data_agendamento = :data
-            AND a.hora_inicio = :hora_inicio
-            AND a.status NOT IN ('cancelado', 'reagendado')
-        )
-        ORDER BY i.nome ASC";
-
-$stmt = $db->prepare($sql);
-$stmt->bindParam(':data', $data);
-$stmt->bindParam(':hora_inicio', $hora_inicio);
-$stmt->execute();
-
-$instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-echo json_encode(['disponiveis' => $instaladores]);
+            INNER JOIN agendamento_instaladores ai ON a.id = ai.agendamento_id
+            WHERE a.data_agendamento = :data 
+            AND a.status NOT IN ('cancelado')
+            AND (
+                (a.hora_inicio <= :hora_inicio AND a.hora_fim > :hora_inicio) OR
+                (a.hora_inicio < :hora_fim AND a.hora_fim >= :hora_fim) OR
+                (a.hora_inicio >= :hora_inicio AND a.hora_fim <= :hora_fim)
+            )";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':data', $data);
+    $stmt->bindParam(':hora_inicio', $hora_inicio);
+    $stmt->bindParam(':hora_fim', $hora_fim);
+    $stmt->execute();
+    
+    $indisponiveis = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // 3. Verificar indisponibilidades cadastradas
+    $sql = "SELECT instalador_id FROM indisponibilidades 
+            WHERE data = :data 
+            AND (
+                (hora_inicio <= :hora_inicio AND hora_fim > :hora_inicio) OR
+                (hora_inicio < :hora_fim AND hora_fim >= :hora_fim) OR
+                (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
+            )";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':data', $data);
+    $stmt->bindParam(':hora_inicio', $hora_inicio);
+    $stmt->bindParam(':hora_fim', $hora_fim);
+    $stmt->execute();
+    
+    $indisponiveis_cadastrados = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // Combinar todos os indisponíveis
+    $todos_indisponiveis = array_unique(array_merge($indisponiveis, $indisponiveis_cadastrados));
+    
+    // Filtrar instaladores disponíveis
+    $instaladores_disponiveis = [];
+    foreach ($todos_instaladores as $instalador) {
+        if (!in_array($instalador['id'], $todos_indisponiveis)) {
+            $instaladores_disponiveis[] = [
+                'id' => $instalador['id'],
+                'nome' => $instalador['nome'],
+                'telefone' => $instalador['telefone']
+            ];
+        }
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'message' => count($instaladores_disponiveis) > 0 ? 'Instaladores disponíveis encontrados' : 'Nenhum instalador disponível para este horário',
+        'instaladores' => $instaladores_disponiveis,
+        'data' => $data,
+        'hora_inicio' => $hora_inicio,
+        'hora_fim' => $hora_fim
+    ]);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Erro ao buscar instaladores: ' . $e->getMessage(),
+        'instaladores' => []
+    ]);
+}

@@ -134,7 +134,7 @@ if ($stmt->rowCount() > 0) {
     $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
     
     // Buscar itens do orçamento
-    $stmt = $db->prepare("SELECT oi.*, p.nome as produto_nome, p.codigo as produto_codigo
+    $stmt = $db->prepare("SELECT oi.*, p.descricao as produto_nome, p.codigo as produto_codigo
                          FROM orcamento_itens oi
                          INNER JOIN produtos p ON oi.produto_id = p.id
                          WHERE oi.orcamento_id = :orcamento_id
@@ -166,14 +166,10 @@ if ($stmt->rowCount() > 0) {
     }
     
     // Verificar se há agendamentos para este orçamento
-    $stmt = $db->prepare("SELECT a.*, 
-                         GROUP_CONCAT(DISTINCT i.nome SEPARATOR ', ') as instaladores
+    $stmt = $db->prepare("SELECT a.* 
                          FROM agendamentos a
-                         LEFT JOIN agendamento_instaladores ai ON a.id = ai.agendamento_id
-                         LEFT JOIN instaladores i ON ai.instalador_id = i.id
                          WHERE a.orcamento_id = :orcamento_id 
                          AND a.status NOT IN ('cancelado', 'reagendado')
-                         GROUP BY a.id
                          ORDER BY a.data_agendamento DESC, a.hora_inicio ASC");
     $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
     
@@ -181,6 +177,23 @@ if ($stmt->rowCount() > 0) {
         $stmt->execute();
         if ($stmt->rowCount() > 0) {
             $agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Para cada agendamento, buscar os instaladores associados
+            foreach ($agendamentos as $key => $agendamento) {
+                $stmt_inst = $db->prepare("SELECT i.nome 
+                                           FROM agendamento_instaladores ai
+                                           INNER JOIN instaladores i ON ai.instalador_id = i.id
+                                           WHERE ai.agendamento_id = :agendamento_id");
+                $stmt_inst->bindParam(':agendamento_id', $agendamento['id'], PDO::PARAM_INT);
+                $stmt_inst->execute();
+                
+                $instaladores = [];
+                while ($inst = $stmt_inst->fetch(PDO::FETCH_ASSOC)) {
+                    $instaladores[] = $inst['nome'];
+                }
+                
+                $agendamentos[$key]['instaladores'] = implode(', ', $instaladores);
+            }
         }
     } catch (Exception $e) {
         // Em caso de erro, apenas não exibe os agendamentos
