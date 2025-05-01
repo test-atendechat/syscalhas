@@ -131,10 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Inserir agendamento
             $stmt = $pdo->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
-                                status, observacoes, codigo_confirmacao, usuario_id, cliente_agendou)
+                                status, observacoes, codigo_confirmacao, usuario_id, cliente_agendou,
+                                data_agendamento, hora_inicio, hora_fim)
                                 VALUES (
                                 :orcamento_id, :colaborador_id, :data_inicio, :data_fim, 
-                                'agendado', :observacoes, :codigo_confirmacao, :usuario_id, TRUE)");
+                                'agendado', :observacoes, :codigo_confirmacao, :usuario_id, TRUE,
+                                :data_agendamento, :hora_inicio, :hora_fim)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             $stmt->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
@@ -142,6 +144,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt->bindParam(':observacoes', $observacoes);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
             $stmt->bindParam(':usuario_id', $_SESSION['usuario_id'], PDO::PARAM_INT);
+            
+            // Parâmetros para os campos obrigatórios (data_agendamento, hora_inicio, hora_fim)
+            $data_agendamento_valor = $data_hora_inicio->format('Y-m-d');
+            $hora_inicio_valor = $data_hora_inicio->format('H:i:s');
+            $hora_fim_valor = $data_hora_fim->format('H:i:s');
+            $stmt->bindParam(':data_agendamento', $data_agendamento_valor);
+            $stmt->bindParam(':hora_inicio', $hora_inicio_valor);
+            $stmt->bindParam(':hora_fim', $hora_fim_valor);
             $stmt->execute();
             
             // Atualizar status de execução do orçamento

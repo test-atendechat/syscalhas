@@ -93,12 +93,17 @@ $colaboradores = $stmt_colaboradores->fetchAll(PDO::FETCH_ASSOC);
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-calendar-alt me-2"></i><?php echo $titulo_relatorio; ?></h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Relatório de Agendamentos</li>
-            </ol>
-        </nav>
+        <div>
+            <a href="dashboard.php" class="btn btn-outline-secondary mb-2">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Relatório de Agendamentos</li>
+                </ol>
+            </nav>
+        </div>
     </div>
     
     <!-- Filtros do relatório -->
