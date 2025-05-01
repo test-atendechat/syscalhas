@@ -21,6 +21,8 @@ $disponibilidades = [];
 
 // Incluir arquivo de conexão
 require_once 'includes/db.php';
+// Usar a variável $db definida em includes/db.php
+$pdo = $db;
 
 // Buscar dados do colaborador
 if ($colaborador_id > 0) {
@@ -151,7 +153,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
     $registro_id = intval($_GET['registro_id']);
     
     try {
-        $stmt = $db->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
+        $stmt = $pdo->prepare("DELETE FROM colaborador_agenda WHERE id = :id AND colaborador_id = :colaborador_id");
         $stmt->bindParam(':id', $registro_id, PDO::PARAM_INT);
         $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
         $stmt->execute();
