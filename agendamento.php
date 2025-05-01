@@ -22,15 +22,12 @@ $agendamentos = [];
 $colaboradores = [];
 $agendamento_atual = null;
 
-// Verificar o tipo de colaborador a ser filtrado com base no tipo de agendamento
-$tipo_colaborador_sql = "tipo IN ('instalador', 'orcamentista')"; // Padrão: ambos os tipos
+// Verificar o tipo de agendamento para determinar qual verificador AJAX usar
+$is_visita_tecnica = isset($_GET['id']) && intval($_GET['id']) > 0;
 
-// Se está acessando um agendamento específico (visita técnica), filtrar apenas por orçamentistas
-if (isset($_GET['id']) && intval($_GET['id']) > 0) {
-    $tipo_colaborador_sql = "tipo = 'orcamentista'"; // Para visitas técnicas, apenas orçamentistas
-}
-// Se está acessando um orçamento aprovado, filtrar apenas por instaladores
-elseif (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
+// Se está acessando um orçamento aprovado, verificar status para determinar tipo
+$is_instalacao = false;
+if (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
     // Verificar o status do orçamento
     $orcamento_id = intval($_GET['orcamento_id']);
     $stmt = $pdo->prepare("SELECT status FROM orcamentos WHERE id = :id");
@@ -38,15 +35,15 @@ elseif (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
     $stmt->execute();
     $status_orcamento = $stmt->fetchColumn();
     
-    // Se o orçamento está aprovado, precisamos de instaladores para executá-lo
+    // Se o orçamento está aprovado, é uma instalação
     if ($status_orcamento == 'aprovado') {
-        $tipo_colaborador_sql = "tipo = 'instalador'"; // Para instalação, apenas instaladores
+        $is_instalacao = true;
     }
 }
 
-// Buscar colaboradores do tipo apropriado
-$stmt = $pdo->query("SELECT id, nome, tipo FROM colaboradores WHERE $tipo_colaborador_sql AND status = 'ativo' ORDER BY tipo, nome");
-$colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Não carregaremos os colaboradores inicialmente
+// Eles serão carregados via AJAX quando o usuário selecionar data e horário
+$colaboradores = [];
 
 // Verificar se estamos acessando um agendamento específico pelo seu ID
 if ($agendamento_id > 0) {
@@ -628,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tempoPrevisto = <?php echo $orcamento ? $orcamento['tempo_previsto'] : 60; ?>;
     const unidadeTempo = '<?php echo $orcamento ? $orcamento['unidade_tempo'] : 'minutos'; ?>';
     // Verificar se estamos em um reagendamento de visita técnica ou agendamento normal
-    const isVisitaTecnica = <?php echo isset($_GET['id']) && intval($_GET['id']) > 0 ? 'true' : 'false'; ?>;
+    const isVisitaTecnica = <?php echo $is_visita_tecnica ? 'true' : 'false'; ?>;
     
     // Função para carregar colaboradores disponíveis
     function carregarColaboradoresDisponiveis() {
@@ -719,6 +716,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Eventos para acionar a busca de colaboradores disponíveis
     dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
     horaInicio.addEventListener('change', carregarColaboradoresDisponiveis);
+    
+    // Carregar colaboradores disponíveis automaticamente se data e hora já estiverem preenchidos
+    if (dataServico.value && horaInicio.value) {
+        carregarColaboradoresDisponiveis();
+    }
 });
 </script>
 
