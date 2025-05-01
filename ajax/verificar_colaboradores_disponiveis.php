@@ -123,15 +123,11 @@ try {
                          ((
                             -- Verificar usando campos data_inicio/data_fim (formato timestamp)
                             (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
-                            ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                            OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                            OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))
+                            ((data_inicio < :data_fim AND data_fim > :data_inicio))
                          ) OR (
                             -- Verificar usando campos data_agendamento/hora_inicio/hora_fim (formato separado)
                             data_agendamento = :data_agendamento AND
-                            ((hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
-                            OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
-                            OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim))
+                            ((hora_inicio < :hora_fim AND hora_fim > :hora_inicio))
                          ))");
         
         // Vincular os parâmetros para ambos os formatos
@@ -153,9 +149,7 @@ try {
                                WHERE data_disponibilidade = :data_disponibilidade 
                                AND disponivel = FALSE 
                                AND (
-                                   (hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
-                                   OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
-                                   OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
+                                   (hora_inicio < :hora_fim AND hora_fim > :hora_inicio)
                                )");
     // Nota: colaborador_id refere-se aos IDs da tabela colaboradores, não instaladores
     $stmt_indisponibilidade->bindParam(':data_disponibilidade', $data_apenas);
@@ -181,9 +175,7 @@ try {
                               AND dia_semana = :dia_semana 
                               AND disponivel = FALSE 
                               AND (
-                                  (hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
-                                  OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
-                                  OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
+                                  (hora_inicio < :hora_fim AND hora_fim > :hora_inicio)
                               )");
     $stmt_recorrente->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
     $hora_inicio_recorrente = $data_hora_inicio->format('H:i:s');
