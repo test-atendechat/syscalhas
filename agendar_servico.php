@@ -24,7 +24,7 @@ $tempo_previsto = intval($_POST['tempo_previsto'] ?? 60);
 $unidade_tempo = $_POST['unidade_tempo'] ?? 'minutos';
 
 // Obter configurações de horário de funcionamento
-$stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'dias_funcionamento')");
 $config = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Valores padrão caso não existam configurações
@@ -38,7 +38,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
 } else {
     try {
         // Verificar se o orçamento existe e está aprovado
-        $stmt = $db->prepare("SELECT * FROM orcamentos WHERE id = :id AND codigo_acesso = :codigo AND status = 'aprovado'");
+        $stmt = $pdo->prepare("SELECT * FROM orcamentos WHERE id = :id AND codigo_acesso = :codigo AND status = 'aprovado'");
         $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
         $stmt->bindParam(':codigo', $codigo);
         $stmt->execute();
@@ -81,12 +81,12 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             }
             
             // Iniciar transação
-            $db->beginTransaction();
+            $pdo->beginTransaction();
             
             // Verificar se o colaborador selecionado (instalador) existe na tabela instaladores
             if ($colaborador_id > 0) {
                 // Verificar se o colaborador instalador existe
-                $stmt = $db->prepare("SELECT COUNT(*) FROM colaboradores WHERE id = :colaborador_id AND tipo = 'instalador' AND status = 'ativo'");
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM colaboradores WHERE id = :colaborador_id AND tipo = 'instalador' AND status = 'ativo'");
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 $stmt->execute();
                 
