@@ -92,11 +92,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agendamento['orcamento_id'] = intval($_POST['orcamento_id']);
     $agendamento['data_agendamento'] = $_POST['data_agendamento'];
     $agendamento['hora_inicio'] = $_POST['hora_inicio'];
-    $agendamento['hora_fim'] = $_POST['hora_fim'];
     $agendamento['status'] = $_POST['status'];
     $agendamento['observacoes'] = $_POST['observacoes'] ?? '';
     $agendamento['usuario_id'] = $_SESSION['usuario']['id'];
     $agendamento['instalador_id'] = !empty($_POST['instalador_id']) ? $_POST['instalador_id'] : [];
+    
+    // Buscar tempo previsto do orçamento
+    if ($agendamento['orcamento_id'] > 0) {
+        $stmt = $db->prepare("SELECT tempo_previsto_horas FROM orcamentos WHERE id = :id");
+        $stmt->bindParam(':id', $agendamento['orcamento_id'], PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
+            $tempo_previsto_horas = isset($orcamento['tempo_previsto_horas']) && $orcamento['tempo_previsto_horas'] > 0 ? $orcamento['tempo_previsto_horas'] : 2;
+        }
+    }
+    
+    // Calcular hora de fim com base no tempo previsto
+    $hora_fim_timestamp = strtotime("+{$tempo_previsto_horas} hours", strtotime("{$agendamento['data_agendamento']} {$agendamento['hora_inicio']}"));
+    $agendamento['hora_fim'] = date('H:i', $hora_fim_timestamp);
     // Auxiliar não é mais selecionado diretamente, é associado automaticamente ao instalador
     
     // Validar campos obrigatórios
@@ -107,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($agendamento['data_agendamento'])) {
         $erros[] = "A data do agendamento é obrigatória.";
     }
-    if (empty($agendamento['hora_inicio']) || empty($agendamento['hora_fim'])) {
-        $erros[] = "O horário de início e fim é obrigatório.";
+    if (empty($agendamento['hora_inicio'])) {
+        $erros[] = "O horário de início é obrigatório.";
     }
     
     // Validar se o horário está disponível
