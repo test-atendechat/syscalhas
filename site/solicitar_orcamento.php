@@ -6,16 +6,24 @@ require_once('../includes/functions.php');
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
 
+// Definir constantes para o horário de funcionamento
+$horario_inicio = "08:00"; // 8h da manhã
+$horario_fim = "18:00";     // 6h da tarde
+$dias_funcionamento = [1, 2, 3, 4, 5]; // Segunda a sexta (1-5)
+
 // Inicializar variáveis
 $mensagem = '';
-$horarios_disponiveis = [];
-$orcamentistas = [];
 $data_selecionada = isset($_GET['data']) ? $_GET['data'] : date('Y-m-d');
 $orcamentista_id = isset($_GET['orcamentista_id']) ? intval($_GET['orcamentista_id']) : 0;
+$nome = $telefone = $email = $endereco = $cidade = $observacoes = '';
+
+// Duração padrão para visitas de orçamento (1 hora)
+$tempo_previsto = 1;
+$unidade_tempo = 'horas';
 
 // Carregar todos os orçamentistas (colaboradores com tipo = 'orcamentista')
 try {
-    $stmt = $pdo->prepare("SELECT id, nome, tipo FROM colaboradores WHERE tipo = 'orcamentista' AND status = 'ativo' ORDER BY nome");
+    $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE tipo = 'orcamentista' AND status = 'ativo' ORDER BY nome");
     $stmt->execute();
     $orcamentistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
@@ -30,16 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
     $email = trim($_POST['email']);
     $endereco = trim($_POST['endereco']);
     $cidade = trim($_POST['cidade']);
-    $data_agendamento = $_POST['data_agendamento'];
+    $data_servico = $_POST['data_servico'];
     $hora_inicio = $_POST['hora_inicio'];
     $observacoes = trim($_POST['observacoes']);
-    $orcamentista_id = intval($_POST['orcamentista_id']);
+    $orcamentista_id = intval($_POST['colaborador_id']);
     
     // Calcular hora de fim (1 hora após a hora de início)
     $hora_fim = date('H:i:s', strtotime($hora_inicio . ' + 1 hour'));
     
     // Validar campos obrigatórios
-    if (empty($nome) || empty($telefone) || empty($endereco) || empty($cidade) || empty($data_agendamento) || empty($hora_inicio) || $orcamentista_id <= 0) {
+    if (empty($nome) || empty($telefone) || empty($endereco) || empty($cidade) || empty($data_servico) || empty($hora_inicio) || $orcamentista_id <= 0) {
         $mensagem = alerta('Preencha todos os campos obrigatórios.', 'danger');
     } else {
         try {
@@ -86,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $stmt->bindParam(':titulo', $titulo);
             $stmt->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $orcamentista_id, PDO::PARAM_INT);
-            $stmt->bindParam(':data_agendamento', $data_agendamento);
+            $stmt->bindParam(':data_agendamento', $data_servico); // Usamos data_servico em vez de data_agendamento
             $stmt->bindParam(':hora_inicio', $hora_inicio);
             $stmt->bindParam(':hora_fim', $hora_fim);
             $stmt->bindParam(':tipo', $tipo);
@@ -100,6 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $nome = $telefone = $email = $endereco = $cidade = $observacoes = '';
             $data_selecionada = date('Y-m-d');
             $orcamentista_id = 0;
+            
+            // Redirecionar para a página inicial após 5 segundos
+            echo "<meta http-equiv='refresh' content='5;url=index.php'>";
+
         } catch (Exception $e) {
             $mensagem = alerta('Erro ao agendar orçamento: ' . $e->getMessage(), 'danger');
         }
@@ -255,82 +267,128 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
             <form method="post" id="formAgendamento">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="nome" class="form-label fw-bold">Nome Completo*</label>
-                        <input type="text" class="form-control" id="nome" name="nome" required>
+                        <label for="nome" class="form-label fw-bold required-field">Nome Completo</label>
+                        <input type="text" class="form-control" id="nome" name="nome" value="<?php echo htmlspecialchars($nome); ?>" required>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="telefone" class="form-label fw-bold">Telefone (WhatsApp)*</label>
-                        <input type="tel" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                        <label for="telefone" class="form-label fw-bold required-field">Telefone (WhatsApp)</label>
+                        <input type="tel" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000" value="<?php echo htmlspecialchars($telefone); ?>" required>
                     </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="email" class="form-label fw-bold">E-mail</label>
-                        <input type="email" class="form-control" id="email" name="email">
+                        <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="cidade" class="form-label fw-bold">Cidade*</label>
-                        <input type="text" class="form-control" id="cidade" name="cidade" required>
+                        <label for="cidade" class="form-label fw-bold required-field">Cidade</label>
+                        <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo htmlspecialchars($cidade); ?>" required>
                     </div>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="endereco" class="form-label fw-bold">Endereço Completo*</label>
-                    <input type="text" class="form-control" id="endereco" name="endereco" required placeholder="Rua, número, bairro">
+                    <label for="endereco" class="form-label fw-bold required-field">Endereço Completo</label>
+                    <input type="text" class="form-control" id="endereco" name="endereco" value="<?php echo htmlspecialchars($endereco); ?>" required placeholder="Rua, número, bairro">
                 </div>
                 
                 <div class="mb-3">
                     <label for="observacoes" class="form-label fw-bold">Observações</label>
-                    <textarea class="form-control" id="observacoes" name="observacoes" rows="3" placeholder="Descreva brevemente o serviço desejado ou qualquer informação adicional"></textarea>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="3" placeholder="Descreva brevemente o serviço desejado ou qualquer informação adicional"><?php echo htmlspecialchars($observacoes); ?></textarea>
                 </div>
                 
                 <hr class="my-4">
-                <h4 class="mb-3">Escolha o orçamentista e a data para a visita</h4>
+                <h4 class="mb-3">Agendar Visita Técnica</h4>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Informação:</strong> Um profissional especializado irá até o local para avaliar o serviço. A consulta tem duração estimada de 1 hora.
+                </div>
                 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="orcamentista_id" class="form-label fw-bold">Orçamentista*</label>
-                        <select name="orcamentista_id" id="orcamentista_id" class="form-select" required>
-                            <option value="">Selecione um orçamentista</option>
-                            <?php foreach ($orcamentistas as $orcamentista): ?>
-                                <option value="<?php echo $orcamentista['id']; ?>" <?php echo ($orcamentista_id == $orcamentista['id']) ? 'selected' : ''; ?>>
-                                    <?php echo $orcamentista['nome']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="data_agendamento" class="form-label fw-bold">Data da Visita*</label>
-                        <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" 
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="data_servico" class="form-label required-field">Data da Visita</label>
+                        <input type="date" class="form-control" id="data_servico" name="data_servico" 
                                min="<?php echo date('Y-m-d'); ?>" 
                                value="<?php echo $data_selecionada; ?>" required>
+                        <small class="text-muted">Selecione a data desejada para a visita técnica</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="hora_inicio" class="form-label required-field">Horário da Visita</label>
+                        <select class="form-select" id="hora_inicio" name="hora_inicio" required>
+                            <option value="">Selecione um horário</option>
+                            <?php
+                            // Criando horários de 1 em 1 hora, das 8h às 17h
+                            $horario_inicio_partes = explode(':', $horario_inicio);
+                            $horario_fim_partes = explode(':', $horario_fim);
+                            $horas_inicio = (int)$horario_inicio_partes[0];
+                            $minutos_inicio = isset($horario_inicio_partes[1]) ? (int)$horario_inicio_partes[1] : 0;
+                            $horas_fim = (int)$horario_fim_partes[0];
+                            $minutos_fim = isset($horario_fim_partes[1]) ? (int)$horario_fim_partes[1] : 0;
+                            
+                            // Converter para minutos totais para facilitar os cálculos
+                            $minutos_total_inicio = $horas_inicio * 60 + $minutos_inicio;
+                            $minutos_total_fim = $horas_fim * 60 + $minutos_fim;
+                            
+                            // Duração da visita em minutos (1 hora)
+                            $duracao_minutos = 60;
+                            
+                            // O último horário possível é o horário final menos a duração da visita
+                            $hora_maxima_minutos = $minutos_total_fim - $duracao_minutos;
+                            $hora_maxima_horas = floor($hora_maxima_minutos / 60);
+                            $hora_maxima_mins = $hora_maxima_minutos % 60;
+                            
+                            // Garantir que não seja menor que o horário de início
+                            $hora_maxima_horas = max($horas_inicio, $hora_maxima_horas);
+                            
+                            // Criar intervalo de horas em incrementos de 1 hora
+                            for ($hora = $horas_inicio; $hora <= $hora_maxima_horas; $hora++) {
+                                // Para a primeira hora, considerar os minutos de início
+                                $min_inicial = ($hora == $horas_inicio) ? $minutos_inicio : 0;
+                                // Para a última hora, considerar os minutos calculados
+                                $max_min = ($hora == $hora_maxima_horas) ? $hora_maxima_mins : 59;
+                                
+                                // Adicionar opções para cada hora disponível em incrementos de 30 min
+                                for ($min = $min_inicial; $min <= $max_min; $min += 30) {
+                                    if ($min == 60) continue; // Pular quando for exatamente 60 minutos
+                                    $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':' . str_pad($min, 2, '0', STR_PAD_LEFT);
+                                    echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                                }
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?>.</small>
                     </div>
                 </div>
                 
-                <div class="mb-4">
-                    <label for="hora_inicio" class="form-label fw-bold">Horário para a Visita*</label>
-                    <input type="hidden" name="hora_inicio" id="hora_inicio" required>
-                    
-                    <div id="horarios-disponiveis" class="mt-2">
-                        <?php if ($orcamentista_id > 0 && !empty($data_selecionada)): ?>
-                            <?php if (count($horarios_disponiveis) > 0): ?>
-                                <?php foreach ($horarios_disponiveis as $horario): ?>
-                                    <div class="time-slot" data-hora="<?php echo $horario; ?>">
-                                        <?php echo substr($horario, 0, 5); ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>Não há horários disponíveis para esta data. Por favor, selecione outra data.
-                                </div>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>Selecione um orçamentista e uma data para ver os horários disponíveis.
-                            </div>
-                        <?php endif; ?>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="colaborador_id" class="form-label required-field">Orçamentista</label>
+                        <select class="form-select" id="colaborador_id" name="colaborador_id" required>
+                            <option value="">Selecione um orçamentista disponível</option>
+                            <?php
+                            // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
+                            $selected_id = $orcamentista_id ?? 0;
+                            if ($selected_id > 0) {
+                                // Buscar o colaborador diretamente na tabela de colaboradores
+                                $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id AND tipo = 'orcamentista' AND status = 'ativo'");
+                                $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
+                                $stmt->execute();
+                                
+                                if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
+                                }
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted">Tempo previsto para esta visita: 1 hora.</small>
                     </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Importante:</strong> Apenas orçamentistas disponíveis para este horário são mostrados na lista.
+                    Os horários de trabalho são das <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?> horas.
                 </div>
                 
                 <div class="d-grid gap-2">
@@ -397,52 +455,113 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
             });
         }
         
-        // Selecionar horário
-        const timeSlots = document.querySelectorAll('.time-slot');
-        const horaInicioInput = document.getElementById('hora_inicio');
+        // Script para validar o horário e carregar colaboradores disponíveis
+        const dataServico = document.getElementById('data_servico');
+        const horaInicio = document.getElementById('hora_inicio');
+        const colaboradorSelect = document.getElementById('colaborador_id');
+        const tempoPrevisto = 1; // 1 hora para visita de orçamento
+        const unidadeTempo = 'horas';
         
-        timeSlots.forEach(slot => {
-            slot.addEventListener('click', function() {
-                // Remover seleção anterior
-                timeSlots.forEach(s => s.classList.remove('selected'));
-                
-                // Selecionar este horário
-                this.classList.add('selected');
-                
-                // Atualizar campo oculto
-                horaInicioInput.value = this.dataset.hora;
-            });
-        });
-        
-        // Atualizar horários disponíveis quando mudar data ou orçamentista
-        const orcamentistaSelect = document.getElementById('orcamentista_id');
-        const dataAgendamentoInput = document.getElementById('data_agendamento');
-        
-        function atualizarHorarios() {
-            if (orcamentistaSelect.value && dataAgendamentoInput.value) {
-                window.location.href = 'solicitar_orcamento.php?orcamentista_id=' + 
-                                        orcamentistaSelect.value + 
-                                        '&data=' + dataAgendamentoInput.value;
-            }
+        // Converter tempo previsto para minutos
+        let duracaoMinutos = tempoPrevisto;
+        if (unidadeTempo === 'horas') {
+            duracaoMinutos = tempoPrevisto * 60;
+        } else if (unidadeTempo === 'dias') {
+            duracaoMinutos = tempoPrevisto * 60 * 8; // Considerando 8 horas por dia
         }
         
-        if (orcamentistaSelect) {
-            orcamentistaSelect.addEventListener('change', atualizarHorarios);
+        // Função para carregar colaboradores disponíveis
+        function carregarColaboradoresDisponiveis() {
+            const dataValue = dataServico.value;
+            const horaValue = horaInicio.value;
+            
+            // Verificar se ambos os campos estão preenchidos
+            if (!dataValue || !horaValue) return;
+            
+            // Limpar opções atuais exceto a primeira
+            const firstOption = colaboradorSelect.options[0];
+            colaboradorSelect.innerHTML = '';
+            colaboradorSelect.appendChild(firstOption);
+            
+            // Definir mensagem de carregamento
+            const loadingOption = document.createElement('option');
+            loadingOption.text = 'Carregando orçamentistas disponíveis...';
+            loadingOption.disabled = true;
+            colaboradorSelect.appendChild(loadingOption);
+            
+            // Fazer a requisição AJAX para verificar colaboradores disponíveis
+            fetch('../ajax/verificar_colaboradores_disponiveis.php?tipo=orcamentista&data=' + dataValue + '&hora_inicio=' + horaValue + '&tempo_previsto=' + tempoPrevisto + '&unidade_tempo=' + unidadeTempo)
+                .then(response => response.json())
+                .then(data => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    if (data.status === 'sucesso') {
+                        // Adicionar opções de colaboradores disponíveis
+                        data.colaboradores.forEach(colaborador => {
+                            const option = document.createElement('option');
+                            option.value = colaborador.id;
+                            option.text = colaborador.nome;
+                            colaboradorSelect.appendChild(option);
+                        });
+                        
+                        if (data.colaboradores.length === 0) {
+                            const naoDisponivelOption = document.createElement('option');
+                            naoDisponivelOption.text = 'Nenhum orçamentista disponível neste horário';
+                            naoDisponivelOption.disabled = true;
+                            colaboradorSelect.appendChild(naoDisponivelOption);
+                        }
+                    } else {
+                        const errorOption = document.createElement('option');
+                        errorOption.text = data.mensagem || 'Erro ao carregar orçamentistas';
+                        errorOption.disabled = true;
+                        colaboradorSelect.appendChild(errorOption);
+                    }
+                })
+                .catch(error => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    const errorOption = document.createElement('option');
+                    errorOption.text = 'Erro ao carregar orçamentistas: ' + error.message;
+                    errorOption.disabled = true;
+                    colaboradorSelect.appendChild(errorOption);
+                });
         }
         
-        if (dataAgendamentoInput) {
-            dataAgendamentoInput.addEventListener('change', atualizarHorarios);
+        // Registrar ouvintes de eventos para data e hora
+        if (dataServico && horaInicio && colaboradorSelect) {
+            dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
+            horaInicio.addEventListener('change', carregarColaboradoresDisponiveis);
         }
         
         // Validar formulário antes de enviar
         const form = document.getElementById('formAgendamento');
         if (form) {
             form.addEventListener('submit', function(e) {
-                if (!horaInicioInput.value) {
+                if (!colaboradorSelect.value) {
+                    e.preventDefault();
+                    alert('Por favor, selecione um orçamentista disponível.');
+                    return;
+                }
+                
+                if (!dataServico.value) {
+                    e.preventDefault();
+                    alert('Por favor, selecione uma data para a visita.');
+                    return;
+                }
+                
+                if (!horaInicio.value) {
                     e.preventDefault();
                     alert('Por favor, selecione um horário para a visita.');
+                    return;
                 }
             });
+        }
+        
+        // Carregar colaboradores ao iniciar a página se os campos já estiverem preenchidos
+        if (dataServico && horaInicio && dataServico.value && horaInicio.value) {
+            carregarColaboradoresDisponiveis();
         }
     });
     </script>
