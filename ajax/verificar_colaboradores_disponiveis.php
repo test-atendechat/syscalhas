@@ -111,26 +111,52 @@ try {
         }
     }
     
-    // 2. Verificar colaboradores com indisponibilidades registradas
-    // Tabela colaborador_indisponibilidade contém: colaborador_id, data_inicio, data_fim, motivo
+    // 2. Verificar colaboradores com indisponibilidades registradas na tabela colaborador_agenda
     $data_apenas = $data_hora_inicio->format('Y-m-d');
-    // Verificar se a tabela existe antes de consultar
-    $stmt_check = $db->query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'colaborador_indisponibilidade')");
-    $tabela_existe = $stmt_check->fetchColumn();
+
+    // Consultar colaboradores indisponíveis em colaborador_agenda
+    $stmt_indisponibilidade = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
+                               WHERE data_disponibilidade = :data_disponibilidade 
+                               AND disponivel = FALSE 
+                               AND (
+                                   (hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
+                                   OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
+                                   OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
+                               )");
+    $stmt_indisponibilidade->bindParam(':data_disponibilidade', $data_apenas);
+    $stmt_indisponibilidade->bindParam(':hora_inicio', $data_hora_inicio->format('H:i:s'));
+    $stmt_indisponibilidade->bindParam(':hora_fim', $data_hora_fim->format('H:i:s'));
+    $stmt_indisponibilidade->execute();
     
-    if ($tabela_existe) {
-        // Verificar indisponibilidades para o dia e horário
-        $stmt_indisponibilidade = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_indisponibilidade 
-                                       WHERE (data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
-                                       OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
-                                       OR (data_inicio >= :data_inicio AND data_fim <= :data_fim)");
-        $stmt_indisponibilidade->bindParam(':data_inicio', $data_hora_inicio->format('Y-m-d H:i:s'));
-        $stmt_indisponibilidade->bindParam(':data_fim', $data_hora_fim->format('Y-m-d H:i:s'));
-        $stmt_indisponibilidade->execute();
-        
-        // Adicionar colaboradores indisponíveis ao array de ocupados
-        $indisponiveis = $stmt_indisponibilidade->fetchAll(PDO::FETCH_COLUMN);
+    // Adicionar colaboradores indisponíveis ao array de ocupados
+    $indisponiveis = $stmt_indisponibilidade->fetchAll(PDO::FETCH_COLUMN);
+    if (!empty($indisponiveis)) {
         $colaboradores_ocupados = array_merge($colaboradores_ocupados, $indisponiveis);
+        
+        // Remover duplicatas
+        $colaboradores_ocupados = array_unique($colaboradores_ocupados);
+    }
+    
+    // 3. Verificar indisponibilidades recorrentes (baseadas no dia da semana)
+    $dia_semana = (int)$data_hora_inicio->format('w'); // 0 (domingo) até 6 (sábado)
+    $stmt_recorrente = $db->prepare("SELECT DISTINCT colaborador_id FROM colaborador_agenda 
+                              WHERE recorrente = TRUE 
+                              AND dia_semana = :dia_semana 
+                              AND disponivel = FALSE 
+                              AND (
+                                  (hora_inicio <= :hora_inicio AND hora_fim >= :hora_inicio) 
+                                  OR (hora_inicio <= :hora_fim AND hora_fim >= :hora_fim) 
+                                  OR (hora_inicio >= :hora_inicio AND hora_fim <= :hora_fim)
+                              )");
+    $stmt_recorrente->bindParam(':dia_semana', $dia_semana, PDO::PARAM_INT);
+    $stmt_recorrente->bindParam(':hora_inicio', $data_hora_inicio->format('H:i:s'));
+    $stmt_recorrente->bindParam(':hora_fim', $data_hora_fim->format('H:i:s'));
+    $stmt_recorrente->execute();
+    
+    // Adicionar colaboradores com indisponibilidade recorrente ao array de ocupados
+    $indisponiveis_recorrentes = $stmt_recorrente->fetchAll(PDO::FETCH_COLUMN);
+    if (!empty($indisponiveis_recorrentes)) {
+        $colaboradores_ocupados = array_merge($colaboradores_ocupados, $indisponiveis_recorrentes);
         
         // Remover duplicatas
         $colaboradores_ocupados = array_unique($colaboradores_ocupados);
