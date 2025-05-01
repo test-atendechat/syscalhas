@@ -222,7 +222,17 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Commit da transação
             $pdo->commit();
             
-            $mensagem = 'Agendamento realizado com sucesso!';
+            // Verificar se foi reagendamento ou novo agendamento
+            $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'agendado'");
+            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $agendamentos_previos = $stmt->fetchColumn();
+            
+            if ($agendamentos_previos > 0) {
+                $mensagem = 'Reagendamento realizado com sucesso!';
+            } else {
+                $mensagem = 'Agendamento realizado com sucesso!';
+            }
             $tipo = 'success';
         }
     } catch (Exception $e) {

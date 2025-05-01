@@ -118,6 +118,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Iniciar transação
             $pdo->beginTransaction();
             
+            // Verificar se já existem agendamentos ativos para este orçamento
+            $stmt = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id AND status = 'agendado'");
+            $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $agendamentos_ativos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // Cancelar todos os agendamentos ativos existentes
+            if (count($agendamentos_ativos) > 0) {
+                $placeholders = str_repeat('?,', count($agendamentos_ativos) - 1) . '?';
+                $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado', observacoes = CONCAT(observacoes, ' [Cancelado automaticamente devido a reagendamento]') WHERE id IN ($placeholders)");
+                $stmt->execute($agendamentos_ativos);
+            }
+            
             // Verificar se o colaborador está disponível no horário
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                  WHERE instalador_id = :colaborador_id 
@@ -171,7 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Commit da transação
             $pdo->commit();
             
-            $mensagem = alerta('Agendamento realizado com sucesso!', 'success');
+            // Verificar se foi um reagendamento ou novo agendamento
+            if (count($agendamentos_ativos) > 0) {
+                $mensagem = alerta('Reagendamento realizado com sucesso! O agendamento anterior foi cancelado.', 'success');
+            } else {
+                $mensagem = alerta('Agendamento realizado com sucesso!', 'success');
+            }
             
             // Recarregar agendamentos
             $stmt = $pdo->prepare("SELECT a.*, c.nome as colaborador_nome 
@@ -322,9 +340,23 @@ require_once('includes/header.php');
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Novo Agendamento</h5>
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-plus me-2"></i>
+                    <?php if (isset($has_agendamento_ativo) && $has_agendamento_ativo): ?>
+                        Reagendar Serviço
+                    <?php else: ?>
+                        Novo Agendamento
+                    <?php endif; ?>
+                </h5>
             </div>
             <div class="card-body">
+                <?php if (isset($has_agendamento_ativo) && $has_agendamento_ativo): ?>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção!</strong> Já existe um agendamento ativo para este orçamento. 
+                    Ao reagendar, o agendamento anterior será automaticamente cancelado.
+                </div>
+                <?php endif; ?>
                 <form method="post" action="">
                     <input type="hidden" name="acao" value="agendar">
                     <input type="hidden" name="orcamento_id" value="<?php echo $orcamento_id; ?>">
@@ -386,7 +418,12 @@ require_once('includes/header.php');
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-calendar-check me-2"></i>Agendar Serviço
+                        <i class="fas fa-calendar-check me-2"></i>
+                        <?php if (isset($has_agendamento_ativo) && $has_agendamento_ativo): ?>
+                            Reagendar Serviço
+                        <?php else: ?>
+                            Agendar Serviço
+                        <?php endif; ?>
                     </button>
                 </form>
             </div>
