@@ -98,7 +98,7 @@ if (isset($_GET['id'])) {
         
         // Buscar agendamentos do orçamento (acesso interno)
         $stmt = $db->prepare("SELECT a.*, 
-                          (SELECT GROUP_CONCAT(i.nome SEPARATOR ', ') 
+                          (SELECT string_agg(i.nome, ', ') 
                            FROM agendamento_instaladores ai 
                            JOIN instaladores i ON ai.instalador_id = i.id 
                            WHERE ai.agendamento_id = a.id) as instaladores
@@ -145,7 +145,7 @@ if (isset($_GET['id'])) {
         
         // Buscar agendamentos do orçamento
         $stmt = $db->prepare("SELECT a.*, 
-                         (SELECT GROUP_CONCAT(i.nome SEPARATOR ', ') 
+                         (SELECT string_agg(i.nome, ', ') 
                           FROM agendamento_instaladores ai 
                           JOIN instaladores i ON ai.instalador_id = i.id 
                           WHERE ai.agendamento_id = a.id) as instaladores
@@ -598,7 +598,7 @@ if (!$acesso_interno) {
                         </td>
                         <?php if (!$acesso_interno): ?>
                         <td>
-                            <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo $codigo; ?>" class="btn btn-sm btn-outline-primary">
+                            <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-eye me-1"></i>Ver no Calendário
                             </a>
                         </td>
@@ -619,7 +619,7 @@ if (!$acesso_interno) {
                 <h5 class="alert-heading">Agendamento Pendente</h5>
                 <p>Este orçamento foi aprovado, mas a instalação ainda não foi agendada.</p>
                 <?php if (!$acesso_interno): ?>
-                <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo $codigo; ?>" class="btn btn-primary">
+                <a href="calendario_agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-primary">
                     <i class="fas fa-calendar-plus me-2"></i>Agendar Instalação
                 </a>
                 <?php endif; ?>
@@ -717,29 +717,38 @@ if (!$acesso_interno) {
                     }
                     ?>
                     <div class="alert alert-success mb-3">
-                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Agradecemos por aprovar nosso orçamento!</h5>
-                        <p>Em breve entraremos em contato para agendar a execução do serviço.</p>
+                        <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!</h5>
                     </div>
                     
                     <div class="alert alert-info mb-3">
-                        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo previsto!</h5>
+                        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Tempo Previsto</h5>
                         <p class="mb-0">O tempo previsto para conclusão após o início do serviço é de <strong><?php echo $tempo_texto; ?></strong>.</p>
                     </div>
                     
                     <?php if (!empty($agendamentos)): ?>
                         <div class="alert alert-primary mb-3">
                             <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço já agendado!</h5>
-                            <p class="mb-0">Seu serviço já está agendado para <?php echo date('d/m/Y', strtotime($agendamentos[0]['data_agendamento'])); ?> às <?php echo substr($agendamentos[0]['hora_inicio'], 0, 5); ?>.</p>
+                            <p class="mb-0">Seu serviço está agendado para <strong><?php echo date('d/m/Y', strtotime($agendamentos[0]['data_agendamento'])); ?></strong> às <strong><?php echo substr($agendamentos[0]['hora_inicio'], 0, 5); ?></strong>.</p>
                             <div class="text-center mt-3">
-                                <a href="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo $codigo; ?>" class="btn btn-primary"><i class="fas fa-calendar-alt me-2"></i>Visualizar no Calendário</a>
+                                <a href="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>" class="btn btn-primary"><i class="fas fa-calendar-alt me-2"></i>Visualizar no Calendário</a>
+                            </div>
+                            <div class="mt-2 small text-muted">
+                                <i class="fas fa-info-circle me-1"></i> Em caso de chuva na data agendada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
                             </div>
                         </div>
                     <?php else: ?>
                         <div class="alert alert-primary mb-3">
-                            <h5 class="alert-heading"><i class="fas fa-calendar-alt me-2"></i>Agende abaixo a data e hora de início da execução do serviço!</h5>
-                            <p class="mb-0">Selecione uma data e horário conveniente para você:</p>
-                            <div class="text-center mt-3">
-                                <a href="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo $codigo; ?>" class="btn btn-primary"><i class="fas fa-calendar-check me-2"></i>Selecionar Data e Horário</a>
+                            <h5 class="alert-heading"><i class="fas fa-calendar-alt me-2"></i>Agendamento</h5>
+                            <p>Selecione abaixo a data e hora para o início do serviço:</p>
+                            
+                            <div id="calendario-container" class="mt-3 mb-3">
+                                <iframe id="iframe-calendario" src="calendario_agendamento.php?orcamento_id=<?php echo $id; ?>&codigo_acesso=<?php echo isset($codigo) ? $codigo : $orcamento['codigo_acesso']; ?>&embed=1" 
+                                        style="width:100%; height:600px; border:none; overflow:hidden;" 
+                                        scrolling="no"></iframe>
+                            </div>
+                            
+                            <div class="small text-muted">
+                                <i class="fas fa-info-circle me-1"></i> Em caso de previsão de chuva na data selecionada, o serviço poderá ser reagendado para o próximo dia útil disponível. Nossa equipe entrará em contato para confirmar.
                             </div>
                         </div>
                     <?php endif; ?>
@@ -747,7 +756,8 @@ if (!$acesso_interno) {
                     <?php if (isset($_GET['agendado']) && $_GET['agendado'] == 'true'): ?>
                     <div class="alert alert-success mb-3">
                         <h5 class="alert-heading"><i class="fas fa-calendar-check me-2"></i>Serviço Agendado!</h5>
-                        <p class="mb-0">O Serviço foi agendado para início em <?php echo isset($_GET['data']) ? $_GET['data'] : 'data selecionada'; ?> às <?php echo isset($_GET['hora']) ? $_GET['hora'] : 'hora selecionada'; ?>. Caso tenha algum imprevisto, avise-nos com antecedência para alteração do agendamento!</p>
+                        <p class="mb-0">O serviço foi agendado para <strong><?php echo isset($_GET['data']) ? $_GET['data'] : 'data selecionada'; ?></strong> às <strong><?php echo isset($_GET['hora']) ? $_GET['hora'] : 'hora selecionada'; ?></strong>.</p>
+                        <p class="mt-2 mb-0">Caso tenha algum imprevisto, por favor entre em contato conosco para reagendar.</p>
                     </div>
                     <?php endif; ?>
                 <?php endif; ?>

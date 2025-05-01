@@ -13,6 +13,8 @@ $titulo = "Calendário de Agendamentos";
 // Parâmetros opcionais
 $orcamento_id = isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0;
 $cliente_view = isset($_GET['cliente_view']) && $_GET['cliente_view'] == 1;
+$embed_mode = isset($_GET['embed']) && $_GET['embed'] == 1;
+$codigo_acesso = isset($_GET['codigo_acesso']) ? $_GET['codigo_acesso'] : '';
 
 // Se for visualização de cliente, verificar se o orçamento existe e está aprovado
 if ($cliente_view && $orcamento_id > 0) {
@@ -157,8 +159,10 @@ foreach ($horarios_disponiveis as $horario) {
     }
 }
 
-// Incluir cabeçalho
-require_once('includes/header.php');
+<?php 
+if (!$embed_mode): 
+    // Incluir cabeçalho normal para página completa
+    require_once('includes/header.php');
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -178,6 +182,40 @@ require_once('includes/header.php');
         <?php endif; ?>
     </div>
 </div>
+<?php else: ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet'>
+    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        .btn-dark {
+            background-color: #444;
+        }
+        .fc-theme-standard .fc-scrollgrid {
+            border: 1px solid #ddd;
+        }
+        .fc td, .fc th {
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Conteúdo simples para o modo incorporado -->
+<div class="py-2">
+<?php endif; ?>
 
 <!-- Mensagem para cliente -->
 <?php if ($cliente_view && isset($orcamento)): ?>
@@ -196,7 +234,8 @@ require_once('includes/header.php');
     <?php endif; ?>
 <?php endif; ?>
 
-<!-- Container do Calendário e Detalhes -->
+<?php if (!$embed_mode): ?>
+<!-- Container do Calendário e Detalhes para modo normal -->
 <div class="row">
     <!-- Calendário -->
     <div class="col-lg-9">
@@ -250,6 +289,54 @@ require_once('includes/header.php');
         </div>
     </div>
 </div>
+<?php else: ?>
+<!-- Interface simplificada para modo incorporado -->
+<div class="card border-0">
+    <div class="card-body p-0">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info mb-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="fw-bold">Selecione uma data disponível</span> no calendário para agendar sua instalação.
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Calendário compacto para modo incorporado -->
+                <div id="calendario"></div>
+            </div>
+            <div class="col-md-4">
+                <!-- Painel informativo compacto -->
+                <div id="detalhes-agendamento" class="p-2">
+                    <div class="py-3 text-center">
+                        <i class="fas fa-calendar-day fs-1 text-muted mb-2"></i>
+                        <p class="small text-muted mb-0">Clique em uma data para selecionar o horário de início da instalação.</p>
+                    </div>
+                </div>
+                
+                <!-- Legenda simplificada -->
+                <div class="mt-3 p-2 border-top">
+                    <p class="small fw-bold mb-2">Legenda:</p>
+                    <div class="d-flex flex-column gap-2 small">
+                        <div>
+                            <span class="badge bg-primary me-1" style="width: 15px;"></span>
+                            Agendado
+                        </div>
+                        <div>
+                            <span class="badge me-1" style="width: 15px; background-color: #343a40;"></span>
+                            Indisponível
+                        </div>
+                    </div>
+                    <div class="alert alert-warning mt-3 py-2 small">
+                        <i class="fas fa-umbrella me-1"></i> Em caso de previsão de chuva na data selecionada, o serviço poderá ser reagendado para o próximo dia útil.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Modal de Agendamento Rápido -->
 <div class="modal fade" id="agendamentoModal" tabindex="-1" aria-labelledby="agendamentoModalLabel" aria-hidden="true">
