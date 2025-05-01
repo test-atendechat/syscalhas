@@ -19,6 +19,9 @@ if (isset($_GET['mensagem'])) {
         $mensagem = alerta('Pagamento parcial registrado com sucesso!', 'success');
     } elseif ($_GET['mensagem'] == 'cadastrado') {
         $mensagem = alerta('Orçamento cadastrado com sucesso!', 'success');
+    } elseif ($_GET['mensagem'] == 'agendado') {
+        $mensagem = alerta('Instalação agendada com sucesso! Data: ' . (isset($_GET['data']) ? $_GET['data'] : '') . 
+                       ' às ' . (isset($_GET['hora']) ? $_GET['hora'] : ''), 'success');
     }
 }
 

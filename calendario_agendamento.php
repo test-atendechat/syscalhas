@@ -324,6 +324,56 @@ require_once('includes/header.php');
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/locales/pt-br.js"></script>
 
+<!-- Estilos personalizados para o calendário -->
+<style>
+    /* Reduzir tamanho das células do calendário */
+    .fc .fc-daygrid-day-frame {
+        min-height: 5em !important;
+    }
+    
+    /* Reduzir tamanho dos eventos */
+    .fc-event {
+        font-size: 0.8rem;
+        line-height: 1.2;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-bottom: 1px;
+    }
+    
+    /* Melhorar estilo dos ícones nos eventos */
+    .fc-event-title i {
+        font-size: 0.75rem;
+    }
+    
+    /* Melhorar estilo dos dias indisponíveis */
+    .dia-indisponivel {
+        background-color: #f8f9fa;
+        opacity: 0.6;
+    }
+    
+    /* Estilos para os botões do cabeçalho */
+    .fc-button {
+        padding: 0.3em 0.6em !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Cabeçalho da tabela mais compacto */
+    .fc-col-header-cell {
+        padding: 5px 0 !important;
+    }
+    
+    /* Adicionar hover nos dias */
+    .fc-daygrid-day:not(.dia-indisponivel):hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    /* Ajuste para o número do dia */
+    .fc-daygrid-day-number {
+        font-size: 0.9rem;
+        padding: 5px 8px !important;
+    }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Dados do PHP para JavaScript
@@ -551,11 +601,50 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         // Consultar previsão do tempo (simulado neste exemplo)
+                        const dataFormatada = new Date(document.getElementById('data_agendamento').value).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                        
+                        // Gerar uma previsão aleatória para demonstração
+                        const climas = [
+                            { icone: 'sun', descricao: 'Ensolarado', temp: '28°C', prob_chuva: '0%', cor: 'success' },
+                            { icone: 'cloud-sun', descricao: 'Parcialmente nublado', temp: '24°C', prob_chuva: '10%', cor: 'info' },
+                            { icone: 'cloud', descricao: 'Nublado', temp: '22°C', prob_chuva: '20%', cor: 'secondary' },
+                            { icone: 'cloud-rain', descricao: 'Chuva leve', temp: '19°C', prob_chuva: '40%', cor: 'warning' },
+                            { icone: 'cloud-showers-heavy', descricao: 'Chuva forte', temp: '17°C', prob_chuva: '80%', cor: 'danger' }
+                        ];
+                        
+                        // Selecionar um clima aleatório (em produção, isso viria da API de clima)
+                        const climaIndex = Math.floor(Math.random() * climas.length);
+                        const clima = climas[climaIndex];
+                        
                         document.getElementById('previsao-container').innerHTML = `
-                            <div class="alert alert-info">
-                                <h6 class="mb-2"><i class="fas fa-cloud-sun me-2"></i>Previsão do Tempo</h6>
-                                <p class="mb-1">Consultando previsão do tempo para ${dataFormatada}...</p>
-                                <div class="small">A previsão detalhada será exibida após o agendamento.</div>
+                            <div class="card border-${clima.cor} mb-3 shadow-sm">
+                                <div class="card-header bg-${clima.cor} bg-opacity-10 d-flex align-items-center">
+                                    <i class="fas fa-${clima.icone} me-2 text-${clima.cor}"></i>
+                                    <span class="fw-semibold">Previsão do Tempo para ${dataFormatada}</span>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-4 text-center">
+                                            <i class="fas fa-${clima.icone} text-${clima.cor} fa-2x mb-2"></i>
+                                            <div class="fw-bold">${clima.temp}</div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">${clima.descricao}</h6>
+                                            <div class="small text-muted d-flex align-items-center">
+                                                <i class="fas fa-tint me-1 text-primary"></i> 
+                                                Probabilidade de chuva: ${clima.prob_chuva}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-${clima.cor} bg-opacity-10 small">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Esta previsão é uma estimativa. Recomendamos verificar novamente mais próximo à data.
+                                </div>
                             </div>
                         `;
                         
