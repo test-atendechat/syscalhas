@@ -357,73 +357,72 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                     </thead>
                     <tbody>
                         <?php 
-                        // Separar as indisponibilidades automáticas e manuais
+                        // Filtragem para remover duplicatas de registros automáticos
+                        $encontrou_entrada = false;
+                        $encontrou_almoco = false;
                         $indisponibilidades_automaticas = [];
                         $indisponibilidades_manuais = [];
+                        $horario_entrada = '';
+                        $horario_almoco = '';
                         
+                        // Primeiro, separar as indisponibilidades automáticas e manuais
                         foreach ($disponibilidades as $disponibilidade) {
                             // Verificar se observacao existe e não é nula antes de usar strpos
-                            if (isset($disponibilidade['observacao']) && $disponibilidade['observacao'] !== null && 
-                                strpos($disponibilidade['observacao'], '(automático)') !== false) {
-                                $indisponibilidades_automaticas[] = $disponibilidade;
+                            if (isset($disponibilidade['observacao']) && $disponibilidade['observacao'] !== null) {
+                                if (strpos($disponibilidade['observacao'], '(automático)') !== false) {
+                                    // Se for indisponibilidade de entrada e ainda não encontramos uma
+                                    if (strpos($disponibilidade['observacao'], 'Indisponibilidade de entrada') !== false && !$encontrou_entrada) {
+                                        $encontrou_entrada = true;
+                                        $horario_entrada = date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
+                                                          date('H:i', strtotime($disponibilidade['hora_fim']));
+                                    }
+                                    // Se for horário de almoço e ainda não encontramos um
+                                    elseif (strpos($disponibilidade['observacao'], 'Horário de almoço') !== false && !$encontrou_almoco) {
+                                        $encontrou_almoco = true;
+                                        $horario_almoco = date('H:i', strtotime($disponibilidade['hora_inicio'])) . ' até ' . 
+                                                        date('H:i', strtotime($disponibilidade['hora_fim']));
+                                    }
+                                } else {
+                                    // Indisponibilidades manuais (não automáticas)
+                                    $indisponibilidades_manuais[] = $disponibilidade;
+                                }
                             } else {
+                                // Se não tiver observação, considera como manual
                                 $indisponibilidades_manuais[] = $disponibilidade;
                             }
                         }
                         
-                        // Agrupar as indisponibilidades automáticas por tipo
-                        $indisponibilidade_entrada = [];
-                        $indisponibilidade_almoco = [];
-                        
-                        foreach ($indisponibilidades_automaticas as $disp) {
-                            if (isset($disp['observacao']) && $disp['observacao'] !== null) {
-                                if (strpos($disp['observacao'], 'Indisponibilidade de entrada') !== false) {
-                                    $indisponibilidade_entrada = $disp;
-                                } elseif (strpos($disp['observacao'], 'Horário de almoço') !== false) {
-                                    $indisponibilidade_almoco = $disp;
-                                }
-                            }
-                        }
-                        
-                        // Exibir indisponibilidades automáticas simplificadas
-                        if (count($indisponibilidades_automaticas) > 0): 
+                        // Exibir apenas duas linhas para indisponibilidades automáticas
                         ?>
-                            <tr class="table-info">
-                                <td><strong>Todos os dias</strong></td>
-                                <td>
-                                    <?php 
-                                    if (!empty($indisponibilidade_entrada)) {
-                                        echo date('H:i', strtotime($indisponibilidade_entrada['hora_inicio'])) . ' até ' . 
-                                             date('H:i', strtotime($indisponibilidade_entrada['hora_fim'])); 
-                                    }
-                                    ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning">Indisponível</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary">Automático</span>
-                                </td>
-                                <td colspan="2">Período indisponível após abertura (gerenciado pelo sistema em <a href="configuracoes.php">Configurações</a>)</td>
-                            </tr>
-                            <tr class="table-info">
-                                <td><strong>Todos os dias</strong></td>
-                                <td>
-                                    <?php 
-                                    if (!empty($indisponibilidade_almoco)) {
-                                        echo date('H:i', strtotime($indisponibilidade_almoco['hora_inicio'])) . ' até ' . 
-                                             date('H:i', strtotime($indisponibilidade_almoco['hora_fim'])); 
-                                    }
-                                    ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning">Indisponível</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary">Automático</span>
-                                </td>
-                                <td colspan="2">Horário de almoço (gerenciado pelo sistema em <a href="configuracoes.php">Configurações</a>)</td>
-                            </tr>
+                        
+                        <!-- Linha para indisponibilidade após abertura -->
+                        <?php if ($encontrou_entrada): ?>
+                        <tr class="table-info">
+                            <td><strong>Todos os dias</strong></td>
+                            <td><?php echo $horario_entrada; ?></td>
+                            <td>
+                                <span class="badge bg-warning">Indisponível</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">Automático</span>
+                            </td>
+                            <td colspan="2">Período indisponível após abertura (gerenciado pelo sistema)</td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <!-- Linha para horário de almoço -->
+                        <?php if ($encontrou_almoco): ?>
+                        <tr class="table-info">
+                            <td><strong>Todos os dias</strong></td>
+                            <td><?php echo $horario_almoco; ?></td>
+                            <td>
+                                <span class="badge bg-warning">Indisponível</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">Automático</span>
+                            </td>
+                            <td colspan="2">Horário de almoço (gerenciado pelo sistema)</td>
+                        </tr>
                         <?php endif; ?>
                         
                         <!-- Exibir indisponibilidades manuais normalmente -->
