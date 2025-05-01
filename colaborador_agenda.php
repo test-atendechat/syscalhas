@@ -44,7 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
     $data_disponibilidade = $_POST['data_disponibilidade'] ?? '';
     $hora_inicio = $_POST['hora_inicio'] ?? '';
     $hora_fim = $_POST['hora_fim'] ?? '';
-    $disponivel = isset($_POST['disponivel']) ? 1 : 0;
+    
+    // Verificar se é indisponibilidade (botão "Registrar Indisponibilidade" foi pressionado)
+    $botao = isset($_POST['btnSalvarIndisponibilidade']) ? 'indisponibilidade' : 'disponibilidade';
+    $disponivel = ($botao == 'disponibilidade' && isset($_POST['disponivel'])) ? 1 : 0;
+    
     $observacao = $_POST['observacao'] ?? '';
     $recorrente = isset($_POST['recorrente']) ? 1 : 0;
     $dia_semana = $recorrente ? (int)($_POST['dia_semana'] ?? 0) : null;
@@ -206,7 +210,7 @@ require_once('includes/header.php');
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Adicionar Disponibilidade</h5>
+                <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Gerenciar Disponibilidade</h5>
             </div>
             <div class="card-body">
                 <form method="post" action="">
@@ -232,14 +236,29 @@ require_once('includes/header.php');
                         <div class="col-md-6">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" id="disponivel" name="disponivel" checked>
-                                <label class="form-check-label" for="disponivel">
-                                    Disponível para agendamentos
+                                <label class="form-check-label fw-bold" for="disponivel">
+                                    <i class="fas fa-check-circle text-success me-1"></i> Disponível para agendamentos
                                 </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="indisponivel" onclick="toggleIndisponivel()">
+                                <label class="form-check-label fw-bold" for="indisponivel">
+                                    <i class="fas fa-times-circle text-danger me-1"></i> Registrar indisponibilidade
+                                </label>
+                                <div id="motivo_indisponibilidade" class="mt-2" style="display: none;">
+                                    <select class="form-select form-select-sm" id="tipo_indisponibilidade">
+                                        <option value="Férias">Férias</option>
+                                        <option value="Licença médica">Licença médica</option>
+                                        <option value="Compromisso pessoal">Compromisso pessoal</option>
+                                        <option value="Treinamento">Treinamento</option>
+                                        <option value="Outro">Outro motivo</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="recorrente" name="recorrente">
                                 <label class="form-check-label" for="recorrente">
-                                    Disponível todas as semanas
+                                    <i class="fas fa-sync-alt text-primary me-1"></i> Repetir todas as semanas
                                 </label>
                             </div>
                         </div>
@@ -259,13 +278,18 @@ require_once('includes/header.php');
                     
                     <div class="mb-3">
                         <label for="observacao" class="form-label">Observações</label>
-                        <textarea class="form-control" id="observacao" name="observacao" rows="2"></textarea>
+                        <textarea class="form-control" id="observacao" name="observacao" rows="2" placeholder="Descreva aqui o motivo da indisponibilidade ou outras informações relevantes"></textarea>
                     </div>
                     
                     <div class="d-flex justify-content-between">
-                        <button type="submit" class="btn btn-primary" id="btnSalvar">
-                            <i class="fas fa-save me-2"></i>Salvar Disponibilidade
-                        </button>
+                        <div>
+                            <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                <i class="fas fa-save me-2"></i>Salvar Disponibilidade
+                            </button>
+                            <button type="submit" class="btn btn-warning" id="btnSalvarIndisponibilidade" style="display: none;">
+                                <i class="fas fa-ban me-2"></i>Registrar Indisponibilidade
+                            </button>
+                        </div>
                         <button type="button" class="btn btn-secondary" id="btnCancelar" style="display: none;">
                             <i class="fas fa-times me-2"></i>Cancelar Edição
                         </button>
@@ -357,14 +381,71 @@ require_once('includes/header.php');
 </div>
 
 <script>
+// Função para alternar entre disponibilidade e indisponibilidade
+function toggleIndisponivel() {
+    const indisponivelCheck = document.getElementById('indisponivel');
+    const disponivelCheck = document.getElementById('disponivel');
+    const motivoDiv = document.getElementById('motivo_indisponibilidade');
+    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
+    const observacaoInput = document.getElementById('observacao');
+    const btnSalvar = document.getElementById('btnSalvar');
+    const btnSalvarIndisponibilidade = document.getElementById('btnSalvarIndisponibilidade');
+    
+    if (indisponivelCheck.checked) {
+        disponivelCheck.checked = false;
+        disponivelCheck.disabled = true;
+        motivoDiv.style.display = 'block';
+        btnSalvar.style.display = 'none';
+        btnSalvarIndisponibilidade.style.display = 'inline-block';
+        
+        // Pre-preencher o campo de observações
+        const motivo = tipoIndisponibilidade.options[tipoIndisponibilidade.selectedIndex].value;
+        if (!observacaoInput.value.includes(motivo)) {
+            observacaoInput.value = motivo + (observacaoInput.value ? ': ' + observacaoInput.value : '');
+        }
+    } else {
+        disponivelCheck.disabled = false;
+        motivoDiv.style.display = 'none';
+        btnSalvar.style.display = 'inline-block';
+        btnSalvarIndisponibilidade.style.display = 'none';
+    }
+}
+
+// Atualiza o campo de observações quando o tipo de indisponibilidade muda
+function atualizarMotivoIndisponibilidade() {
+    const indisponivelCheck = document.getElementById('indisponivel');
+    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
+    const observacaoInput = document.getElementById('observacao');
+    
+    if (indisponivelCheck.checked) {
+        const motivo = tipoIndisponibilidade.options[tipoIndisponibilidade.selectedIndex].value;
+        // Limpar o motivo anterior se existir
+        const partes = observacaoInput.value.split(': ');
+        if (partes.length > 1) {
+            observacaoInput.value = motivo + ': ' + partes[1];
+        } else {
+            observacaoInput.value = motivo;
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Mostrar/ocultar seleção de dia da semana quando recorrente for marcado
     const recorrenteCheckbox = document.getElementById('recorrente');
     const diaSemanaGroup = document.getElementById('dia_semana_group');
+    const indisponivelCheck = document.getElementById('indisponivel');
+    const tipoIndisponibilidade = document.getElementById('tipo_indisponibilidade');
+    const btnSalvarIndisponibilidade = document.getElementById('btnSalvarIndisponibilidade');
     
     recorrenteCheckbox.addEventListener('change', function() {
         diaSemanaGroup.style.display = this.checked ? 'block' : 'none';
     });
+    
+    // Inicializar o botão de indisponibilidade
+    btnSalvarIndisponibilidade.style.display = 'none';
+    
+    // Configurar eventos para o tipo de indisponibilidade
+    tipoIndisponibilidade.addEventListener('change', atualizarMotivoIndisponibilidade);
     
     // Configurar botões de edição
     const botoesEditar = document.querySelectorAll('.btnEditar');
