@@ -4,10 +4,11 @@ require_once('../includes/db.php');
 require_once('../includes/functions.php');
 
 // Garantir que temos uma conexão com o banco de dados
-global $db, $pdo;
-if (!isset($pdo) && isset($db)) {
-    $pdo = $db;
-} elseif (!isset($pdo) && !isset($db)) {
+// Importante: inclui db.php para ter acesso a $db e $pdo
+// Estas variáveis já devem estar definidas pelo include acima
+
+// Se não estiverem definidas, tenta inicializá-las
+if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
     try {
         if (DB_TYPE == 'mysql') {
@@ -156,8 +157,10 @@ try {
                                )");
     // Nota: colaborador_id refere-se aos IDs da tabela colaboradores, não instaladores
     $stmt_indisponibilidade->bindParam(':data_disponibilidade', $data_apenas);
-    $stmt_indisponibilidade->bindParam(':hora_inicio', $data_hora_inicio->format('H:i:s'));
-    $stmt_indisponibilidade->bindParam(':hora_fim', $data_hora_fim->format('H:i:s'));
+    $hora_inicio_str = $data_hora_inicio->format('H:i:s');
+    $hora_fim_str = $data_hora_fim->format('H:i:s');
+    $stmt_indisponibilidade->bindParam(':hora_inicio', $hora_inicio_str);
+    $stmt_indisponibilidade->bindParam(':hora_fim', $hora_fim_str);
     $stmt_indisponibilidade->execute();
     
     // Adicionar colaboradores indisponíveis ao array de ocupados

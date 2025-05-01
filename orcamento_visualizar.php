@@ -4,9 +4,11 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 
 // Garantir que temos uma conexão com o banco de dados
-if (!isset($pdo) && isset($db)) {
-    $pdo = $db;
-} elseif (!isset($pdo) && !isset($db)) {
+// Importante: inclui db.php para ter acesso a $db e $pdo
+// Estas variáveis já devem estar definidas pelo include acima
+
+// Se não estiverem definidas, tenta inicializá-las
+if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
     try {
         if (DB_TYPE == 'mysql') {
@@ -270,7 +272,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
                 $pdo->commit();
                 $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
             } catch (Exception $e) {
-                $pdo->rollback();
+                try {
+                    $pdo->rollBack(); // Corrigido para rollBack() com B maiúsculo
+                } catch (Exception $rollbackError) {
+                    // Ignora erro de rollback
+                }
                 $mensagem = alerta('Erro ao processar baixa no estoque: ' . $e->getMessage(), 'danger');
             }
         } else {
