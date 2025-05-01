@@ -78,6 +78,19 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         
         if ($stmt->execute()) {
             $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
+            
+            // Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // Gerar notificação
+            notificarOrcamento($id, 'finalizado', [
+                'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
+            ]);
         } else {
             $mensagem = alerta('Erro ao finalizar orçamento', 'danger');
         }
@@ -90,6 +103,19 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         
         if ($stmt->execute()) {
             $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso!', 'success');
+            
+            // Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // Gerar notificação
+            notificarOrcamento($id, 'andamento', [
+                'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
+            ]);
         } else {
             $mensagem = alerta('Erro ao atualizar status de execução', 'danger');
         }
@@ -102,6 +128,21 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         
         if ($stmt->execute()) {
             $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+            
+            // Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome, o.numero FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // Gerar notificação
+            adicionarNotificacao(
+                "Orçamento #{$dados['numero']} para {$dados['cliente_nome']} marcado como PENDENTE", 
+                'warning', 
+                "orcamento_visualizar.php?id={$id}"
+            );
         } else {
             $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
         }
@@ -114,6 +155,21 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
         
         if ($stmt->execute() && $stmt->rowCount() > 0) {
             $mensagem = alerta('Orçamento reaberto com sucesso!', 'success');
+            
+            // Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome, o.numero FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // Gerar notificação
+            adicionarNotificacao(
+                "Orçamento #{$dados['numero']} para {$dados['cliente_nome']} REABERTO para análise", 
+                'primary', 
+                "orcamento_visualizar.php?id={$id}"
+            );
         } else {
             $mensagem = alerta('Erro ao reabrir orçamento.', 'danger');
         }
@@ -232,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
     if ($decisao == 'aprovar' || $decisao == 'rejeitar') {
         // Incluir bibliotecas necessárias para notificações
         require_once('includes/notificacoes.php');
+        require_once('notificacao_orcamento.php');
         
         $novo_status = ($decisao == 'aprovar') ? 'aprovado' : 'rejeitado';
 
