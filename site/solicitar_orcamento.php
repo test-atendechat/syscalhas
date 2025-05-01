@@ -386,7 +386,8 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                 
                 <div class="mb-3">
                     <label for="observacoes" class="form-label fw-bold">Observações</label>
-                    <textarea class="form-control" id="observacoes" name="observacoes" rows="3" placeholder="Descreva brevemente o serviço desejado ou qualquer informação adicional"><?php echo htmlspecialchars($observacoes); ?></textarea>
+                    <textarea class="form-control" id="observacoes" name="observacoes" rows="4" placeholder="Informe: Instalação Nova, Reparo, Manutenção, Lugar Alto, Precisa de Escada, Não precisa de Escada, Tem escada no local, etc."><?php echo htmlspecialchars($observacoes); ?></textarea>
+                    <small class="text-muted">Estas informações ajudarão nosso orçamentista a se preparar adequadamente para sua visita.</small>
                 </div>
                 
                 <hr class="my-4">
