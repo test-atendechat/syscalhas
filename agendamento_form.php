@@ -16,12 +16,35 @@ if (!verificarPermissao('gerenciar_agendamentos') && $_SESSION['usuario']['nivel
 
 // Inicialização de variáveis
 $titulo = "Novo Agendamento";
+
+// Padrão de horas para cálculo de hora de fim
+$tempo_previsto_horas = 2; // Padrão caso não tenha orçamento
+
+// Se temos um orçamento definido, buscar seu tempo previsto
+if (isset($_GET['orcamento_id']) && intval($_GET['orcamento_id']) > 0) {
+    $orcamento_id = intval($_GET['orcamento_id']);
+    $stmt = $db->prepare("SELECT tempo_previsto_horas FROM orcamentos WHERE id = :id");
+    $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $orcamento = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (isset($orcamento['tempo_previsto_horas']) && $orcamento['tempo_previsto_horas'] > 0) {
+            $tempo_previsto_horas = $orcamento['tempo_previsto_horas'];
+        }
+    }
+}
+
+// Cálculo da hora de fim com base na hora de início e tempo previsto
+$hora_inicio = '08:00';
+$hora_fim = date('H:i', strtotime("+{$tempo_previsto_horas} hours", strtotime($hora_inicio)));
+
 $agendamento = [
     'id' => 0,
     'orcamento_id' => isset($_GET['orcamento_id']) ? intval($_GET['orcamento_id']) : 0,
     'data_agendamento' => date('Y-m-d'),
-    'hora_inicio' => '08:00',
-    'hora_fim' => '10:00',
+    'hora_inicio' => $hora_inicio,
+    'hora_fim' => $hora_fim,
     'status' => 'agendado',
     'previsao_tempo' => '',
     'temperatura' => '',
@@ -31,7 +54,8 @@ $agendamento = [
     'usuario_id' => $_SESSION['usuario']['id'],
     'cliente_agendou' => false,
     'instalador_id' => [], // Agora é um array de instaladores
-    'auxiliar_id' => null // Não usado mais diretamente
+    'auxiliar_id' => null, // Não usado mais diretamente
+    'tempo_previsto_horas' => $tempo_previsto_horas
 ];
 
 // Verificar se é edição

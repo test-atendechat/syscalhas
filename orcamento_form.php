@@ -29,6 +29,7 @@ $titulo = 'Novo Orçamento';
 $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
+$tempo_previsto_horas = 2; // Tempo padrão para execução do serviço em horas
 
 // Buscar configurações do banco de dados
 $stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
@@ -79,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
     $taxa_mao_obra = floatval(str_replace(',', '.', $_POST['taxa_mao_obra']));
     $observacoes = limpaString($_POST['observacoes']);
     $forma_pagamento = $_POST['forma_pagamento'];
+    $tempo_previsto_horas = intval($_POST['tempo_previsto_horas']);
 
     // Validar os dados
     if ($cliente_id <= 0) {
@@ -95,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 'taxa_mao_obra' => $taxa_mao_obra,
                 'observacoes' => $observacoes,
                 'usuario_id' => $_SESSION['usuario_id'],
-                'forma_pagamento' => $forma_pagamento
+                'forma_pagamento' => $forma_pagamento,
+                'tempo_previsto_horas' => $tempo_previsto_horas
             ];
 
             if ($acao_form == 'cadastrar') {
