@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agendamento['status'] = $_POST['status'];
     $agendamento['observacoes'] = $_POST['observacoes'] ?? '';
     $agendamento['usuario_id'] = $_SESSION['usuario']['id'];
-    $agendamento['instalador_id'] = !empty($_POST['instaladores']) ? $_POST['instaladores'] : [];
+    $agendamento['instalador_id'] = !empty($_POST['instalador_id']) ? $_POST['instalador_id'] : [];
     // Auxiliar não é mais selecionado diretamente, é associado automaticamente ao instalador
     
     // Validar campos obrigatórios
@@ -454,7 +454,7 @@ if (!empty($erros)) {
                                     if ($instalador['id'] == $instalador_id) {
                                         echo '<div class="list-group-item d-flex justify-content-between align-items-center">';
                                         echo '<div><i class="fas fa-hard-hat me-2"></i>' . $instalador['nome'] . '</div>';
-                                        echo '<input type="hidden" name="instaladores[]" value="' . $instalador_id . '">';
+                                        echo '<input type="hidden" name="instalador_id[]" value="' . $instalador_id . '">';
                                         echo '<button type="button" class="btn btn-sm btn-danger remover-instalador"><i class="fas fa-times"></i></button>';
                                         echo '</div>';
                                         break;
@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Verificar se este instalador já foi adicionado
-        const instaladoresExistentes = document.querySelectorAll('input[name="instaladores[]"]');
+        const instaladoresExistentes = document.querySelectorAll('input[name="instalador_id[]"]');
         for(let i = 0; i < instaladoresExistentes.length; i++) {
             if(instaladoresExistentes[i].value === instaladorId) {
                 alert('Este instalador já foi adicionado.');
@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
         item.className = 'list-group-item d-flex justify-content-between align-items-center';
         item.innerHTML = `
             <div><i class="fas fa-hard-hat me-2"></i>${instaladorNome}</div>
-            <input type="hidden" name="instaladores[]" value="${instaladorId}">
+            <input type="hidden" name="instalador_id[]" value="${instaladorId}">
             <button type="button" class="btn btn-sm btn-danger remover-instalador"><i class="fas fa-times"></i></button>
         `;
         
