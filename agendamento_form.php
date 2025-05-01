@@ -436,21 +436,10 @@ if (!empty($erros)) {
                     <div class="invalid-feedback">Por favor, selecione um horário de início.</div>
                 </div>
                 <div class="col-md-3">
-                    <label for="hora_fim" class="form-label required">Horário Fim</label>
-                    <select class="form-select" id="hora_fim" name="hora_fim" required>
-                        <?php
-                        // Listar horários disponíveis
-                        $horarios_fim = [
-                            '10:00', '11:00', '12:00', '13:00', '15:00', '16:00', '17:00', '18:00'
-                        ];
-                        
-                        foreach ($horarios_fim as $hora) {
-                            $selected = ($agendamento['hora_fim'] === $hora) ? 'selected' : '';
-                            echo "<option value=\"{$hora}\" {$selected}>{$hora}</option>";
-                        }
-                        ?>
-                    </select>
-                    <div class="invalid-feedback">Por favor, selecione um horário de fim.</div>
+                    <label class="form-label">Horário Fim (Calculado)</label>
+                    <input type="text" class="form-control" id="hora_fim_display" value="<?php echo $agendamento['hora_fim']; ?>" readonly>
+                    <input type="hidden" id="hora_fim" name="hora_fim" value="<?php echo $agendamento['hora_fim']; ?>">
+                    <div class="form-text">Calculado automaticamente com base no tempo previsto do orçamento.</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Instaladores</label>
@@ -635,23 +624,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     });
     
-    // Atualizar horário de fim com base no início
-    const horaInicio = document.getElementById('hora_inicio');
-    const horaFim = document.getElementById('hora_fim');
-    
-    horaInicio.addEventListener('change', function() {
-        const inicio = this.value;
-        const [hora] = inicio.split(':');
-        const horaFimSugerida = `${parseInt(hora) + 2}:00`;
-        
-        // Selecionar o próximo horário disponível
-        for (let i = 0; i < horaFim.options.length; i++) {
-            if (horaFim.options[i].value >= horaFimSugerida) {
-                horaFim.selectedIndex = i;
-                break;
-            }
-        }
-    });
+    // Removido código anterior que manipulava o select de hora_fim, agora usamos a função calcularHoraFim()
     
     // Funcionalidade para adicionar e remover instaladores
     const instaladorSelect = document.getElementById('instalador_select');
@@ -702,15 +675,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lógica para atualizar hora_fim automaticamente com base no tempo previsto do orçamento
     const horaInicio = document.getElementById('hora_inicio');
     const horaFim = document.getElementById('hora_fim');
+    const horaFimDisplay = document.getElementById('hora_fim_display');
     const orcamentoSelect = document.getElementById('orcamento_id');
     
     // Armazenar o tempo previsto em horas do orçamento
-    const tempoPrevisto = <?php echo $agendamento['tempo_previsto_horas']; ?>;
+    let tempoPrevisto = <?php echo isset($agendamento['tempo_previsto_horas']) ? $agendamento['tempo_previsto_horas'] : 2; ?>;
+    
+    // Função para formatar a exibição do tempo previsto (em horas ou dias)
+    function formatarTempoPrevisto(horas) {
+        if (horas <= 24) {
+            return horas + ' hora' + (horas > 1 ? 's' : '');
+        } else {
+            const dias = Math.ceil(horas / 24);
+            return dias + ' dia' + (dias > 1 ? 's' : '');
+        }
+    }
     
     // Função para calcular novo horário de fim com base na hora de início e tempo previsto
     function calcularHoraFim() {
         // Obter hora selecionada
         const horaInicioSelecionada = horaInicio.value;
+        if (!horaInicioSelecionada) return;
         
         // Converter para objeto Date para facilitar cálculos
         const [horas, minutos] = horaInicioSelecionada.split(':');
@@ -726,30 +711,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutosNovos = String(dataBase.getMinutes()).padStart(2, '0');
         const horaFimCalculada = `${horasNovas}:${minutosNovos}`;
         
-        // Selecionar opção mais próxima no select de hora_fim
-        let melhorOpcao = null;
-        let menorDiferenca = Infinity;
-        
-        for (let i = 0; i < horaFim.options.length; i++) {
-            const opcao = horaFim.options[i].value;
-            const [h, m] = opcao.split(':');
-            const dataOpcao = new Date();
-            dataOpcao.setHours(parseInt(h));
-            dataOpcao.setMinutes(parseInt(m));
-            
-            // Calcular diferença em minutos
-            const diferenca = Math.abs(dataOpcao.getTime() - dataBase.getTime()) / (60 * 1000);
-            
-            if (diferenca < menorDiferenca) {
-                menorDiferenca = diferenca;
-                melhorOpcao = i;
-            }
-        }
-        
-        // Selecionar a melhor opção
-        if (melhorOpcao !== null) {
-            horaFim.selectedIndex = melhorOpcao;
-        }
+        // Atualizar o valor do campo oculto e do display
+        horaFim.value = horaFimCalculada;
+        horaFimDisplay.value = horaFimCalculada + ' (tempo previsto: ' + formatarTempoPrevisto(tempoPrevisto) + ')';
     }
     
     // Atualizar hora de fim quando mudar hora de início
@@ -797,6 +761,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Simular o evento para carregar horários disponíveis na inicialização
         const event = new Event('change');
         dataInput.dispatchEvent(event);
+    }
+    
+    // Calcular hora_fim na inicialização
+    if (horaInicio.value) {
+        calcularHoraFim();
     }
 });
 </script>
