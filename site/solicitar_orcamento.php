@@ -196,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $codigo_acesso = md5(uniqid(rand(), true));
             
             $stmt_orcamento = $pdo->prepare("INSERT INTO orcamentos (numero, cliente_id, data_criacao, data_validade, status, codigo_acesso, valor_produtos, valor_mao_obra, valor_total, status_pagamento, status_execucao) 
-                                         VALUES (:numero, :cliente_id, NOW(), :data_validade, 'pendente', :codigo_acesso, 0.00, 0.00, 0.00, 'pendente', 'orcamento_agendado')");
+                                         VALUES (:numero, :cliente_id, NOW(), :data_validade, 'pendente', :codigo_acesso, 0.00, 0.00, 0.00, 'pendente', 'pendente')");
             $stmt_orcamento->bindParam(':numero', $numero_orcamento);
             $stmt_orcamento->bindParam(':cliente_id', $cliente_id, PDO::PARAM_INT);
             $stmt_orcamento->bindParam(':data_validade', $data_validade);
