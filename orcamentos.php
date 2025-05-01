@@ -77,7 +77,7 @@ $stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome
                      FROM orcamentos o
                      LEFT JOIN clientes c ON o.cliente_id = c.id
                      WHERE {$where}
-                     ORDER BY o.data_criacao DESC
+                     ORDER BY o.numero DESC
                      LIMIT :limit OFFSET :offset");
                      
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
