@@ -531,7 +531,12 @@ $agendamentos_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 <!-- Lista de Materiais para Próximas Instalações -->
                 <div class="row">
                     <div class="col-12">
-                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-tools me-2"></i>Materiais para Próximas Instalações</h5>
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="fas fa-tools me-2"></i>Materiais para Próximas Instalações
+                            <a href="lista_materiais_instalacoes.php" class="btn btn-sm btn-outline-primary float-end">
+                                <i class="fas fa-external-link-alt me-1"></i>Ver Lista Completa
+                            </a>
+                        </h5>
                         <?php if (count($materiais_por_orcamento) > 0): ?>
                         <div class="accordion" id="materiaisAccordion">
                             <?php foreach ($materiais_por_orcamento as $index => $orcamento_info): ?>

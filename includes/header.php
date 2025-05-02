@@ -430,10 +430,14 @@ try {
                     <?php endif; ?>
                     
                     <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_colaboradores')): ?>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo (strpos($pagina_atual, 'colaborador') !== false) ? 'active' : ''; ?>" href="colaboradores.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle <?php echo (strpos($pagina_atual, 'colaborador') !== false) ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-hard-hat me-1"></i>Colaboradores
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="colaboradores.php"><i class="fas fa-list me-1"></i>Lista de Colaboradores</a></li>
+                            <li><a class="dropdown-item" href="lista_materiais_instalacoes.php"><i class="fas fa-tools me-1"></i>Materiais para Instalações</a></li>
+                        </ul>
                     </li>
                     <?php endif; ?>
                     
