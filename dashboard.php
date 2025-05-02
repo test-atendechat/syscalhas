@@ -103,6 +103,82 @@ $stmt = $db->query("SELECT p.id, p.descricao, p.unidade, SUM(m.quantidade) as to
                    ORDER BY total_vendido DESC
                    LIMIT 5");
 $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Obter colaboradores (instaladores e orçamentistas)
+$stmt = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE status = 'ativo' ORDER BY tipo, nome");
+$colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Obter agendamentos para os próximos 2 dias
+$data_atual = date('Y-m-d');
+$data_limite = date('Y-m-d', strtotime('+2 days'));
+
+// Buscar agendamentos de instalações para os próximos 2 dias
+$stmt = $db->prepare("SELECT a.id, a.data_agendamento, a.data_inicio, a.hora_inicio, a.status, a.instalador_id, 
+                      o.id as orcamento_id, o.numero as orcamento_numero, c.nome as cliente_nome, 
+                      cl.nome as colaborador_nome 
+                      FROM agendamentos a 
+                      JOIN orcamentos o ON a.orcamento_id = o.id 
+                      JOIN clientes c ON o.cliente_id = c.id 
+                      JOIN colaboradores cl ON a.instalador_id = cl.id 
+                      WHERE (a.status = 'instalacao_agendada' OR a.status = 'orcamento_agendado') 
+                      AND ((
+                          (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
+                      ) OR (
+                          (a.data_inicio::date >= :data_atual AND a.data_inicio::date <= :data_limite)
+                      ))
+                      ORDER BY a.data_agendamento, a.data_inicio, a.hora_inicio");
+$stmt->bindParam(':data_atual', $data_atual);
+$stmt->bindParam(':data_limite', $data_limite);
+$stmt->execute();
+$proximos_agendamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Consultar materiais necessários para instalações próximas
+$stmt = $db->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_necessaria,
+                      o.id as orcamento_id, o.numero as orcamento_numero, c.nome as cliente_nome,
+                      a.data_agendamento, a.data_inicio
+                      FROM orcamento_itens i
+                      JOIN produtos p ON i.produto_id = p.id
+                      JOIN orcamentos o ON i.orcamento_id = o.id
+                      JOIN clientes c ON o.cliente_id = c.id
+                      JOIN agendamentos a ON o.id = a.orcamento_id
+                      WHERE (a.status = 'instalacao_agendada') 
+                      AND ((
+                          (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
+                      ) OR (
+                          (a.data_inicio::date >= :data_atual AND a.data_inicio::date <= :data_limite)
+                      ))
+                      GROUP BY p.id, p.descricao, p.unidade, o.id, o.numero, c.nome, a.data_agendamento, a.data_inicio
+                      ORDER BY a.data_agendamento, a.data_inicio, o.numero");
+$stmt->bindParam(':data_atual', $data_atual);
+$stmt->bindParam(':data_limite', $data_limite);
+$stmt->execute();
+$materiais_proximas_instalacoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Agrupar materiais por orçamento
+$materiais_por_orcamento = [];
+foreach ($materiais_proximas_instalacoes as $material) {
+    $orcamento_id = $material['orcamento_id'];
+    if (!isset($materiais_por_orcamento[$orcamento_id])) {
+        $materiais_por_orcamento[$orcamento_id] = [
+            'orcamento_id' => $orcamento_id,
+            'orcamento_numero' => $material['orcamento_numero'],
+            'cliente_nome' => $material['cliente_nome'],
+            'data_agendamento' => $material['data_agendamento'],
+            'data_inicio' => $material['data_inicio'],
+            'materiais' => []
+        ];
+    }
+    $materiais_por_orcamento[$orcamento_id]['materiais'][] = [
+        'id' => $material['id'],
+        'descricao' => $material['descricao'],
+        'unidade' => $material['unidade'],
+        'quantidade' => $material['quantidade_necessaria']
+    ];
+}
+
+// Verificar se existem solicitações pendentes do site
+$stmt = $db->query("SELECT COUNT(*) as total FROM agendamentos WHERE status = 'pendente'");
+$agendamentos_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 ?>
 
 <div class="dashboard-welcome">
@@ -268,6 +344,286 @@ $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 </div>
+
+<!-- Painel de Gestão de Agendas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="schedule-card card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Gestão de Agendas e Materiais</h5>
+            </div>
+            <div class="card-body py-4">
+                <!-- Agendamentos pendentes do site -->
+                <?php if ($agendamentos_pendentes > 0): ?>
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong><?php echo $agendamentos_pendentes; ?> solicitações</strong> de agendamento pendentes do site aguardando aprovação.
+                    <a href="orcamentos.php?status_execucao=pendente" class="btn btn-sm btn-warning ms-2">
+                        <i class="fas fa-check-circle me-1"></i>Verificar
+                    </a>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Acesso rápido às agendas -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-calendar-check me-2"></i>Agendas dos Colaboradores</h5>
+                        <div class="d-flex flex-wrap">
+                            <!-- Colaboradores Instaladores -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-tools me-2"></i>Instaladores</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="list-group">
+                                            <?php 
+                                            $instaladores_encontrados = false;
+                                            foreach($colaboradores as $colaborador): 
+                                                if($colaborador['tipo'] === 'instalador'):
+                                                    $instaladores_encontrados = true;
+                                            ?>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><?php echo $colaborador['nome']; ?></span>
+                                                <div>
+                                                    <a href="colaborador_agenda.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Ver agenda">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                    </a>
+                                                    <a href="imprimir_agenda_colaborador.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-outline-dark" title="Imprimir agenda" target="_blank">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <?php 
+                                                endif; 
+                                            endforeach; 
+                                            if(!$instaladores_encontrados):
+                                            ?>
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>Nenhum instalador cadastrado
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Colaboradores Orçamentistas -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamentistas</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="list-group">
+                                            <?php 
+                                            $orcamentistas_encontrados = false;
+                                            foreach($colaboradores as $colaborador): 
+                                                if($colaborador['tipo'] === 'orcamentista'):
+                                                    $orcamentistas_encontrados = true;
+                                            ?>
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><?php echo $colaborador['nome']; ?></span>
+                                                <div>
+                                                    <a href="colaborador_agenda.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-outline-primary me-1" title="Ver agenda">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                    </a>
+                                                    <a href="imprimir_agenda_colaborador.php?id=<?php echo $colaborador['id']; ?>" class="btn btn-sm btn-outline-dark" title="Imprimir agenda" target="_blank">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <?php 
+                                                endif; 
+                                            endforeach; 
+                                            if(!$orcamentistas_encontrados):
+                                            ?>
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>Nenhum orçamentista cadastrado
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lista de Próximos Agendamentos -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-clock me-2"></i>Próximos Agendamentos (2 dias)</h5>
+                        <?php if (count($proximos_agendamentos) > 0): ?>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Orçamento</th>
+                                        <th>Colaborador</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($proximos_agendamentos as $agendamento): ?>
+                                    <tr>
+                                        <td>
+                                            <?php 
+                                            if ($agendamento['data_agendamento']) {
+                                                echo dataParaBr($agendamento['data_agendamento']);
+                                                echo ' - ' . substr($agendamento['hora_inicio'], 0, 5);
+                                            } else if ($agendamento['data_inicio']) {
+                                                echo dataHoraParaBr($agendamento['data_inicio']);
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><?php echo $agendamento['cliente_nome']; ?></td>
+                                        <td>
+                                            <a href="orcamento_visualizar.php?id=<?php echo $agendamento['orcamento_id']; ?>">
+                                                #<?php echo $agendamento['orcamento_numero']; ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo $agendamento['colaborador_nome']; ?></td>
+                                        <td>
+                                            <?php 
+                                            $status_class = '';
+                                            $texto_status = '';
+                                            
+                                            switch ($agendamento['status']) {
+                                                case 'orcamento_agendado':
+                                                    $status_class = 'status-agendado';
+                                                    $texto_status = 'Orçamento Agendado';
+                                                    break;
+                                                case 'instalacao_agendada':
+                                                    $status_class = 'status-agendado';
+                                                    $texto_status = 'Instalação Agendada';
+                                                    break;
+                                                default:
+                                                    $texto_status = ucfirst($agendamento['status']);
+                                            }
+                                            ?>
+                                            <span class="status-box <?php echo $status_class; ?>"><?php echo $texto_status; ?></span>
+                                        </td>
+                                        <td>
+                                            <a href="agendamento.php?id=<?php echo $agendamento['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </a>
+                                            <a href="imprimir_agenda_colaborador.php?id=<?php echo $agendamento['instalador_id']; ?>&data=<?php echo $agendamento['data_agendamento'] ?: date('Y-m-d', strtotime($agendamento['data_inicio'])); ?>" class="btn btn-sm btn-outline-dark" target="_blank">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Não há agendamentos para os próximos dias.
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Lista de Materiais para Próximas Instalações -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-tools me-2"></i>Materiais para Próximas Instalações</h5>
+                        <?php if (count($materiais_por_orcamento) > 0): ?>
+                        <div class="accordion" id="materiaisAccordion">
+                            <?php foreach ($materiais_por_orcamento as $index => $orcamento_info): ?>
+                            <div class="accordion-item mb-2 border">
+                                <h2 class="accordion-header" id="heading<?php echo $index; ?>">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo $index; ?>" aria-expanded="false" aria-controls="collapse<?php echo $index; ?>">
+                                        <div>
+                                            <strong>#<?php echo $orcamento_info['orcamento_numero']; ?></strong> - 
+                                            <?php echo $orcamento_info['cliente_nome']; ?> - 
+                                            <span class="text-primary">
+                                                <?php 
+                                                if ($orcamento_info['data_agendamento']) {
+                                                    echo dataParaBr($orcamento_info['data_agendamento']);
+                                                } else if ($orcamento_info['data_inicio']) {
+                                                    echo dataParaBr(date('Y-m-d', strtotime($orcamento_info['data_inicio'])));
+                                                }
+                                                ?>
+                                            </span>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse<?php echo $index; ?>" class="accordion-collapse collapse" aria-labelledby="heading<?php echo $index; ?>" data-bs-parent="#materiaisAccordion">
+                                    <div class="accordion-body">
+                                        <div class="mb-3">
+                                            <a href="orcamento_visualizar.php?id=<?php echo $orcamento_info['orcamento_id']; ?>" class="btn btn-sm btn-outline-secondary me-2">
+                                                <i class="fas fa-eye me-1"></i>Ver Orçamento
+                                            </a>
+                                            <button onclick="imprimirListaMateriais('lista-materiais-<?php echo $index; ?>', <?php echo $orcamento_info['orcamento_numero']; ?>, '<?php echo $orcamento_info['cliente_nome']; ?>')" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-print me-1"></i>Imprimir Lista
+                                            </button>
+                                        </div>
+                                        <div class="lista-materiais" id="lista-materiais-<?php echo $index; ?>">
+                                            <table class="table table-sm table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Material</th>
+                                                        <th>Unidade</th>
+                                                        <th class="text-center">Quantidade</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($orcamento_info['materiais'] as $material): ?>
+                                                    <tr>
+                                                        <td><?php echo $material['descricao']; ?></td>
+                                                        <td><?php echo $material['unidade']; ?></td>
+                                                        <td class="text-center"><?php echo $material['quantidade']; ?></td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Não há instalações agendadas para os próximos dias.
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function imprimirListaMateriais(elementId, numeroOrcamento, nomeCliente) {
+    const conteudo = document.getElementById(elementId).innerHTML;
+    const janela = window.open('', '', 'height=600,width=800');
+    
+    janela.document.write('<html><head><title>Lista de Materiais - Orçamento #' + numeroOrcamento + '</title>');
+    janela.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">');
+    janela.document.write('<style>body { padding: 20px; }</style>');
+    janela.document.write('</head><body>');
+    janela.document.write('<h4 class="mb-3">Lista de Materiais - Orçamento #' + numeroOrcamento + '</h4>');
+    janela.document.write('<h5 class="mb-4">Cliente: ' + nomeCliente + '</h5>');
+    janela.document.write(conteudo);
+    janela.document.write('</body></html>');
+    
+    janela.document.close();
+    janela.focus();
+    
+    // Esperar o carregamento dos estilos
+    setTimeout(() => {
+        janela.print();
+        janela.close();
+    }, 500);
+}
+</script>
 
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-4">
