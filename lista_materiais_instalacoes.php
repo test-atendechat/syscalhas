@@ -203,7 +203,11 @@ require_once('includes/header.php');
                             </span> - 
                             <span class="text-secondary">
                                 <?php 
-                                    $tipo_colaborador = ($orcamento_info['colaborador_tipo'] == 'orcamentista') ? 'Orçamentista' : 'Instalador';
+                                    // Depuração adicional para o orçamento problemático
+                                    if ($orcamento_info['orcamento_id'] == 36) {
+                                        echo "TIPO DO COLABORADOR: " . $orcamento_info['colaborador_tipo'] . " - ";
+                                    }
+                                    $tipo_colaborador = (trim($orcamento_info['colaborador_tipo']) == 'orcamentista') ? 'Orçamentista' : 'Instalador';
                                     echo $tipo_colaborador . ': ' . $orcamento_info['colaborador_nome']; 
                                 ?>
                             </span>
