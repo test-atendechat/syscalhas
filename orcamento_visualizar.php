@@ -381,17 +381,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])
         require_once('includes/notificacoes.php');
         
         if ($decisao == 'aprovar') {
-            if ($agendamento_id > 0) {
-                // Atualizar o status do agendamento para 'orcamento_agendado'
-                $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
-                $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
-                $stmt->execute();
-            }
+            // Iniciar transação para garantir consistência
+            $pdo->beginTransaction();
             
-            // Atualizar o status_execucao do orçamento
-            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'orcamento_agendado' WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
+            try {
+                // Atualizar o status_execucao do orçamento
+                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'orcamento_agendado' WHERE id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // Atualizar TODOS os agendamentos pendentes relacionados a este orçamento
+                // Isso garante que mesmo sem o agendamento_id correto, ainda sincronizamos os status
+                $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' 
+                                    WHERE orcamento_id = :orcamento_id AND status = 'pendente'");
+                $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // Se agendamento_id foi passado, garantir que este específico também seja atualizado
+                if ($agendamento_id > 0) {
+                    $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
+                    $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+                
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                // Registrar erro em log (pode ser implementado no futuro)
+                error_log("Erro ao aprovar agendamento: " . $e->getMessage());
+            }
             
             $mensagem = alerta('Agendamento aprovado e confirmado com sucesso!', 'success');
             
