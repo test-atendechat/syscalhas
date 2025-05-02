@@ -32,7 +32,7 @@ try {
                       JOIN clientes c ON o.cliente_id = c.id
                       JOIN agendamentos a ON o.id = a.orcamento_id
                       JOIN colaboradores cl ON a.instalador_id = cl.id
-                      WHERE (a.status IN ('agendado', 'orcamento_agendado')) 
+                      WHERE (a.status IN ('instalacao_agendada', 'orcamento_agendado')) 
                       AND ((
                           (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
                       ) OR (
@@ -79,7 +79,7 @@ try {
                           JOIN produtos p ON i.produto_id = p.id
                           JOIN orcamentos o ON i.orcamento_id = o.id
                           JOIN agendamentos a ON o.id = a.orcamento_id
-                          WHERE (a.status IN ('agendado', 'orcamento_agendado')) 
+                          WHERE (a.status IN ('instalacao_agendada', 'orcamento_agendado')) 
                           AND ((
                               (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
                           ) OR (
@@ -202,11 +202,11 @@ require_once('includes/header.php');
                                 <?php 
 
                                     // Status determina o tipo de colaborador a ser exibido
-                                    // 'orcamento_agendado' = Orçamentista, 'agendado' = Instalador
+                                    // 'orcamento_agendado' = Orçamentista, 'instalacao_agendada' = Instalador
                                     if ($orcamento_info['status'] == 'orcamento_agendado') {
                                         echo "Orçamentista: " . $orcamento_info['colaborador_nome'];
                                     } else {
-                                        // Para status 'agendado', sempre mostra como Instalador
+                                        // Para status 'instalacao_agendada', sempre mostra como Instalador
                                         echo "Instalador: " . $orcamento_info['colaborador_nome'];
                                     } 
                                 ?>
