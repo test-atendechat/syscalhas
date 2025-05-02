@@ -591,20 +591,13 @@ $agendamentos_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                                             $status_class = '';
                                             $texto_status = '';
                                             
-                                            // Verificar o tipo de colaborador para determinar o texto correto do status
+                                            // Exibir o status exatamente como está no banco de dados
                                             if ($agendamento['status'] == 'orcamento_agendado') {
                                                 $status_class = 'status-agendado';
                                                 $texto_status = 'Orçamento Agendado';
                                             } else if ($agendamento['status'] == 'instalacao_agendada') {
-                                                // Como agora trazemos o tipo_colaborador da consulta principal,
-                                                // não precisamos fazer outra consulta
-                                                if ($agendamento['colaborador_tipo'] == 'orcamentista') {
-                                                    $status_class = 'status-agendado';
-                                                    $texto_status = 'Orçamento Agendado';
-                                                } else {
-                                                    $status_class = 'status-agendado';
-                                                    $texto_status = 'Instalação Agendada';
-                                                }
+                                                $status_class = 'status-agendado';
+                                                $texto_status = 'Instalação Agendada';
                                             } else {
                                                 $texto_status = ucfirst($agendamento['status']);
                                             }

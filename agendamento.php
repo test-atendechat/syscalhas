@@ -174,8 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
                                 :status, :observacoes, :codigo_confirmacao, :usuario_id, TRUE,
                                 :data_agendamento, :hora_inicio, :hora_fim)");
             
-            // Define o status baseado no tipo de colaborador
-            $status = ($tipo_agendamento == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
+            // Buscar o tipo real do colaborador para definir o status corretamente
+            $stmt_tipo = $pdo->prepare("SELECT tipo FROM colaboradores WHERE id = :id");
+            $stmt_tipo->bindParam(':id', $colaborador_id, PDO::PARAM_INT);
+            $stmt_tipo->execute();
+            $tipo_real_colaborador = $stmt_tipo->fetchColumn();
+            
+            // Define o status baseado no tipo real do colaborador
+            $status = ($tipo_real_colaborador == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
             
@@ -199,8 +205,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt->bindParam(':hora_fim', $hora_fim_valor);
             $stmt->execute();
             
-            // Atualizar status de execução do orçamento de acordo com o tipo de agendamento
-            $status_execucao = ($tipo_agendamento == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
+            // Já temos o tipo do colaborador recuperado acima, vamos reutilizar
+            // Definir status_execucao baseado no mesmo tipo do colaborador usado para definir o status
+            $status_execucao = ($tipo_real_colaborador == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
+            
+            // Atualizar tabela orçamentos com o status correto
             $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = :status_execucao WHERE id = :id");
             $stmt->bindParam(':status_execucao', $status_execucao);
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
