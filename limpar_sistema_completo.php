@@ -39,46 +39,42 @@ try {
     // 1. Primeiro limpar tabelas dependentes
     echo "<h4>Limpando tabelas de dados...</h4>";
     
+    // Função para limpar uma tabela com tratamento de erro em caso de tabela inexistente
+    function limparTabela($pdo, $nomeTabela, $descricao) {
+        try {
+            $pdo->exec("DELETE FROM $nomeTabela");
+            echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>$descricao</p>";
+            return true;
+        } catch (Exception $e) {
+            // Verificar se o erro é devido a tabela inexistente
+            if (strpos($e->getMessage(), 'does not exist') !== false) {
+                echo "<p class='text-warning'><i class='fas fa-exclamation-triangle me-2'></i>Tabela $nomeTabela não existe no banco de dados. Ignorando.</p>";
+            } else {
+                echo "<p class='text-danger'><i class='fas fa-times-circle me-2'></i>Erro ao limpar tabela $nomeTabela: " . $e->getMessage() . "</p>";
+            }
+            return false;
+        }
+    }
+    
+    // 1. Primeiro limpar tabelas dependentes
+    echo "<h4>Limpando tabelas de dados...</h4>";
+    
     // Limpando tabelas de relacionamentos e dependências
-    $pdo->exec("DELETE FROM agendamentos");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Agendamentos removidos</p>";
-    
-    $pdo->exec("DELETE FROM notificacoes");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Notificações removidas</p>";
-    
-    $pdo->exec("DELETE FROM colaborador_equipe");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Relacionamentos de equipes removidos</p>";
-    
-    $pdo->exec("DELETE FROM orcamento_itens");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Itens de orçamentos removidos</p>";
-    
-    $pdo->exec("DELETE FROM produtos_movimentacoes");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Movimentações de produtos removidas</p>";
-    
-    $pdo->exec("DELETE FROM caixa_movimentacoes");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Movimentações de caixa removidas</p>";
+    limparTabela($pdo, 'agendamentos', 'Agendamentos removidos');
+    limparTabela($pdo, 'notificacoes', 'Notificações removidas');
+    limparTabela($pdo, 'colaborador_equipe', 'Relacionamentos de equipes removidos');
+    limparTabela($pdo, 'orcamento_itens', 'Itens de orçamentos removidos');
+    limparTabela($pdo, 'estoque_movimentacoes', 'Movimentações de estoque removidas');
+    limparTabela($pdo, 'caixa_movimentacoes', 'Movimentações de caixa removidas');
     
     // 2. Agora limpar tabelas principais
-    $pdo->exec("DELETE FROM equipes");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Equipes removidas</p>";
-    
-    $pdo->exec("DELETE FROM colaboradores");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Colaboradores removidos</p>";
-    
-    $pdo->exec("DELETE FROM orcamentos");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Orçamentos removidos</p>";
-    
-    $pdo->exec("DELETE FROM produtos");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Produtos removidos</p>";
-    
-    $pdo->exec("DELETE FROM contas_pagar");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Contas a pagar removidas</p>";
-    
-    $pdo->exec("DELETE FROM caixa_controle");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Controle de caixa removido</p>";
-    
-    $pdo->exec("DELETE FROM clientes");
-    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Clientes removidos</p>";
+    limparTabela($pdo, 'equipes', 'Equipes removidas');
+    limparTabela($pdo, 'colaboradores', 'Colaboradores removidos');
+    limparTabela($pdo, 'orcamentos', 'Orçamentos removidos');
+    limparTabela($pdo, 'produtos', 'Produtos removidos');
+    limparTabela($pdo, 'contas_pagar', 'Contas a pagar removidas');
+    limparTabela($pdo, 'caixa_controle', 'Controle de caixa removido');
+    limparTabela($pdo, 'clientes', 'Clientes removidos');
     
     echo "<div class='alert alert-info mt-2 mb-3'>
            <i class='fas fa-info-circle me-2'></i>Todas as tabelas de dados foram limpas com sucesso.
