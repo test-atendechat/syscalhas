@@ -129,28 +129,31 @@ try {
         exit;
     }
     
+    // Verificar se o serviço atravessa o horário de almoço
+    // A condição para atravessar o almoço é começar antes do almoço e terminar depois do almoço
+    $comeca_antes_almoco = $data_hora_inicio < $hora_almoco_inicio;
+    $termina_depois_almoco = $data_hora_fim > $hora_almoco_fim;
+    
+    // Um serviço atravessa o horário de almoço se começar antes do almoço e terminar depois do almoço
+    $atravessa_almoco = $comeca_antes_almoco && $termina_depois_almoco;
+    
     // Ajustar a duração do serviço considerando o horário de almoço
-    // Se o serviço começar antes do almoço e terminar durante ou depois do almoço
-    if ($data_hora_inicio < $hora_almoco_inicio && $data_hora_fim > $hora_almoco_inicio) {
-        // Calcular quanto tempo do serviço aconteceria durante o almoço
-        $hora_fim_original = clone $data_hora_fim;
+    if ($atravessa_almoco) {
+        // Calcular a diferença em minutos entre o início e fim do almoço
+        $diferenca_almoco = $hora_almoco_inicio->diff($hora_almoco_fim);
+        $minutos_almoco = ($diferenca_almoco->h * 60) + $diferenca_almoco->i;
         
-        // Se o serviço terminaria depois do final do almoço
-        if ($hora_fim_original > $hora_almoco_fim) {
-            // Adicionar todo o período de almoço ao tempo de término
-            $diferenca_almoco = $hora_almoco_inicio->diff($hora_almoco_fim);
-            $minutos_almoco = ($diferenca_almoco->h * 60) + $diferenca_almoco->i;
-            $data_hora_fim->add(new DateInterval('PT' . $minutos_almoco . 'M'));
-        } else {
-            // O serviço terminaria durante o almoço
-            // Calcular quanto tempo seria durante o almoço
-            $tempo_durante_almoco = $hora_almoco_inicio->diff($hora_fim_original);
-            $minutos_durante_almoco = ($tempo_durante_almoco->h * 60) + $tempo_durante_almoco->i;
-            
-            // Ajustar fim para logo após o almoço + o tempo que seria durante o almoço
-            $data_hora_fim = clone $hora_almoco_fim;
-            $data_hora_fim->add(new DateInterval('PT' . $minutos_durante_almoco . 'M'));
-        }
+        // Adicionar o tempo de almoço ao tempo de término
+        $data_hora_fim->add(new DateInterval('PT' . $minutos_almoco . 'M'));
+    } else if ($data_hora_inicio < $hora_almoco_inicio && $data_hora_fim > $hora_almoco_inicio && $data_hora_fim <= $hora_almoco_fim) {
+        // O serviço termina durante o almoço - ajustar para terminar após o almoço
+        // Calcular quanto tempo seria durante o almoço
+        $tempo_durante_almoco = $hora_almoco_inicio->diff($data_hora_fim);
+        $minutos_durante_almoco = ($tempo_durante_almoco->h * 60) + $tempo_durante_almoco->i;
+        
+        // Ajustar fim para logo após o almoço + o tempo que seria durante o almoço
+        $data_hora_fim = clone $hora_almoco_fim;
+        $data_hora_fim->add(new DateInterval('PT' . $minutos_durante_almoco . 'M'));
     }
     
     // Verificar se a tabela agendamentos tem registros
