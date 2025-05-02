@@ -21,24 +21,38 @@ $total_concluidos = 0;
 try {
     global $pdo;
     
-    // Buscar agendamentos que estão com status 'orcamento_agendado' ou 'instalacao_agendada' e já chegou a hora de início
-    // Consulta baseada em data_inicio (timestamp) para a nova estrutura de dados
-    $stmt = $pdo->prepare("UPDATE agendamentos 
-                        SET status = 'em_andamento'
+    // ETAPA 1: Identificar agendamentos que devem mudar para status 'em_andamento'
+    // Consulta para encontrar os agendamentos que já chegou a hora de início
+    $stmt = $pdo->prepare("SELECT id, data_inicio, status, orcamento_id, instalador_id 
+                        FROM agendamentos
                         WHERE (status = 'orcamento_agendado' OR status = 'instalacao_agendada') 
                         AND data_inicio <= :datetime_atual 
-                        AND data_fim >= :datetime_atual
-                        RETURNING id, data_inicio, status");
+                        AND data_fim >= :datetime_atual");
                         
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
     
-    $atualizados_em_andamento = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $total_em_andamento = count($atualizados_em_andamento);
+    $agendamentos_para_iniciar = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $total_em_andamento = count($agendamentos_para_iniciar);
+    
+    // ETAPA 2: Atualizar orçamentos e remover agendamentos
+    foreach ($agendamentos_para_iniciar as $agenda) {
+        // Atualizar status do orçamento para 'em_andamento'
+        $stmt_update_orcamento = $pdo->prepare("UPDATE orcamentos 
+                                            SET status_execucao = 'andamento' 
+                                            WHERE id = :orcamento_id");
+        $stmt_update_orcamento->bindParam(':orcamento_id', $agenda['orcamento_id'], PDO::PARAM_INT);
+        $stmt_update_orcamento->execute();
+        
+        // Excluir o agendamento da tabela agendamentos
+        $stmt_delete_agendamento = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
+        $stmt_delete_agendamento->bindParam(':agendamento_id', $agenda['id'], PDO::PARAM_INT);
+        $stmt_delete_agendamento->execute();
+    }
     
     if ($total_em_andamento > 0) {
         $log .= "Agendamentos atualizados para 'Em Andamento': {$total_em_andamento}\n";
-        foreach ($atualizados_em_andamento as $agenda) {
+        foreach ($agendamentos_para_iniciar as $agenda) {
             $log .= "- ID: {$agenda['id']}, Data/Hora de Início: {$agenda['data_inicio']}\n";
             
             // Buscar dados do agendamento para notificação
@@ -70,22 +84,37 @@ try {
         $log .= "Nenhum agendamento atualizado para 'Em Andamento'.\n";
     }
     
-    // Buscar agendamentos que estão com status 'em_andamento' e já passou da hora de fim
-    $stmt = $pdo->prepare("UPDATE agendamentos 
-                        SET status = 'concluido'
+    // ETAPA 3: Identificar agendamentos que devem ser concluídos
+    // Consulta para encontrar agendamentos onde já passou da hora de fim
+    $stmt = $pdo->prepare("SELECT id, data_fim, status, orcamento_id 
+                        FROM agendamentos
                         WHERE status = 'em_andamento' 
-                        AND data_fim <= :datetime_atual
-                        RETURNING id, data_fim, status");
+                        AND data_fim <= :datetime_atual");
                         
     $stmt->bindParam(':datetime_atual', $datetime_atual);
     $stmt->execute();
     
-    $atualizados_concluidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $total_concluidos = count($atualizados_concluidos);
+    $agendamentos_para_concluir = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $total_concluidos = count($agendamentos_para_concluir);
+    
+    // ETAPA 4: Atualizar orçamentos e remover agendamentos concluídos
+    foreach ($agendamentos_para_concluir as $agenda) {
+        // Atualizar status do orçamento para 'finalizado'
+        $stmt_update_orcamento = $pdo->prepare("UPDATE orcamentos 
+                                            SET status_execucao = 'finalizado' 
+                                            WHERE id = :orcamento_id");
+        $stmt_update_orcamento->bindParam(':orcamento_id', $agenda['orcamento_id'], PDO::PARAM_INT);
+        $stmt_update_orcamento->execute();
+        
+        // Excluir o agendamento da tabela agendamentos
+        $stmt_delete_agendamento = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
+        $stmt_delete_agendamento->bindParam(':agendamento_id', $agenda['id'], PDO::PARAM_INT);
+        $stmt_delete_agendamento->execute();
+    }
     
     if ($total_concluidos > 0) {
         $log .= "\nAgendamentos atualizados para 'Concluído': {$total_concluidos}\n";
-        foreach ($atualizados_concluidos as $agenda) {
+        foreach ($agendamentos_para_concluir as $agenda) {
             $log .= "- ID: {$agenda['id']}, Data/Hora de Fim: {$agenda['data_fim']}\n";
             
             // Buscar dados do agendamento para notificação
