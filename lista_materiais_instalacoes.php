@@ -201,15 +201,13 @@ require_once('includes/header.php');
                             <span class="text-secondary">
                                 <?php 
 
-                                    // Se o status for 'orcamento_agendado', devemos mostrar 'Orçamentista' mesmo que o colaborador seja um instalador
-                                    // Se o status for 'agendado', devemos mostrar 'Instalador' mesmo que o colaborador seja um orçamentista
+                                    // Status determina o tipo de colaborador a ser exibido
+                                    // 'orcamento_agendado' = Orçamentista, 'agendado' = Instalador
                                     if ($orcamento_info['status'] == 'orcamento_agendado') {
                                         echo "Orçamentista: " . $orcamento_info['colaborador_nome'];
-                                    } else if ($orcamento_info['status'] == 'agendado') {
-                                        echo "Instalador: " . $orcamento_info['colaborador_nome'];
                                     } else {
-                                        $tipo_colaborador = (trim($orcamento_info['colaborador_tipo']) == 'orcamentista') ? 'Orçamentista' : 'Instalador';
-                                        echo $tipo_colaborador . ': ' . $orcamento_info['colaborador_nome'];
+                                        // Para status 'agendado', sempre mostra como Instalador
+                                        echo "Instalador: " . $orcamento_info['colaborador_nome'];
                                     } 
                                 ?>
                             </span>
