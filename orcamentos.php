@@ -90,7 +90,15 @@ $orcamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Mensagem de alerta
 $mensagem = '';
-if (isset($_GET['mensagem'])) {
+
+// Verificar se há mensagem na sessão
+if (isset($_SESSION['mensagem_sucesso'])) {
+    $mensagem = alerta($_SESSION['mensagem_sucesso'], 'success');
+    unset($_SESSION['mensagem_sucesso']); // Limpar a mensagem após exibição
+}
+
+// Caso ainda não tenha mensagem, verificar parâmetros GET (método antigo)
+if (empty($mensagem) && isset($_GET['mensagem'])) {
     switch ($_GET['mensagem']) {
         case 'excluido':
             $mensagem = alerta('Orçamento excluído com sucesso!', 'success');

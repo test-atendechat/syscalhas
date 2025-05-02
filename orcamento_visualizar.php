@@ -464,8 +464,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])
                     'agendamentos'
                 );
                 
-                // Redirecionar para a lista de orçamentos, pois este orçamento não existe mais
-                header("Location: orcamentos.php?mensagem=" . urlencode('Agendamento reprovado e orçamento excluído com sucesso.'));
+                // Preparar mensagem para redirecionar sem enviar cabeçalhos
+                $_SESSION['mensagem_sucesso'] = 'Agendamento reprovado e orçamento excluído com sucesso.';
+                echo "<script>window.location.href = 'orcamentos.php';</script>";
                 exit;
             } catch (Exception $e) {
                 $pdo->rollBack();
