@@ -998,23 +998,51 @@ if (!$acesso_interno) {
                         </button>
                     </form>
 
-                    <!-- Debug: Status de Agendamento -->
+                    <!-- Status de Agendamento -->
                     <?php 
-                    // Verifica se o orçamento está no estado 'pendente' (vindos do site)
-                    if ($orcamento['status_execucao'] == 'pendente' || isset($agendamento)): 
-                        // Se tiver agendamento, mostra o status dele
+                    // Verificar status atual do orçamento e do agendamento
+                    $status_execucao = $orcamento['status_execucao'];
+                    $mostrar_status = false;
+                    $mostrar_botoes_aprovacao = false;
+                    
+                    // Se tiver agendamento ou for pendente, mostrar detalhes do status
+                    if ($status_execucao == 'pendente' || isset($agendamento)) {
+                        $mostrar_status = true;
+                        
+                        // Se tiver agendamento, mostrar o status dele
                         if (isset($agendamento) && $agendamento) {
                             $status_agendamento = $agendamento['status'];
                             $agendamento_id = $agendamento['id'];
-                            $status_msg = "Solicitação de orçamento {$status_agendamento}"; 
+                            
+                            // Mostrar botões apenas se o status do agendamento for pendente
+                            $mostrar_botoes_aprovacao = ($status_agendamento == 'pendente');
+                            
+                            if ($status_agendamento == 'pendente') {
+                                $status_msg = "Solicitação de orçamento pendente de aprovação"; 
+                            } elseif ($status_agendamento == 'orcamento_agendado') {
+                                $status_msg = "Orçamento já agendado para atendimento"; 
+                            } else {
+                                $status_msg = "Solicitação de orçamento {$status_agendamento}"; 
+                            }
                         } else {
                             // Se não tiver agendamento mas for pendente, é do site
                             $status_msg = "Solicitação de orçamento pendente (site)";
                             $agendamento_id = 0;
+                            $mostrar_botoes_aprovacao = true;
                         }
+                    }
+                    
+                    // Também não mostrar botões se o orçamento já estiver agendado
+                    if ($status_execucao == 'orcamento_agendado' || $status_execucao == 'instalacao_agendada') {
+                        $mostrar_botoes_aprovacao = false;
+                    }
+                    
+                    if ($mostrar_status):
                     ?>
                     <div class="mt-3 border-top pt-3">
                         <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i><?php echo $status_msg; ?></p>
+                        
+                        <?php if ($mostrar_botoes_aprovacao): ?>
                         <form method="post" class="d-inline">
                             <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
                             <input type="hidden" name="agendamento_id" value="<?php echo $agendamento_id; ?>">
@@ -1025,6 +1053,7 @@ if (!$acesso_interno) {
                                 <i class="fas fa-calendar-times me-2"></i>Reprovar Agendamento
                             </button>
                         </form>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
                 </div>
