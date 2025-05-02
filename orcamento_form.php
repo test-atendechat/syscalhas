@@ -403,6 +403,83 @@ require_once('includes/header.php');
                     <div class="invalid-feedback">Por favor, informe o tempo previsto de execução.</div>
                     <small class="text-muted">Este tempo será usado para o agendamento do serviço.</small>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="data_servico" class="form-label">Data da Visita/Instalação</label>
+                        <input type="date" class="form-control" id="data_servico" name="data_servico" 
+                               min="<?php echo date('Y-m-d'); ?>" 
+                               value="<?php echo date('Y-m-d'); ?>">
+                        <small class="text-muted">Selecione a data para verificar disponibilidade</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="hora_servico" class="form-label">Horário</label>
+                        <select class="form-select" id="hora_servico" name="hora_servico">
+                            <option value="">Selecione um horário</option>
+                            <?php
+                            // Configurar horários de trabalho - desde $horario_inicio até $horario_fim
+                            $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
+                            $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+                            $horario_almoco_inicio = isset($config['horario_almoco_inicio']) ? $config['horario_almoco_inicio'] : '11:00';
+                            $horario_almoco_fim = isset($config['horario_almoco_fim']) ? $config['horario_almoco_fim'] : '13:00';
+                            
+                            // Converter para horas e minutos
+                            list($hora_inicio, $minuto_inicio) = explode(':', $horario_inicio);
+                            list($hora_fim, $minuto_fim) = explode(':', $horario_fim);
+                            list($hora_almoco_inicio, $minuto_almoco_inicio) = explode(':', $horario_almoco_inicio);
+                            list($hora_almoco_fim, $minuto_almoco_fim) = explode(':', $horario_almoco_fim);
+                            
+                            // Converter para inteiros
+                            $hora_inicio = (int)$hora_inicio;
+                            $minuto_inicio = (int)$minuto_inicio;
+                            $hora_fim = (int)$hora_fim;
+                            $minuto_fim = (int)$minuto_fim;
+                            $hora_almoco_inicio = (int)$hora_almoco_inicio;
+                            $minuto_almoco_inicio = (int)$minuto_almoco_inicio;
+                            $hora_almoco_fim = (int)$hora_almoco_fim;
+                            $minuto_almoco_fim = (int)$minuto_almoco_fim;
+                            
+                            // Criar opções de horário em intervalos de 30 minutos
+                            for ($hora = $hora_inicio; $hora < $hora_fim; $hora++) {
+                                for ($minuto = 0; $minuto < 60; $minuto += 30) {
+                                    // Pular horários de almoço
+                                    $hora_atual = $hora;
+                                    $minuto_atual = $minuto;
+                                    
+                                    // Verificar se está no horário de almoço
+                                    $no_horario_almoco = false;
+                                    if ($hora_atual > $hora_almoco_inicio || ($hora_atual == $hora_almoco_inicio && $minuto_atual >= $minuto_almoco_inicio)) {
+                                        if ($hora_atual < $hora_almoco_fim || ($hora_atual == $hora_almoco_fim && $minuto_atual < $minuto_almoco_fim)) {
+                                            $no_horario_almoco = true;
+                                        }
+                                    }
+                                    
+                                    // Se estiver no horário de almoço, pular
+                                    if ($no_horario_almoco) {
+                                        continue;
+                                    }
+                                    
+                                    // Se for a última hora, verificar se não ultrapassa o horário final
+                                    if ($hora_atual == $hora_fim - 1 && $minuto_atual >= $minuto_fim) {
+                                        continue;
+                                    }
+                                    
+                                    // Formatar hora para exibição e valor
+                                    $hora_formatada = str_pad($hora_atual, 2, '0', STR_PAD_LEFT) . ':' . str_pad($minuto_atual, 2, '0', STR_PAD_LEFT);
+                                    echo "<option value=\"{$hora_formatada}\">{$hora_formatada}</option>";
+                                }
+                            }
+                            ?>
+                        </select>
+                        <small class="text-muted">Selecione o horário para verificar disponibilidade</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Verificar Disponibilidade</label><br>
+                        <button type="button" id="verificarDisponibilidade" class="btn btn-info text-white">
+                            <i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="col-md-3">
                     <label for="orcamentista_id" class="form-label">Orçamentista Responsável</label>
                     <select class="form-select" id="orcamentista_id" name="orcamentista_id">
@@ -604,6 +681,104 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataMask = IMask(document.getElementById('data_validade'), {
             mask: '00/00/0000'
         });
+    }
+    
+    // Configuração da verificação de disponibilidade
+    const dataServico = document.getElementById('data_servico');
+    const horaServico = document.getElementById('hora_servico');
+    const btnVerificarDisponibilidade = document.getElementById('verificarDisponibilidade');
+    const orcamentistaSelect = document.getElementById('orcamentista_id');
+    const instaladorSelect = document.getElementById('colaborador_id');
+    const tempoPrevisto = document.getElementById('tempo_previsto').value || 60;
+    const unidadeTempo = document.getElementById('unidade_tempo').value || 'minutos';
+    
+    // Função para verificar disponibilidade
+    function verificarDisponibilidade() {
+        const dataValue = dataServico.value;
+        const horaValue = horaServico.value;
+        
+        if (!dataValue || !horaValue) {
+            alert('Por favor, selecione data e horário para verificar a disponibilidade.');
+            return;
+        }
+        
+        // Mostrar mensagem de carregamento
+        btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Verificando...';
+        btnVerificarDisponibilidade.disabled = true;
+        
+        // Limpar opções existentes
+        const orcamentistaFirstOption = orcamentistaSelect.options[0];
+        orcamentistaSelect.innerHTML = '';
+        orcamentistaSelect.appendChild(orcamentistaFirstOption);
+        
+        const instaladorFirstOption = instaladorSelect.options[0];
+        instaladorSelect.innerHTML = '';
+        instaladorSelect.appendChild(instaladorFirstOption);
+        
+        // Verificar orçamentistas disponíveis
+        fetch(`ajax/verificar_colaboradores_disponiveis.php?tipo=orcamentista&data=${dataValue}&hora_inicio=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    // Adicionar orçamentistas disponíveis ao select
+                    data.colaboradores.forEach(colaborador => {
+                        const option = document.createElement('option');
+                        option.value = colaborador.id;
+                        option.text = colaborador.nome;
+                        orcamentistaSelect.appendChild(option);
+                    });
+                    
+                    if (data.colaboradores.length === 0) {
+                        const naoDisponivelOption = document.createElement('option');
+                        naoDisponivelOption.text = 'Nenhum orçamentista disponível';
+                        naoDisponivelOption.disabled = true;
+                        orcamentistaSelect.appendChild(naoDisponivelOption);
+                    }
+                } else {
+                    alert('Erro ao verificar orçamentistas: ' + data.mensagem);
+                }
+                
+                // Verificar instaladores disponíveis
+                return fetch(`ajax/verificar_colaboradores_disponiveis.php?tipo=instalador&data=${dataValue}&hora_inicio=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`);
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'sucesso') {
+                    // Adicionar instaladores disponíveis ao select
+                    data.colaboradores.forEach(colaborador => {
+                        const option = document.createElement('option');
+                        option.value = colaborador.id;
+                        option.text = colaborador.nome;
+                        instaladorSelect.appendChild(option);
+                    });
+                    
+                    if (data.colaboradores.length === 0) {
+                        const naoDisponivelOption = document.createElement('option');
+                        naoDisponivelOption.text = 'Nenhum instalador disponível';
+                        naoDisponivelOption.disabled = true;
+                        instaladorSelect.appendChild(naoDisponivelOption);
+                    }
+                } else {
+                    alert('Erro ao verificar instaladores: ' + data.mensagem);
+                }
+                
+                // Restaurar botão
+                btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis';
+                btnVerificarDisponibilidade.disabled = false;
+            })
+            .catch(error => {
+                console.error('Erro na verificação:', error);
+                alert('Erro ao verificar colaboradores disponíveis: ' + error.message);
+                
+                // Restaurar botão
+                btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis';
+                btnVerificarDisponibilidade.disabled = false;
+            });
+    }
+    
+    // Adicionar evento ao botão de verificar disponibilidade
+    if (btnVerificarDisponibilidade) {
+        btnVerificarDisponibilidade.addEventListener('click', verificarDisponibilidade);
     }
     
     // Inicializar formatação monetária para campos existentes
