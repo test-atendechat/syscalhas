@@ -59,7 +59,7 @@ $stmt = $pdo->prepare("SELECT a.*,
                      JOIN clientes c ON o.cliente_id = c.id
                      WHERE {$where_condition}
                        AND a.data_agendamento = :data
-                       AND (a.status = 'agendado' OR a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada')
+                       AND (a.status = 'instalacao_agendada' OR a.status = 'orcamento_agendado')
                      ORDER BY a.hora_inicio ASC");
 
 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
@@ -235,7 +235,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
                         
                         <div class="servico-info">
                             <h5 class="mb-3">
-                                <?php if ($agendamento['status'] === 'instalacao_agendada' || ($tipo_colaborador === 'instalador' && $agendamento['status'] === 'agendado')): ?>
+                                <?php if ($agendamento['status'] === 'instalacao_agendada'): ?>
                                 <i class="fas fa-tools me-2"></i>AGENDA DE INSTALAÇÃO
                                 <?php else: ?>
                                 <i class="fas fa-search me-2"></i>AGENDA DE ORÇAMENTO
@@ -248,8 +248,7 @@ $data_formatada = date('d/m/Y', strtotime($data));
                                         echo "<span class='badge bg-info'>Orçamento Agendado</span>";
                                     } else if ($agendamento['status'] === 'instalacao_agendada') {
                                         echo "<span class='badge bg-primary'>Instalação Agendada</span>";
-                                    } else if ($agendamento['status'] === 'agendado') {
-                                        echo "<span class='badge bg-primary'>Agendado</span>";
+                                    // status 'agendado' foi substituído por 'instalacao_agendada'
                                     }
                                 ?>
                                 </p>

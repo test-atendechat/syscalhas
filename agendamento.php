@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             // Verificar se o colaborador está disponível no horário
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                  WHERE instalador_id = :colaborador_id 
-                                 AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada' OR status = 'agendado') 
+                                 AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada') 
                                  AND ((data_inicio <= :data_inicio AND data_fim >= :data_inicio) 
                                  OR (data_inicio <= :data_fim AND data_fim >= :data_fim) 
                                  OR (data_inicio >= :data_inicio AND data_fim <= :data_fim))");
@@ -285,7 +285,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'cancelar' && isset($_GET['id'])) {
             
             // Verificar se há outros agendamentos ativos para este orçamento
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
-                               WHERE orcamento_id = :orcamento_id AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada' OR status = 'agendado')");
+                               WHERE orcamento_id = :orcamento_id AND (status = 'orcamento_agendado' OR status = 'instalacao_agendada')");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
