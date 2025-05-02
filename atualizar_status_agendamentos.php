@@ -21,11 +21,11 @@ $total_concluidos = 0;
 try {
     global $pdo;
     
-    // Buscar agendamentos que estão com status 'agendado', 'orcamento_agendado' ou 'instalacao_agendada' e já chegou a hora de início
+    // Buscar agendamentos que estão com status 'orcamento_agendado' ou 'instalacao_agendada' e já chegou a hora de início
     // Consulta baseada em data_inicio (timestamp) para a nova estrutura de dados
     $stmt = $pdo->prepare("UPDATE agendamentos 
                         SET status = 'em_andamento'
-                        WHERE (status = 'agendado' OR status = 'orcamento_agendado' OR status = 'instalacao_agendada') 
+                        WHERE (status = 'orcamento_agendado' OR status = 'instalacao_agendada') 
                         AND data_inicio <= :datetime_atual 
                         AND data_fim >= :datetime_atual
                         RETURNING id, data_inicio, status");

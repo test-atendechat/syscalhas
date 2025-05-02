@@ -7,8 +7,8 @@ $conteudo = file_get_contents($arquivo);
 
 // 1. Atualizar a função buscarAgendamentoAtivo para incluir status 'pendente'
 $conteudo = str_replace(
-    "WHERE a.orcamento_id = :orcamento_id \n                              AND (a.status = 'agendado' OR a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada')",
-    "WHERE a.orcamento_id = :orcamento_id \n                              AND (a.status = 'agendado' OR a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada' OR a.status = 'pendente')",
+    "WHERE a.orcamento_id = :orcamento_id \n                              AND (a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada')",
+    "WHERE a.orcamento_id = :orcamento_id \n                              AND (a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada' OR a.status = 'pendente')",
     $conteudo
 );
 
