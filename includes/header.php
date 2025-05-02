@@ -29,7 +29,7 @@ try {
     require_once('db.php'); // Garantir que a conexão com o banco está disponível
     
     // Buscar configurações
-    $stmt = $db->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN (
+    $stmt = $pdo->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN (
         'cor_principal', 'cor_secundaria', 'cor_aprovado', 'cor_pendente', 'cor_rejeitado', 'tema_sistema'
     )");
     $stmt->execute();
@@ -60,7 +60,11 @@ try {
     <title><?php 
     // Usar o nome da empresa atualizado da sessão se existir
     $nome_empresa = isset($_SESSION['nome_empresa_temp']) ? $_SESSION['nome_empresa_temp'] : APP_NAME;
-    echo (isset($titulo) && !empty($titulo)) ? $titulo . ' | ' . $nome_empresa : $nome_empresa; 
+    // Definir título padrão se não existir
+    if (!isset($titulo)) {
+        $titulo = '';
+    }
+    echo (!empty($titulo)) ? $titulo . ' | ' . $nome_empresa : $nome_empresa; 
 ?></title>
 
     <!-- Bootstrap CSS -->

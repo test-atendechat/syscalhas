@@ -884,7 +884,7 @@ function imprimirListaMateriais(elementId, numeroOrcamento, nomeCliente) {
                         </thead>
                         <tbody>
                             <?php
-                            $stmt = $db->query("SELECT * FROM produtos 
+                            $stmt = $pdo->query("SELECT * FROM produtos 
                                                WHERE estoque_atual <= estoque_minimo 
                                                AND estoque_minimo > 0
                                                ORDER BY (estoque_atual / CASE WHEN estoque_minimo = 0 THEN 1 ELSE estoque_minimo END) ASC
