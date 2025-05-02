@@ -1222,7 +1222,7 @@ if (!$acesso_interno) {
                         }
                         ?>
                     </select>
-                    <small class="text-muted">Tempo previsto para este serviço: <?php echo $orcamento['tempo_previsto']; ?> <?php echo $orcamento['unidade_tempo']; ?><?php 
+                    <small class="text-muted"><?php 
                     // Verificar se o serviço vai atravessar o horário de almoço
                     $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_almoco_inicio', 'horario_almoco_fim')");
                     $config_almoco = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -1236,9 +1236,33 @@ if (!$acesso_interno) {
                     $fim_almoco = strtotime($horario_almoco_fim);
                     $diferenca_horas = round(($fim_almoco - $inicio_almoco) / 3600, 1);
                     
-                    // Se a duração do serviço for superior a 4 horas e a unidade for 'horas'
-                    if ($orcamento['unidade_tempo'] == 'horas' && $orcamento['tempo_previsto'] >= 4) {
-                        echo ", incluindo {$diferenca_horas} horas de almoço";
+                    // Verificar se o serviço atravessa o horário de almoço
+                    $hora_inicio_servico = isset($_GET['hora']) ? $_GET['hora'] : '08:00'; // Hora padrão ou do GET
+                    
+                    // Converter para timestamp
+                    $data_hoje = date('Y-m-d');
+                    $inicio_servico = strtotime($data_hoje . ' ' . $hora_inicio_servico);
+                    
+                    // Calcular fim do serviço sem considerar almoço
+                    $duracao_minutos = $orcamento['tempo_previsto'];
+                    if ($orcamento['unidade_tempo'] == 'horas') {
+                        $duracao_minutos = $orcamento['tempo_previsto'] * 60;
+                    } else if ($orcamento['unidade_tempo'] == 'dias') {
+                        $duracao_minutos = $orcamento['tempo_previsto'] * 60 * 8; // 8 horas por dia
+                    }
+                    
+                    $fim_servico = $inicio_servico + ($duracao_minutos * 60); // Converter minutos para segundos
+                    
+                    // Verificar se atravessa o almoço (começa antes do almoço e termina depois do início do almoço)
+                    $atravessa_almoco = ($inicio_servico < $inicio_almoco && $fim_servico > $inicio_almoco);
+                    
+                    if ($atravessa_almoco && $orcamento['unidade_tempo'] == 'horas') {
+                        // Exibir mensagem com tempo total incluindo almoço
+                        $tempo_total = $orcamento['tempo_previsto'] + $diferenca_horas;
+                        echo "Tempo previsto para este serviço: {$tempo_total} horas, incluindo {$diferenca_horas} horas de almoço";
+                    } else {
+                        // Exibir mensagem normal
+                        echo "Tempo previsto para este serviço: {$orcamento['tempo_previsto']} {$orcamento['unidade_tempo']}";
                     }
                     ?>.</small>
                 </div>
