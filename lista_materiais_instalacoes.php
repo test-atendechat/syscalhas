@@ -17,6 +17,9 @@ $dias = max(1, min(7, $dias));
 $data_atual = date('Y-m-d');
 $data_limite = date('Y-m-d', strtotime("+{$dias} days"));
 
+// Acessar a variável de conexão com o banco de dados
+require_once('includes/db.php');
+
 // Consultar materiais necessários para instalações próximas
 try {
     $stmt = $conn->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_necessaria,

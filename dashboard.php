@@ -20,6 +20,9 @@ function getDataFormatadaPtBr() {
     return "$dia_semana, $dia de $mes de $ano";
 }
 
+// Importar a conexão com o banco de dados
+require_once('includes/db.php');
+
 require_once('includes/header.php');
 
 // Obter estatísticas
@@ -31,18 +34,43 @@ $orcamentos_rejeitados = 0;
 $produtos_total = 0;
 $estoque_baixo = 0;
 
+// Consultar agendamentos do dia para a secretária
+$data_hoje = date('Y-m-d');
+$agendamentos_hoje = [];
+
+try {
+    $stmt = $conn->prepare("SELECT a.id, a.data_agendamento, a.hora_inicio,
+                         COALESCE(a.tempo_previsto, '60') as tempo_previsto,
+                         COALESCE(a.unidade_tempo, 'minutos') as unidade_tempo,
+                         a.status, o.id as orcamento_id, o.numero as orcamento_numero, 
+                         c.nome as cliente_nome, c.telefone as cliente_telefone,
+                         cl.nome as colaborador_nome, cl.tipo as colaborador_tipo
+                         FROM agendamentos a
+                         JOIN orcamentos o ON a.orcamento_id = o.id
+                         JOIN clientes c ON o.cliente_id = c.id
+                         JOIN colaboradores cl ON a.instalador_id = cl.id
+                         WHERE (a.data_agendamento = :data_hoje OR DATE(a.data_inicio) = :data_hoje)
+                         AND a.status IN ('pendente', 'orcamento_agendado', 'instalacao_agendada')
+                         ORDER BY a.hora_inicio, a.data_agendamento");
+    $stmt->bindParam(':data_hoje', $data_hoje);
+    $stmt->execute();
+    $agendamentos_hoje = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Tratar erro silenciosamente
+}
+
 // Consulta para total de clientes
-$stmt = $db->query("SELECT COUNT(*) as total FROM clientes");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM clientes");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $clientes_total = $result['total'];
 
 // Consulta para total de orçamentos
-$stmt = $db->query("SELECT COUNT(*) as total FROM orcamentos");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM orcamentos");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $orcamentos_total = $result['total'];
 
 // Consulta para orçamentos por status
-$stmt = $db->query("SELECT status, COUNT(*) as total FROM orcamentos GROUP BY status");
+$stmt = $conn->query("SELECT status, COUNT(*) as total FROM orcamentos GROUP BY status");
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     switch ($row['status']) {
         case 'pendente':
@@ -58,27 +86,27 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 }
 
 // Consulta para total de produtos
-$stmt = $db->query("SELECT COUNT(*) as total FROM produtos");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM produtos");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $produtos_total = $result['total'];
 
 // Consulta para produtos com estoque baixo
-$stmt = $db->query("SELECT COUNT(*) as total FROM produtos WHERE estoque_atual <= estoque_minimo AND estoque_minimo > 0");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM produtos WHERE estoque_atual <= estoque_minimo AND estoque_minimo > 0");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $estoque_baixo = $result['total'];
 
 // Consulta para contas a pagar vencidas
-$stmt = $db->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento < CURRENT_DATE");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento < CURRENT_DATE");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $contas_vencidas = $result['total'];
 
 // Consulta para contas a pagar a vencer nos próximos 7 dias
-$stmt = $db->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM contas_pagar WHERE status = 'pendente' AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $contas_a_vencer = $result['total'];
 
 // Consulta para orçamentos que precisam de acompanhamento (pendentes há mais de 5 dias)
-$stmt = $db->query("SELECT COUNT(*) as total FROM orcamentos WHERE status = 'pendente' AND data_criacao < CURRENT_DATE - INTERVAL '5 days'");
+$stmt = $conn->query("SELECT COUNT(*) as total FROM orcamentos WHERE status = 'pendente' AND data_criacao < CURRENT_DATE - INTERVAL '5 days'");
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 $orcamentos_sem_retorno = $result['total'];
 
@@ -86,7 +114,7 @@ $orcamentos_sem_retorno = $result['total'];
 // Código para resumo financeiro removido conforme solicitado
 
 // Obter últimos orçamentos
-$stmt = $db->query("SELECT o.*, c.nome as cliente_nome 
+$stmt = $conn->query("SELECT o.*, c.nome as cliente_nome 
                      FROM orcamentos o
                      LEFT JOIN clientes c ON o.cliente_id = c.id
                      ORDER BY o.data_criacao DESC
@@ -94,7 +122,7 @@ $stmt = $db->query("SELECT o.*, c.nome as cliente_nome
 $ultimos_orcamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Obter produtos mais vendidos (baseado nas movimentações de estoque)
-$stmt = $db->query("SELECT p.id, p.descricao, p.unidade, SUM(m.quantidade) as total_vendido, 
+$stmt = $conn->query("SELECT p.id, p.descricao, p.unidade, SUM(m.quantidade) as total_vendido, 
                    COUNT(DISTINCT m.orcamento_id) as total_orcamentos 
                    FROM estoque_movimentacoes m
                    JOIN produtos p ON m.produto_id = p.id
@@ -105,7 +133,7 @@ $stmt = $db->query("SELECT p.id, p.descricao, p.unidade, SUM(m.quantidade) as to
 $produtos_mais_vendidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Obter colaboradores (instaladores e orçamentistas)
-$stmt = $db->query("SELECT id, nome, tipo FROM colaboradores WHERE status = 'ativo' ORDER BY tipo, nome");
+$stmt = $conn->query("SELECT id, nome, tipo FROM colaboradores WHERE status = 'ativo' ORDER BY tipo, nome");
 $colaboradores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Obter agendamentos para os próximos 2 dias
