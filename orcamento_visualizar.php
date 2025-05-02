@@ -1,9 +1,54 @@
 <?php
+// Este arquivo deve sempre começar com verificação e redirecionamentos ANTES de incluir o header
+// para evitar o erro "Cannot modify header information - headers already sent"
 require_once('includes/config.php');
 require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/notificacoes.php');
 require_once('notificacao_orcamento.php');
+
+// Verificar a existência do orçamento ANTES de qualquer saída HTML
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$codigo = isset($_GET['codigo']) ? $_GET['codigo'] : '';
+
+if (!empty($id)) {
+    // Verificar se o orçamento existe
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM orcamentos WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $orcamento_existe = ($stmt->fetchColumn() > 0);
+    
+    if (!$orcamento_existe) {
+        // Redirecionar para a lista de orçamentos se não encontrado
+        header('Location: orcamentos.php?mensagem=' . urlencode('Orçamento não encontrado.'));
+        exit;
+    }
+} else if (!empty($codigo)) {
+    // Verificar se existe um orçamento com este código de acesso
+    $stmt = $pdo->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
+    $stmt->bindParam(':codigo_acesso', $codigo);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() == 0) {
+        // Não encontrado, preparar um template mínimo para exibir erro
+        include('includes/header_simples.php'); // Um header simples sem saída complexa
+        echo "<div class='container mt-5'>
+               <div class='card'>
+                 <div class='card-body text-center py-5'>
+                   <h1 class='text-danger mb-4'><i class='fas fa-exclamation-triangle me-2'></i>Erro</h1>
+                   <p class='lead'>Código de orçamento inválido ou expirado.</p>
+                   <p>O link que você tentou acessar não está disponível ou foi removido.</p>
+                 </div>
+               </div>
+             </div>";
+        include('includes/footer_simples.php'); // Um footer simples
+        exit;
+    }
+} else {
+    // Sem parâmetros, redirecionar para a página de orçamentos
+    header('Location: orcamentos.php');
+    exit;
+}
 
 // Definir flag para que agendamentos possam ser encontrados independente do status do orçamento
 define('BUSCAR_TODOS_AGENDAMENTOS', true);
