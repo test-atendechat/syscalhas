@@ -445,11 +445,31 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                             <td><?php echo isset($agendamento['detalhes']) ? $agendamento['detalhes'] : ''; ?></td>
                             <td>
                                 <span class="badge bg-<?php 
-                                    echo $agendamento['status'] == 'agendado' ? 'primary' : 
-                                        ($agendamento['status'] == 'concluido' ? 'success' : 
-                                        ($agendamento['status'] == 'cancelado' ? 'danger' : 'secondary')); 
+                                    // Mapear os status para as cores corretas
+                                    if ($agendamento['status'] == 'agendado' || $agendamento['status'] == 'orcamento_agendado' || $agendamento['status'] == 'instalacao_agendada') {
+                                        echo 'primary'; // Azul para todos agendamentos
+                                    } elseif ($agendamento['status'] == 'concluido' || $agendamento['status'] == 'finalizado') {
+                                        echo 'success'; // Verde para finalizados
+                                    } elseif ($agendamento['status'] == 'cancelado') {
+                                        echo 'danger';  // Vermelho para cancelados
+                                    } elseif ($agendamento['status'] == 'pendente') {
+                                        echo 'warning'; // Laranja para pendentes
+                                    } else {
+                                        echo 'secondary'; // Cinza para outros estados
+                                    }
                                 ?>">
-                                    <?php echo ucfirst($agendamento['status']); ?>
+                                    <?php 
+                                    // Mostrar label mais amigável conforme o status
+                                    if ($agendamento['status'] == 'orcamento_agendado') {
+                                        echo 'Orçamento Agendado';
+                                    } elseif ($agendamento['status'] == 'instalacao_agendada') {
+                                        echo 'Instalação Agendada';
+                                    } elseif ($agendamento['status'] == 'pendente') {
+                                        echo 'Aguardando Aprovação';
+                                    } else {
+                                        echo ucfirst($agendamento['status']); 
+                                    }
+                                    ?>
                                 </span>
                             </td>
                         </tr>
