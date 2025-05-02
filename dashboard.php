@@ -143,7 +143,7 @@ $data_limite = date('Y-m-d', strtotime('+2 days'));
 // Buscar agendamentos de instalações para os próximos 2 dias
 $stmt = $pdo->prepare("SELECT a.id, a.data_agendamento, a.data_inicio, a.hora_inicio, a.status, a.instalador_id, 
                       o.id as orcamento_id, o.numero as orcamento_numero, c.nome as cliente_nome, 
-                      cl.nome as colaborador_nome 
+                      cl.nome as colaborador_nome, cl.tipo as colaborador_tipo 
                       FROM agendamentos a 
                       JOIN orcamentos o ON a.orcamento_id = o.id 
                       JOIN clientes c ON o.cliente_id = c.id 
@@ -591,17 +591,22 @@ $agendamentos_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                                             $status_class = '';
                                             $texto_status = '';
                                             
-                                            switch ($agendamento['status']) {
-                                                case 'orcamento_agendado':
+                                            // Verificar o tipo de colaborador para determinar o texto correto do status
+                                            if ($agendamento['status'] == 'orcamento_agendado') {
+                                                $status_class = 'status-agendado';
+                                                $texto_status = 'Orçamento Agendado';
+                                            } else if ($agendamento['status'] == 'instalacao_agendada') {
+                                                // Como agora trazemos o tipo_colaborador da consulta principal,
+                                                // não precisamos fazer outra consulta
+                                                if ($agendamento['colaborador_tipo'] == 'orcamentista') {
                                                     $status_class = 'status-agendado';
                                                     $texto_status = 'Orçamento Agendado';
-                                                    break;
-                                                case 'instalacao_agendada':
+                                                } else {
                                                     $status_class = 'status-agendado';
                                                     $texto_status = 'Instalação Agendada';
-                                                    break;
-                                                default:
-                                                    $texto_status = ucfirst($agendamento['status']);
+                                                }
+                                            } else {
+                                                $texto_status = ucfirst($agendamento['status']);
                                             }
                                             ?>
                                             <span class="status-box <?php echo $status_class; ?>"><?php echo $texto_status; ?></span>
