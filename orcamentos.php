@@ -419,7 +419,7 @@ require_once('includes/header.php');
                 </div>
                 <?php
                 // Contar orçamentos por status
-                $stmt = $db->query("SELECT status, COUNT(*) as total FROM orcamentos GROUP BY status");
+                $stmt = $pdo->query("SELECT status, COUNT(*) as total FROM orcamentos GROUP BY status");
                 $totais_status = [];
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $totais_status[$row['status']] = $row['total'];
@@ -442,7 +442,7 @@ require_once('includes/header.php');
                 </div>
                 <?php
                 // Contar orçamentos por status de execução
-                $stmt = $db->query("SELECT status_execucao, COUNT(*) as total FROM orcamentos GROUP BY status_execucao");
+                $stmt = $pdo->query("SELECT status_execucao, COUNT(*) as total FROM orcamentos GROUP BY status_execucao");
                 $totais_execucao = [];
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $totais_execucao[$row['status_execucao']] = $row['total'];

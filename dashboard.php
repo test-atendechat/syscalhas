@@ -205,7 +205,7 @@ foreach ($materiais_proximas_instalacoes as $material) {
 }
 
 // Verificar se existem solicitações pendentes do site
-$stmt = $db->query("SELECT COUNT(*) as total FROM agendamentos WHERE status = 'pendente'");
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM agendamentos WHERE status = 'pendente'");
 $agendamentos_pendentes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 ?>
 

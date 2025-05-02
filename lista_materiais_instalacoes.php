@@ -22,7 +22,7 @@ require_once('includes/db.php');
 
 // Consultar materiais necessários para instalações próximas
 try {
-    $stmt = $conn->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_necessaria,
+    $stmt = $pdo->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_necessaria,
                       o.id as orcamento_id, o.numero as orcamento_numero, c.nome as cliente_nome,
                       a.data_agendamento, a.data_inicio, a.hora_inicio,
                       cl.nome as colaborador_nome
@@ -70,7 +70,7 @@ try {
     }
 
     // Obter lista de todos os materiais agrupados para listagem total
-    $stmt = $conn->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_total,
+    $stmt = $pdo->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_total,
                           COUNT(DISTINCT o.id) as total_orcamentos
                           FROM orcamento_itens i
                           JOIN produtos p ON i.produto_id = p.id
