@@ -403,7 +403,23 @@ require_once('includes/header.php');
                     <div class="invalid-feedback">Por favor, informe o tempo previsto de execução.</div>
                     <small class="text-muted">Este tempo será usado para o agendamento do serviço.</small>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
+                    <label for="orcamentista_id" class="form-label">Orçamentista Responsável</label>
+                    <select class="form-select" id="orcamentista_id" name="orcamentista_id">
+                        <option value="">Selecione um orçamentista</option>
+                        <?php
+                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'orcamentista' ORDER BY nome");
+                        $orcamentistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        foreach($orcamentistas as $orcamentista) {
+                            $selected = ($orcamentista['id'] == $orcamentista_id) ? 'selected' : '';
+                            echo "<option value=\"{$orcamentista['id']}\" {$selected}>{$orcamentista['nome']}</option>";
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted">Responsável pelo orçamento.</small>
+                </div>
+                <div class="col-md-3">
                     <label for="colaborador_id" class="form-label">Instalador Responsável</label>
                     <select class="form-select" id="colaborador_id" name="colaborador_id">
                         <option value="">Selecione um instalador</option>
