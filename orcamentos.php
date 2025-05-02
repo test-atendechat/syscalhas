@@ -58,8 +58,11 @@ if (!empty($data_fim)) {
     $params[':data_fim'] = $data_fim_mysql;
 }
 
+// Importar a conexão com o banco de dados
+require_once('includes/db.php');
+
 // Obter total de registros
-$stmt = $db->prepare("SELECT COUNT(*) as total 
+$stmt = $pdo->prepare("SELECT COUNT(*) as total 
                     FROM orcamentos o
                     LEFT JOIN clientes c ON o.cliente_id = c.id
                     WHERE {$where}");
@@ -73,7 +76,7 @@ $total_registros = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_paginas = ceil($total_registros / $por_pagina);
 
 // Obter orçamentos
-$stmt = $db->prepare("SELECT o.*, c.nome as cliente_nome, c.telefone as cliente_telefone, o.codigo_acesso 
+$stmt = $pdo->prepare("SELECT o.*, c.nome as cliente_nome, c.telefone as cliente_telefone, o.codigo_acesso 
                      FROM orcamentos o
                      LEFT JOIN clientes c ON o.cliente_id = c.id
                      WHERE {$where}
@@ -117,24 +120,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['excluir'])) {
     $id = intval($_POST['id']);
     
     try {
-        $db->beginTransaction();
+        $pdo->beginTransaction();
         
         // Primeiro exclui os itens relacionados (se houver)
-        $stmt = $db->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
+        $stmt = $pdo->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         
         // Depois exclui o orçamento
-        $stmt = $db->prepare("DELETE FROM orcamentos WHERE id = :id");
+        $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
         
-        $db->commit();
+        $pdo->commit();
         
         header('Location: orcamentos.php?mensagem=excluido');
         exit;
     } catch (Exception $e) {
-        $db->rollback();
+        $pdo->rollback();
         $mensagem = alerta('Erro ao excluir orçamento: ' . $e->getMessage(), 'danger');
     }
 }
@@ -146,9 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['status'])) {
     
     if ($novo_status == 'aprovado' || $novo_status == 'rejeitado') {
         try {
-            $db->beginTransaction();
+            $pdo->beginTransaction();
             
-            $stmt = $db->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->bindParam(':status', $novo_status);
             $stmt->execute();
@@ -160,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['status'])) {
                 foreach ($itens as $item) {
                     if ($item['produto_id'] > 0) {
                         // Registrar movimentação no estoque
-                        $stmt = $db->prepare("INSERT INTO estoque_movimentacoes 
+                        $stmt = $pdo->prepare("INSERT INTO estoque_movimentacoes 
                                             (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id, usuario_id)
                                             VALUES 
                                             (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id, :usuario_id)");
@@ -175,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['status'])) {
                         $stmt->execute();
                         
                         // Atualizar estoque do produto
-                        $stmt = $db->prepare("UPDATE produtos 
+                        $stmt = $pdo->prepare("UPDATE produtos 
                                             SET estoque_atual = estoque_atual - :quantidade 
                                             WHERE id = :produto_id");
                         $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
@@ -185,12 +188,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['status'])) {
                 }
             }
             
-            $db->commit();
+            $pdo->commit();
             
             header('Location: orcamentos.php?mensagem=' . $novo_status);
             exit;
         } catch (Exception $e) {
-            $db->rollback();
+            $pdo->rollback();
             $mensagem = alerta('Erro ao atualizar status do orçamento: ' . $e->getMessage(), 'danger');
         }
     }

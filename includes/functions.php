@@ -400,6 +400,21 @@ function buscarItensOrcamento($orcamento_id) {
 }
 
 /**
+ * Formatar data e hora no padrão brasileiro
+ * 
+ * @param string $dataHora Data e hora no formato banco (Y-m-d H:i:s)
+ * @return string Data e hora formatada (d/m/Y H:i)
+ */
+function dataHoraParaBr($dataHora) {
+    if (empty($dataHora)) return '';
+    
+    $timestamp = strtotime($dataHora);
+    if ($timestamp === false) return $dataHora;
+    
+    return date('d/m/Y H:i', $timestamp);
+}
+
+/**
  * Buscar agendamento ativo para um orçamento
  * 
  * @param int $orcamento_id ID do orçamento
