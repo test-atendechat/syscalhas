@@ -420,7 +420,6 @@ try {
                             
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin'): ?>
                             <li><a class="dropdown-item" href="relatorio_colaboradores.php"><i class="fas fa-trophy me-1"></i>Ranking de Colaboradores</a></li>
-                            <li><a class="dropdown-item" href="relatorio_agendamentos.php"><i class="fas fa-calendar-alt me-1"></i>Agendamentos</a></li>
                             <?php endif; ?>
                             
                             <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('visualizar_relatorios_financeiros')): ?>
