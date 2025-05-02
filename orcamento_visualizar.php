@@ -652,7 +652,7 @@ if (!$acesso_interno) {
                                 </a>
                             </li>
                         <?php endif; ?>
-                        <?php if ($orcamento['status_execucao'] != 'agendado' && $orcamento['status_execucao'] != 'andamento'): ?>
+                        <?php if ($orcamento['status_execucao'] != 'instalacao_agendada' && $orcamento['status_execucao'] != 'andamento'): ?>
                             <li>
                                 <a class="dropdown-item" href="agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
                                     <i class="fas fa-calendar-alt me-2 text-info"></i>Agendar Serviço
@@ -756,7 +756,7 @@ if (!$acesso_interno) {
                     $texto_status = '';
                     
                     switch ($orcamento['status_execucao']) {
-                        case 'agendado':
+                        case 'instalacao_agendada':
                             $status_class = 'status-agendado';
                             $texto_status = 'Instalação Agendada';
                             break;
@@ -1121,7 +1121,7 @@ if (!$acesso_interno) {
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">
             <i class="fas fa-calendar-alt me-2"></i>
-            <?php if ($orcamento['status_execucao'] == 'agendado'): ?>
+            <?php if ($orcamento['status_execucao'] == 'instalacao_agendada'): ?>
                 Reagendar Serviço
             <?php else: ?>
                 Agendar Serviço

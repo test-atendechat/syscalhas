@@ -239,7 +239,7 @@ require_once('includes/header.php');
                     <option value="">Todos</option>
                     <option value="pendente" <?php echo ($status_execucao == 'pendente') ? 'selected' : ''; ?>>Pendente</option>
                     <option value="orcamento_agendado" <?php echo ($status_execucao == 'orcamento_agendado') ? 'selected' : ''; ?>>Orçamento Agendado</option>
-                    <option value="agendado" <?php echo ($status_execucao == 'agendado') ? 'selected' : ''; ?>>Instalação Agendada</option>
+                    <option value="instalacao_agendada" <?php echo ($status_execucao == 'instalacao_agendada') ? 'selected' : ''; ?>>Instalação Agendada</option>
                     <option value="andamento" <?php echo ($status_execucao == 'andamento') ? 'selected' : ''; ?>>Instalação em Andamento</option>
                     <option value="finalizado" <?php echo ($status_execucao == 'finalizado') ? 'selected' : ''; ?>>Instalação Finalizada</option>
                 </select>
@@ -309,7 +309,7 @@ require_once('includes/header.php');
                                     $texto_status = '';
                                     
                                     switch ($orcamento['status_execucao']) {
-                                        case 'agendado':
+                                        case 'instalacao_agendada':
                                             $status_class = 'status-agendado';
                                             $texto_status = 'Instalação Agendada';
                                             break;
@@ -455,7 +455,7 @@ require_once('includes/header.php');
                     <span class="badge" style="background-color: #0dcaf0;">Orç. Agendados:</span> <?php echo isset($totais_execucao['orcamento_agendado']) ? $totais_execucao['orcamento_agendado'] : 0; ?>
                 </div>
                 <div class="col-md-3">
-                    <span class="badge" style="background-color: #0dcaf0;">Inst. Agendada:</span> <?php echo isset($totais_execucao['agendado']) ? $totais_execucao['agendado'] : 0; ?>
+                    <span class="badge" style="background-color: #0dcaf0;">Inst. Agendada:</span> <?php echo isset($totais_execucao['instalacao_agendada']) ? $totais_execucao['instalacao_agendada'] : 0; ?>
                 </div>
                 <div class="col-md-2">
                     <span class="badge" style="background-color: #fd7e14;">Inst. em Andamento:</span> <?php echo isset($totais_execucao['andamento']) ? $totais_execucao['andamento'] : 0; ?>
