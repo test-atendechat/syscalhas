@@ -54,7 +54,7 @@ try {
                        instalador_id = :instalador_id,
                        data_agendamento = :data_agendamento,
                        hora_inicio = :hora_inicio,
-                       status = 'agendado'
+                       status = 'instalacao_agendada'
                        WHERE id = :id";
                        
             $stmt_update = $pdo->prepare($sql_update);
@@ -65,7 +65,7 @@ try {
             $stmt_update->execute();
             
             // Atualizar status do orçamento
-            $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status = 'agendado', forma_pagamento = :forma_pgto WHERE id = :orcamento_id");
+            $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada', forma_pagamento = :forma_pgto WHERE id = :orcamento_id");
             $stmt_orcamento->bindParam(':forma_pgto', $forma_pgto);
             $stmt_orcamento->bindParam(':orcamento_id', $orcamento_id);
             $stmt_orcamento->execute();
@@ -113,7 +113,7 @@ try {
     } else {
         // Não existe agendamento, criar novo
         $sql_insert = "INSERT INTO agendamentos (orcamento_id, instalador_id, data_agendamento, hora_inicio, status)
-                      VALUES (:orcamento_id, :instalador_id, :data_agendamento, :hora_inicio, 'agendado')";
+                      VALUES (:orcamento_id, :instalador_id, :data_agendamento, :hora_inicio, 'instalacao_agendada')";
                       
         $stmt_insert = $pdo->prepare($sql_insert);
         $stmt_insert->bindParam(':orcamento_id', $orcamento_id);
@@ -125,7 +125,7 @@ try {
         $agendamento_id = $pdo->lastInsertId();
         
         // Atualizar status do orçamento
-        $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status = 'agendado', forma_pagamento = :forma_pgto WHERE id = :orcamento_id");
+        $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada', forma_pagamento = :forma_pgto WHERE id = :orcamento_id");
         $stmt_orcamento->bindParam(':forma_pgto', $forma_pgto);
         $stmt_orcamento->bindParam(':orcamento_id', $orcamento_id);
         $stmt_orcamento->execute();
