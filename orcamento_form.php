@@ -4,6 +4,9 @@ require_once('includes/db.php');
 require_once('includes/functions.php');
 require_once('includes/auth.php');
 
+// Garantir acesso às variáveis globais de conexão
+global $db, $pdo;
+
 // Verificar se o usuário está logado
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: login.php');
@@ -35,7 +38,7 @@ $tempo_previsto = 60; // Tempo padrão de 60 minutos
 $unidade_tempo = 'minutos'; // Unidade de tempo padrão (minutos, horas, dias)
 
 // Buscar configurações do banco de dados
-$stmt = $db->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra')");
+$stmt = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('desconto_pagamento_vista', 'taxa_padrao_mao_obra', 'horario_inicio', 'horario_fim', 'horario_almoco_inicio', 'horario_almoco_fim', 'tempo_previsto_visita')");
 $configs = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Aplicar configurações, se existirem
@@ -45,6 +48,9 @@ if (isset($configs['desconto_pagamento_vista'])) {
 if (isset($configs['taxa_padrao_mao_obra'])) {
     $taxa_mao_obra = (float)$configs['taxa_padrao_mao_obra'];
 }
+
+// Configurações de horário para verificação de disponibilidade
+$config = $configs; // Usar a mesma variável para ser compatível com o código existente
 
 
 // Verificar se é uma edição
@@ -417,10 +423,10 @@ require_once('includes/header.php');
                             <option value="">Selecione um horário</option>
                             <?php
                             // Configurar horários de trabalho - desde $horario_inicio até $horario_fim
-                            $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
-                            $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
-                            $horario_almoco_inicio = isset($config['horario_almoco_inicio']) ? $config['horario_almoco_inicio'] : '11:00';
-                            $horario_almoco_fim = isset($config['horario_almoco_fim']) ? $config['horario_almoco_fim'] : '13:00';
+                            $horario_inicio = isset($configs['horario_inicio']) ? $configs['horario_inicio'] : '07:00';
+                            $horario_fim = isset($configs['horario_fim']) ? $configs['horario_fim'] : '17:00';
+                            $horario_almoco_inicio = isset($configs['horario_almoco_inicio']) ? $configs['horario_almoco_inicio'] : '11:00';
+                            $horario_almoco_fim = isset($configs['horario_almoco_fim']) ? $configs['horario_almoco_fim'] : '13:00';
                             
                             // Converter para horas e minutos
                             list($hora_inicio, $minuto_inicio) = explode(':', $horario_inicio);
@@ -485,7 +491,7 @@ require_once('includes/header.php');
                     <select class="form-select" id="orcamentista_id" name="orcamentista_id">
                         <option value="">Selecione um orçamentista</option>
                         <?php
-                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'orcamentista' ORDER BY nome");
+                        $stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'orcamentista' ORDER BY nome");
                         $orcamentistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         
                         foreach($orcamentistas as $orcamentista) {
@@ -501,7 +507,7 @@ require_once('includes/header.php');
                     <select class="form-select" id="colaborador_id" name="colaborador_id">
                         <option value="">Selecione um instalador</option>
                         <?php
-                        $stmt = $db->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
+                        $stmt = $pdo->query("SELECT id, nome FROM colaboradores WHERE tipo = 'instalador' ORDER BY nome");
                         $instaladores = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         
                         foreach($instaladores as $instalador) {
