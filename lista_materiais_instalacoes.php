@@ -47,10 +47,6 @@ try {
 
     // Agrupar materiais por orçamento
     $materiais_por_orcamento = [];
-    // Depuração temporária
-    if (isset($materiais_proximas_instalacoes[0])) {
-        error_log('DEBUG: Orçamento ID 36 - Tipo do colaborador: ' . ($materiais_proximas_instalacoes[0]['colaborador_tipo'] ?? 'não definido'));
-    }
 
     foreach ($materiais_proximas_instalacoes as $material) {
         $orcamento_id = $material['orcamento_id'];
@@ -203,10 +199,7 @@ require_once('includes/header.php');
                             </span> - 
                             <span class="text-secondary">
                                 <?php 
-                                    // Depuração adicional para o orçamento problemático
-                                    if ($orcamento_info['orcamento_id'] == 36) {
-                                        echo "TIPO DO COLABORADOR: " . $orcamento_info['colaborador_tipo'] . " - ";
-                                    }
+
                                     $tipo_colaborador = (trim($orcamento_info['colaborador_tipo']) == 'orcamentista') ? 'Orçamentista' : 'Instalador';
                                     echo $tipo_colaborador . ': ' . $orcamento_info['colaborador_nome']; 
                                 ?>
