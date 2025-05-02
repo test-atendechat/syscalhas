@@ -336,10 +336,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])
         require_once('includes/notificacoes.php');
         
         if ($decisao == 'aprovar') {
-            // Atualizar o status do agendamento para 'orcamento_agendado'
-            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
-            $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
-            $stmt->execute();
+            if ($agendamento_id > 0) {
+                // Atualizar o status do agendamento para 'orcamento_agendado'
+                $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
+                $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+                $stmt->execute();
+            }
             
             // Atualizar o status_execucao do orçamento
             $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'orcamento_agendado' WHERE id = :id");
@@ -359,20 +361,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])
             // Reprovar o agendamento (excluindo completamente o orçamento)
             $pdo->beginTransaction();
             try {
-                // 1. Excluir todos os itens do orçamento
-                $stmt = $pdo->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
+                // Primeiro verificar se existe o orçamento (garantia de segurança)
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM orcamentos WHERE id = :id");
                 $stmt->bindParam(':id', $id, PDO::PARAM_INT);
                 $stmt->execute();
+                $orcamento_existe = ($stmt->fetchColumn() > 0);
                 
-                // 2. Excluir agendamentos relacionados
-                $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
-                
-                // 3. Excluir o orçamento
-                $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = :id");
-                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-                $stmt->execute();
+                if ($orcamento_existe) {
+                    // 1. Excluir todos os itens do orçamento
+                    $stmt = $pdo->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
+                    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                    $stmt->execute();
+                    
+                    // 2. Excluir agendamentos relacionados
+                    if ($agendamento_id > 0) {
+                        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
+                        $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                        $stmt->execute();
+                    } else {
+                        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :id");
+                        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+                    }
+                    
+                    // 3. Excluir o orçamento
+                    $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = :id");
+                    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
                 
                 $pdo->commit();
                 $mensagem = alerta('Agendamento reprovado e orçamento excluído com sucesso.', 'warning');
@@ -921,17 +937,24 @@ if (!$acesso_interno) {
 
                     <!-- Debug: Status de Agendamento -->
                     <?php 
-                    // Debug para verificar se há agendamento
-                    var_dump($agendamento); 
-                    // Verificar se há agendamento e mostrar os botões
-                    if (isset($agendamento) && $agendamento): 
-                        $status_agendamento = $agendamento['status'];
+                    // Verifica se o orçamento está no estado 'pendente' (vindos do site)
+                    if ($orcamento['status_execucao'] == 'pendente' || isset($agendamento)): 
+                        // Se tiver agendamento, mostra o status dele
+                        if (isset($agendamento) && $agendamento) {
+                            $status_agendamento = $agendamento['status'];
+                            $agendamento_id = $agendamento['id'];
+                            $status_msg = "Solicitação de orçamento {$status_agendamento}"; 
+                        } else {
+                            // Se não tiver agendamento mas for pendente, é do site
+                            $status_msg = "Solicitação de orçamento pendente (site)";
+                            $agendamento_id = 0;
+                        }
                     ?>
                     <div class="mt-3 border-top pt-3">
-                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Solicitação de orçamento <?php echo $status_agendamento; ?></p>
+                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i><?php echo $status_msg; ?></p>
                         <form method="post" class="d-inline">
                             <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
-                            <input type="hidden" name="agendamento_id" value="<?php echo $agendamento['id']; ?>">
+                            <input type="hidden" name="agendamento_id" value="<?php echo $agendamento_id; ?>">
                             <button type="submit" name="agendamento_decisao" value="aprovar" class="btn btn-outline-success mx-2">
                                 <i class="fas fa-calendar-check me-2"></i>Aprovar Agendamento
                             </button>
@@ -939,10 +962,6 @@ if (!$acesso_interno) {
                                 <i class="fas fa-calendar-times me-2"></i>Reprovar Agendamento
                             </button>
                         </form>
-                    </div>
-                    <?php else: ?>
-                    <div class="mt-3 border-top pt-3">
-                        <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Nenhum agendamento encontrado para este orçamento</p>
                     </div>
                     <?php endif; ?>
                 </div>

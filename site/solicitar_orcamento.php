@@ -216,6 +216,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             // Observações ajustadas para incluir o título como parte das observações
             $observacoes_completas = "Visita para Orçamento - " . $nome . "\n\n" . $observacoes;
             
+            // Definir o status como 'pendente' para requerer aprovação manual
+            $status_agendamento = 'pendente';
+            
             $stmt = $pdo->prepare("INSERT INTO agendamentos 
                                   (orcamento_id, instalador_id, data_agendamento, hora_inicio, hora_fim, status, observacoes) 
                                   VALUES (:orcamento_id, :instalador_id, :data_agendamento, :hora_inicio, :hora_fim, :status, :observacoes)");
@@ -224,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendar'])) {
             $stmt->bindParam(':data_agendamento', $data_servico); // Usamos data_servico em vez de data_agendamento
             $stmt->bindParam(':hora_inicio', $hora_inicio);
             $stmt->bindParam(':hora_fim', $hora_fim);
-            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':status', $status_agendamento);
             $stmt->bindParam(':observacoes', $observacoes_completas);
             $stmt->execute();
             
