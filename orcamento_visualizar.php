@@ -1222,7 +1222,25 @@ if (!$acesso_interno) {
                         }
                         ?>
                     </select>
-                    <small class="text-muted">Tempo previsto para este serviço: <?php echo $orcamento['tempo_previsto']; ?> <?php echo $orcamento['unidade_tempo']; ?>.</small>
+                    <small class="text-muted">Tempo previsto para este serviço: <?php echo $orcamento['tempo_previsto']; ?> <?php echo $orcamento['unidade_tempo']; ?><?php 
+                    // Verificar se o serviço vai atravessar o horário de almoço
+                    $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_almoco_inicio', 'horario_almoco_fim')");
+                    $config_almoco = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+                    
+                    // Usar os valores do banco ou padrões
+                    $horario_almoco_inicio = isset($config_almoco['horario_almoco_inicio']) ? $config_almoco['horario_almoco_inicio'] : '11:00';
+                    $horario_almoco_fim = isset($config_almoco['horario_almoco_fim']) ? $config_almoco['horario_almoco_fim'] : '13:00';
+                    
+                    // Calcular diferença em horas do horário de almoço
+                    $inicio_almoco = strtotime($horario_almoco_inicio);
+                    $fim_almoco = strtotime($horario_almoco_fim);
+                    $diferenca_horas = round(($fim_almoco - $inicio_almoco) / 3600, 1);
+                    
+                    // Se a duração do serviço for superior a 4 horas e a unidade for 'horas'
+                    if ($orcamento['unidade_tempo'] == 'horas' && $orcamento['tempo_previsto'] >= 4) {
+                        echo ", incluindo {$diferenca_horas} horas de almoço";
+                    }
+                    ?>.</small>
                 </div>
             </div>
             
