@@ -32,34 +32,58 @@ try {
     
     echo "<p>Preservando usuário admin (ID: $admin_id)</p>";
     
-    // Desativar verificações de chave estrangeira temporariamente para facilitar a limpeza
-    $pdo->exec("SET session_replication_role = 'replica';");
+    // Não podemos usar SET session_replication_role pois não temos privilégios
+    // Vamos limpar as tabelas na ordem correta para respeitar as chaves estrangeiras
     
-    // Lista de tabelas para limpar completamente (que não são essenciais para o funcionamento básico)
-    $tabelas_para_limpar = [
-        "agendamentos", 
-        "notificacoes", 
-        "colaborador_equipe", 
-        "equipes", 
-        "colaboradores", 
-        "orcamento_itens", 
-        "orcamentos", 
-        "produtos_movimentacoes", 
-        "produtos", 
-        "contas_pagar", 
-        "caixa_movimentacoes", 
-        "caixa_controle", 
-        "clientes"
-    ];
+    // Limpar todas as tabelas manualmente na ordem correta para evitar violações de chave estrangeira
+    // 1. Primeiro limpar tabelas dependentes
+    echo "<h4>Limpando tabelas de dados...</h4>";
     
-    foreach ($tabelas_para_limpar as $tabela) {
-        try {
-            $pdo->exec("TRUNCATE TABLE $tabela CASCADE");
-            echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Tabela <strong>$tabela</strong> foi limpa.</p>";
-        } catch (Exception $e) {
-            echo "<p class='text-warning'><i class='fas fa-exclamation-triangle me-2'></i>Erro ao limpar tabela $tabela: " . $e->getMessage() . "</p>";
-        }
-    }
+    // Limpando tabelas de relacionamentos e dependências
+    $pdo->exec("DELETE FROM agendamentos");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Agendamentos removidos</p>";
+    
+    $pdo->exec("DELETE FROM notificacoes");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Notificações removidas</p>";
+    
+    $pdo->exec("DELETE FROM colaborador_equipe");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Relacionamentos de equipes removidos</p>";
+    
+    $pdo->exec("DELETE FROM orcamento_itens");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Itens de orçamentos removidos</p>";
+    
+    $pdo->exec("DELETE FROM produtos_movimentacoes");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Movimentações de produtos removidas</p>";
+    
+    $pdo->exec("DELETE FROM caixa_movimentacoes");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Movimentações de caixa removidas</p>";
+    
+    // 2. Agora limpar tabelas principais
+    $pdo->exec("DELETE FROM equipes");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Equipes removidas</p>";
+    
+    $pdo->exec("DELETE FROM colaboradores");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Colaboradores removidos</p>";
+    
+    $pdo->exec("DELETE FROM orcamentos");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Orçamentos removidos</p>";
+    
+    $pdo->exec("DELETE FROM produtos");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Produtos removidos</p>";
+    
+    $pdo->exec("DELETE FROM contas_pagar");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Contas a pagar removidas</p>";
+    
+    $pdo->exec("DELETE FROM caixa_controle");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Controle de caixa removido</p>";
+    
+    $pdo->exec("DELETE FROM clientes");
+    echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Clientes removidos</p>";
+    
+    echo "<div class='alert alert-info mt-2 mb-3'>
+           <i class='fas fa-info-circle me-2'></i>Todas as tabelas de dados foram limpas com sucesso.
+         </div>";
+
     
     // Limpar outros usuários, manter apenas o admin
     $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id != :admin_id");
@@ -76,8 +100,7 @@ try {
     $stmt->execute();
     echo "<p class='text-success'><i class='fas fa-check-circle me-2'></i>Senha do admin foi redefinida para <strong>admin123</strong></p>";
     
-    // Reativar verificações de chave estrangeira
-    $pdo->exec("SET session_replication_role = 'origin';");
+    // Não precisamos reativar verificações de chave estrangeira, já que não as desativamos
     
     // Adicionar dados iniciais necessários
     
