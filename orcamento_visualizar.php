@@ -356,20 +356,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])
                 'agendamentos'
             );
         } else {
-            // Reprovar o agendamento
-            $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'cancelado' WHERE id = :id");
-            $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            $mensagem = alerta('Agendamento reprovado com sucesso.', 'warning');
-            
-            // Adicionar notificação
-            adicionarNotificacao(
-                "Agendamento do orçamento #{$orcamento['numero']} foi REPROVADO!", 
-                'danger', 
-                "orcamento_visualizar.php?id={$id}",
-                'agendamentos'
-            );
+            // Reprovar o agendamento (excluindo completamente o orçamento)
+            $pdo->beginTransaction();
+            try {
+                // 1. Excluir todos os itens do orçamento
+                $stmt = $pdo->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // 2. Excluir agendamentos relacionados
+                $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // 3. Excluir o orçamento
+                $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                $pdo->commit();
+                $mensagem = alerta('Agendamento reprovado e orçamento excluído com sucesso.', 'warning');
+                
+                // Adicionar notificação
+                adicionarNotificacao(
+                    "Agendamento do orçamento #{$orcamento['numero']} foi REPROVADO e excluído do sistema!", 
+                    'danger', 
+                    "orcamentos.php",
+                    'agendamentos'
+                );
+                
+                // Redirecionar para a lista de orçamentos, pois este orçamento não existe mais
+                header("Location: orcamentos.php?mensagem=" . urlencode('Agendamento reprovado e orçamento excluído com sucesso.'));
+                exit;
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $mensagem = alerta('Erro ao excluir orçamento: ' . $e->getMessage(), 'danger');
+            }
         }
     }
 }
@@ -899,6 +921,8 @@ if (!$acesso_interno) {
 
                     <!-- Debug: Status de Agendamento -->
                     <?php 
+                    // Debug para verificar se há agendamento
+                    var_dump($agendamento); 
                     // Verificar se há agendamento e mostrar os botões
                     if (isset($agendamento) && $agendamento): 
                         $status_agendamento = $agendamento['status'];
@@ -915,6 +939,10 @@ if (!$acesso_interno) {
                                 <i class="fas fa-calendar-times me-2"></i>Reprovar Agendamento
                             </button>
                         </form>
+                    </div>
+                    <?php else: ?>
+                    <div class="mt-3 border-top pt-3">
+                        <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Nenhum agendamento encontrado para este orçamento</p>
                     </div>
                     <?php endif; ?>
                 </div>
