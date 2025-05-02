@@ -74,11 +74,11 @@ try {
     <!-- IMask para máscaras de input -->
     <script src="https://unpkg.com/imask@7.1.3/dist/imask.js"></script>
     <!-- Estilos personalizados -->
-    <link href="css/styles.css" rel="stylesheet">
+    <link href="<?php echo CSS_URL; ?>styles.css" rel="stylesheet">
     <!-- Estilos específicos para impressão -->
-    <link href="css/print.css" rel="stylesheet" media="print">
+    <link href="<?php echo CSS_URL; ?>print.css" rel="stylesheet" media="print">
     <?php if ($pagina_atual == 'dashboard.php'): ?>
-    <link href="css/dashboard.css" rel="stylesheet">
+    <link href="<?php echo CSS_URL; ?>dashboard.css" rel="stylesheet">
     <?php endif; ?>
     
     <!-- Estilos personalizados dinâmicos baseados na configuração -->
@@ -308,7 +308,7 @@ try {
     <!-- Menu centralizado com bordas -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="dashboard.php">
+            <a class="navbar-brand" href="<?php echo DASHBOARD_URL; ?>">
                 <i class="fas fa-water me-2"></i><?php echo isset($_SESSION['nome_empresa_temp']) ? $_SESSION['nome_empresa_temp'] : APP_NAME; ?>
             </a>
 
@@ -319,14 +319,14 @@ try {
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link <?php echo ($pagina_atual == 'dashboard.php') ? 'active' : ''; ?>" href="dashboard.php">
+                        <a class="nav-link <?php echo ($pagina_atual == 'dashboard.php') ? 'active' : ''; ?>" href="<?php echo DASHBOARD_URL; ?>">
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
                     
                     <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_orcamentos')): ?>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (strpos($pagina_atual, 'orcamento') !== false) ? 'active' : ''; ?>" href="orcamentos.php">
+                        <a class="nav-link <?php echo (strpos($pagina_atual, 'orcamento') !== false) ? 'active' : ''; ?>" href="<?php echo ORCAMENTOS_URL; ?>">
                             <i class="fas fa-file-invoice-dollar me-1"></i>Orçamentos
                         </a>
                     </li>
@@ -334,7 +334,7 @@ try {
                     
                     <?php if ($_SESSION['usuario']['nivel'] === 'admin' || verificarPermissao('gerenciar_clientes')): ?>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo (strpos($pagina_atual, 'cliente') !== false) ? 'active' : ''; ?>" href="clientes.php">
+                        <a class="nav-link <?php echo (strpos($pagina_atual, 'cliente') !== false) ? 'active' : ''; ?>" href="<?php echo CLIENTES_URL; ?>">
                             <i class="fas fa-users me-1"></i>Clientes
                         </a>
                     </li>

@@ -1,0 +1,1532 @@
+<?php
+// Este arquivo deve sempre começar com verificação e redirecionamentos ANTES de incluir o header
+// para evitar o erro "Cannot modify header information - headers already sent"
+require_once('includes/config.php');
+require_once('includes/db.php');
+require_once('includes/functions.php');
+require_once('includes/notificacoes.php');
+require_once('notificacao_orcamento.php');
+require_once('includes/gerenciar_agendamentos.php');
+
+// Garantir acesso às variáveis globais de conexão
+global $db, $pdo;
+
+// Carregar configurações de horários
+$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'horario_almoco_inicio', 'horario_almoco_fim')");
+$config_horarios = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Definir os horários a partir das configurações
+$horario_inicio = isset($config_horarios['horario_inicio']) ? $config_horarios['horario_inicio'] : '07:00';
+$horario_fim = isset($config_horarios['horario_fim']) ? $config_horarios['horario_fim'] : '17:00';
+$horario_almoco_inicio = isset($config_horarios['horario_almoco_inicio']) ? $config_horarios['horario_almoco_inicio'] : '11:00';
+$horario_almoco_fim = isset($config_horarios['horario_almoco_fim']) ? $config_horarios['horario_almoco_fim'] : '13:00';
+
+// Verificar a existência do orçamento ANTES de qualquer saída HTML
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$codigo = isset($_GET['codigo']) ? $_GET['codigo'] : '';
+
+if (!empty($id)) {
+    // Verificar se o orçamento existe
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM orcamentos WHERE id = :id");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $orcamento_existe = ($stmt->fetchColumn() > 0);
+    
+    if (!$orcamento_existe) {
+        // Redirecionar para a lista de orçamentos se não encontrado
+        header('Location: orcamentos.php?mensagem=' . urlencode('Orçamento não encontrado.'));
+        exit;
+    }
+} else if (!empty($codigo)) {
+    // Verificar se existe um orçamento com este código de acesso
+    $stmt = $pdo->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
+    $stmt->bindParam(':codigo_acesso', $codigo);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() == 0) {
+        // Não encontrado, preparar um template mínimo para exibir erro
+        include('includes/header_simples.php'); // Um header simples sem saída complexa
+        echo "<div class='container mt-5'>
+               <div class='card'>
+                 <div class='card-body text-center py-5'>
+                   <h1 class='text-danger mb-4'><i class='fas fa-exclamation-triangle me-2'></i>Erro</h1>
+                   <p class='lead'>Código de orçamento inválido ou expirado.</p>
+                   <p>O link que você tentou acessar não está disponível ou foi removido.</p>
+                 </div>
+               </div>
+             </div>";
+        include('includes/footer_simples.php'); // Um footer simples
+        exit;
+    }
+} else {
+    // Sem parâmetros, redirecionar para a página de orçamentos
+    header('Location: orcamentos.php');
+    exit;
+}
+
+// Definir flag para que agendamentos possam ser encontrados independente do status do orçamento
+define('BUSCAR_TODOS_AGENDAMENTOS', true);
+
+// Garantir que todas as funções personalizadas estejam disponíveis
+if (!function_exists('buscarAgendamentoAtivo')) {
+    /**
+     * Busca o agendamento ativo para um orçamento
+     * 
+     * @param int $orcamento_id ID do orçamento
+     * @return array|null Dados do agendamento ou null se não encontrado
+     */
+    function buscarAgendamentoAtivo($orcamento_id) {
+        global $pdo;
+        
+        // Consultar dados do agendamento com informações do colaborador
+        $stmt = $pdo->prepare("SELECT a.*, 
+                              c.nome as colaborador_nome, 
+                              c.telefone as colaborador_telefone, 
+                              c.tipo as tipo_colaborador
+                              FROM agendamentos a 
+                              JOIN colaboradores c ON a.instalador_id = c.id
+                              WHERE a.orcamento_id = :orcamento_id 
+                              AND (a.status = 'instalacao_agendada' OR a.status = 'orcamento_agendado' OR a.status = 'pendente')
+                              ORDER BY a.data_agendamento DESC LIMIT 1");
+        $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        return null;
+    }
+}
+
+// A função gerenciarAgendamentosStatus foi movida para includes/gerenciar_agendamentos.php
+
+// Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
+if (!isset($pdo) || !isset($db)) {
+    // Tentar criar uma nova conexão como último recurso
+    try {
+        if (DB_TYPE == 'mysql') {
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else if (DB_TYPE == 'pgsql') {
+            $dsn = "pgsql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";port=" . DB_PORT;
+        } else {
+            throw new Exception("Tipo de banco de dados não suportado");
+        }
+
+        // Opções PDO
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ];
+
+        // Criar conexão
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    } catch (PDOException $e) {
+        die('Erro de conexão com o banco de dados: ' . $e->getMessage());
+    }
+}
+
+// Inicialização de variáveis
+$acesso_interno = true;
+$orcamento = null;
+$itens = [];
+$cliente = null;
+$mensagem = '';
+$pagamentos = [];
+
+// Verificar se existem mensagens vindas via GET
+if (isset($_GET['mensagem'])) {
+    if ($_GET['mensagem'] == 'pago') {
+        $mensagem = alerta('Pagamento total registrado com sucesso!', 'success');
+    } elseif ($_GET['mensagem'] == 'pagamento_parcial') {
+        $mensagem = alerta('Pagamento parcial registrado com sucesso!', 'success');
+    } elseif ($_GET['mensagem'] == 'cadastrado') {
+        $mensagem = alerta('Orçamento cadastrado com sucesso!', 'success');
+    }
+}
+
+// Verificar se há mensagem de agendamento
+if (isset($_GET['mensagem_agendamento'])) {
+    $tipo_alerta = $_GET['tipo'] ?? 'danger';
+    $mensagem = alerta($_GET['mensagem_agendamento'], $tipo_alerta);
+}
+
+// Processar ações como marcar como finalizado ou reabrir orçamento
+if (isset($_GET['id']) && isset($_GET['acao'])) {
+    // Verificar autenticação primeiro
+    require_once('includes/auth.php');
+    verificarAutenticacao();
+    
+    $id = intval($_GET['id']);
+    $acao = $_GET['acao'];
+    
+    if ($acao == 'finalizar') {
+        $pdo->beginTransaction();
+        
+        try {
+            // 1. Verificar e remover agendamentos que não são mais necessários
+            gerenciarAgendamentosStatus($id, 'finalizado');
+            
+            // 2. Atualizar status de execução para finalizado
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'finalizado', 
+                                data_finalizacao = CURRENT_DATE 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 3. Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // 4. Confirmar todas as alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem e notificação
+            $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso e removido da agenda!', 'success');
+            
+            // Gerar notificação
+            notificarOrcamento($id, 'finalizado', [
+                'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
+            ]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao finalizar orçamento: ' . $e->getMessage(), 'danger');
+        }
+    } elseif ($acao == 'andamento') {
+        // Iniciar uma transação para garantir que todas as operações sejam feitas corretamente
+        $pdo->beginTransaction();
+        
+        try {
+            // 1. Verificar e remover agendamentos que não são mais necessários
+            gerenciarAgendamentosStatus($id, 'andamento');
+            
+            // 2. Atualizar status de execução para em andamento
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'andamento' 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 3. Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // 4. Confirmar todas as alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem de sucesso e notificação
+            $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso e removido da agenda!', 'success');
+            
+            // Gerar notificação
+            notificarOrcamento($id, 'andamento', [
+                'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
+            ]);
+        } catch (Exception $e) {
+            // Se ocorrer algum erro, fazer rollback das alterações
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao atualizar status para EM ANDAMENTO: ' . $e->getMessage(), 'danger');
+        }
+    } elseif ($acao == 'pendente') {
+        $pdo->beginTransaction();
+        
+        try {
+            // 1. Verificar e gerenciar agendamentos
+            // Pendente pode ter agendamento, mas nosso gerenciador vai verificar status
+            gerenciarAgendamentosStatus($id, 'pendente');
+            
+            // 2. Atualizar status de execução para pendente
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'pendente' 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 3. Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome, o.numero FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // 4. Confirmar alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem e notificação
+            $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+            
+            // Gerar notificação
+            adicionarNotificacao(
+                "Orçamento #{$dados['numero']} para {$dados['cliente_nome']} marcado como PENDENTE", 
+                'warning', 
+                "orcamento_visualizar.php?id={$id}"
+            );
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao atualizar status para PENDENTE: ' . $e->getMessage(), 'danger');
+        }
+    } elseif ($acao == 'reabrir') {
+        // Reabrir orçamento rejeitado (mudar status para pendente)
+        $pdo->beginTransaction();
+        
+        try {
+            // 1. Verificar status do agendamento para 'pendente'
+            gerenciarAgendamentosStatus($id, 'pendente');
+            
+            // 2. Atualizar status do orçamento
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status = 'pendente'
+                                WHERE id = :id AND status = 'rejeitado'");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // Verificar se houve atualização
+            if ($stmt->rowCount() == 0) {
+                throw new Exception('Orçamento não foi encontrado ou não estava no status rejeitado.');
+            }
+            
+            // 3. Buscar dados para notificação
+            $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome, o.numero FROM orcamentos o 
+                                       JOIN clientes c ON o.cliente_id = c.id
+                                       WHERE o.id = :id");
+            $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_notify->execute();
+            $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // 4. Confirmar alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem e notificação
+            $mensagem = alerta('Orçamento reaberto com sucesso!', 'success');
+            
+            // Gerar notificação
+            adicionarNotificacao(
+                "Orçamento #{$dados['numero']} para {$dados['cliente_nome']} REABERTO para análise", 
+                'primary', 
+                "orcamento_visualizar.php?id={$id}"
+            );
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao reabrir orçamento: ' . $e->getMessage(), 'danger');
+        }
+    }
+    
+    // Redirecionar para remover a ação da URL
+    header("Location: orcamento_visualizar.php?id={$id}");
+    exit;
+}
+
+// Verificando tipo de acesso
+if (isset($_GET['id'])) {
+    // Acesso interno (painel administrativo)
+    require_once('includes/auth.php');
+    verificarAutenticacao();
+    require_once('includes/header.php');
+
+    $id = intval($_GET['id']);
+    $orcamento = buscarOrcamento($id);
+
+    if ($orcamento) {
+        $itens = buscarItensOrcamento($id);
+        $cliente = buscarCliente($orcamento['cliente_id']);
+        
+        // Buscar histórico de pagamentos do orçamento
+        $stmt = $pdo->prepare("SELECT c.*, 
+                          (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                          FROM caixa c 
+                          WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                          ORDER BY c.data_operacao DESC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
+        }
+        
+        // Buscar dados de agendamento independente do status
+        $agendamento = null;
+        // Sempre buscar agendamento para verificar se há pendentes
+        $agendamento = buscarAgendamentoAtivo($id);
+    } else {
+        $mensagem = alerta('Orçamento não encontrado!', 'danger');
+    }
+} elseif (isset($_GET['codigo'])) {
+    // Acesso externo (cliente)
+    $acesso_interno = false;
+    $codigo = $_GET['codigo'];
+
+    $stmt = $pdo->prepare("SELECT id FROM orcamentos WHERE codigo_acesso = :codigo_acesso");
+    $stmt->bindParam(':codigo_acesso', $codigo);
+    $stmt->execute();
+
+    if ($stmt->rowCount() > 0) {
+        $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+        $id = $resultado['id'];
+        $orcamento = buscarOrcamento($id);
+        $itens = buscarItensOrcamento($id);
+        $cliente = buscarCliente($orcamento['cliente_id']);
+        
+        // Buscar histórico de pagamentos do orçamento
+        // A variável $pdo já está definida
+        $stmt = $pdo->prepare("SELECT c.*, 
+                         (SELECT nome FROM usuarios WHERE id = c.usuario_id) as usuario_nome
+                         FROM caixa c 
+                         WHERE c.orcamento_id = :orcamento_id AND c.tipo = 'entrada'
+                         ORDER BY c.data_operacao DESC");
+        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $pagamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calcular o total pago
+        $total_pago = 0;
+        foreach ($pagamentos as $pagamento) {
+            $total_pago += $pagamento['valor'];
+        }
+        
+        // Buscar dados de agendamento independente do status
+        $agendamento = null;
+        // Sempre buscar agendamento para verificar se há pendentes
+        $agendamento = buscarAgendamentoAtivo($id);
+    } else {
+        // Template HTML mínimo para exibir erro
+        ?>
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Orçamento - <?php echo APP_NAME; ?></title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+            <link href="css/styles.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <h1 class="text-danger mb-4"><i class="fas fa-exclamation-triangle me-2"></i>Erro</h1>
+                        <p class="lead">Código de orçamento inválido ou expirado.</p>
+                        <p>O link que você tentou acessar não está disponível ou foi removido.</p>
+                    </div>
+                </div>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+} else {
+    // Sem parâmetros, redirecionar para a página de orçamentos
+    header('Location: orcamentos.php');
+    exit;
+}
+
+// Processar aprovação ou rejeição do agendamento
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['agendamento_decisao'])) {
+    $decisao = $_POST['agendamento_decisao'];
+    $id = intval($_POST['id']);
+    $agendamento_id = intval($_POST['agendamento_id']);
+    
+    if ($decisao == 'aprovar' || $decisao == 'reprovar') {
+        // Incluir bibliotecas necessárias para notificações
+        require_once('includes/notificacoes.php');
+        
+        if ($decisao == 'aprovar') {
+            // Iniciar transação para garantir consistência
+            $pdo->beginTransaction();
+            
+            try {
+                // Atualizar o status_execucao do orçamento
+                $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'orcamento_agendado' WHERE id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // Atualizar TODOS os agendamentos pendentes relacionados a este orçamento
+                // Isso garante que mesmo sem o agendamento_id correto, ainda sincronizamos os status
+                $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' 
+                                    WHERE orcamento_id = :orcamento_id AND status = 'pendente'");
+                $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                
+                // Se agendamento_id foi passado, garantir que este específico também seja atualizado
+                if ($agendamento_id > 0) {
+                    $stmt = $pdo->prepare("UPDATE agendamentos SET status = 'orcamento_agendado' WHERE id = :id");
+                    $stmt->bindParam(':id', $agendamento_id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+                
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                // Registrar erro em log (pode ser implementado no futuro)
+                error_log("Erro ao aprovar agendamento: " . $e->getMessage());
+            }
+            
+            $mensagem = alerta('Agendamento aprovado e confirmado com sucesso!', 'success');
+            
+            // Adicionar notificação
+            adicionarNotificacao(
+                "Agendamento do orçamento #{$orcamento['numero']} foi APROVADO!", 
+                'success', 
+                "orcamento_visualizar.php?id={$id}",
+                'agendamentos'
+            );
+        } else {
+            // Reprovar o agendamento (excluindo completamente o orçamento)
+            $pdo->beginTransaction();
+            try {
+                // Primeiro verificar se existe o orçamento (garantia de segurança)
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM orcamentos WHERE id = :id");
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+                $orcamento_existe = ($stmt->fetchColumn() > 0);
+                
+                if ($orcamento_existe) {
+                    // 1. Excluir todos os itens do orçamento
+                    $stmt = $pdo->prepare("DELETE FROM orcamento_itens WHERE orcamento_id = :id");
+                    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                    $stmt->execute();
+                    
+                    // 2. Excluir agendamentos relacionados
+                    if ($agendamento_id > 0) {
+                        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
+                        $stmt->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                        $stmt->execute();
+                    } else {
+                        $stmt = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :id");
+                        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+                    }
+                    
+                    // 3. Excluir o orçamento
+                    $stmt = $pdo->prepare("DELETE FROM orcamentos WHERE id = :id");
+                    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+                
+                $pdo->commit();
+                $mensagem = alerta('Agendamento reprovado e orçamento excluído com sucesso.', 'warning');
+                
+                // Adicionar notificação
+                adicionarNotificacao(
+                    "Agendamento do orçamento #{$orcamento['numero']} foi REPROVADO e excluído do sistema!", 
+                    'danger', 
+                    "orcamentos.php",
+                    'agendamentos'
+                );
+                
+                // Preparar mensagem para redirecionar sem enviar cabeçalhos
+                $_SESSION['mensagem_sucesso'] = 'Agendamento reprovado e orçamento excluído com sucesso.';
+                echo "<script>window.location.href = 'orcamentos.php';</script>";
+                exit;
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $mensagem = alerta('Erro ao excluir orçamento: ' . $e->getMessage(), 'danger');
+            }
+        }
+    }
+}
+
+// Processar decisão do cliente ou administrador (aprovar/rejeitar)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['decisao'])) {
+    $decisao = $_POST['decisao'];
+    $id = intval($_POST['id']);
+
+    if ($decisao == 'aprovar' || $decisao == 'rejeitar') {
+        // Incluir bibliotecas necessárias para notificações
+        require_once('includes/notificacoes.php');
+        require_once('notificacao_orcamento.php');
+        
+        $novo_status = ($decisao == 'aprovar') ? 'aprovado' : 'rejeitado';
+
+        $stmt = $pdo->prepare("UPDATE orcamentos SET status = :status WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $novo_status);
+        $stmt->execute();
+
+        // Se aprovado, processar baixa no estoque
+        if ($novo_status == 'aprovado') {
+            $pdo->beginTransaction();
+            try {
+                // Buscar itens atualizados
+                $itens = buscarItensOrcamento($id);
+
+                foreach ($itens as $item) {
+                    if ($item['produto_id'] > 0) {
+                        // Registrar movimentação no estoque
+                        $stmt = $pdo->prepare("INSERT INTO estoque_movimentacoes 
+                                        (produto_id, tipo, quantidade, valor_unitario, valor_total, observacao, orcamento_id)
+                                        VALUES 
+                                        (:produto_id, 'saida', :quantidade, :valor_unitario, :valor_total, :observacao, :orcamento_id)");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->bindParam(':valor_unitario', $item['valor_unitario']);
+                        $stmt->bindParam(':valor_total', $item['valor_total']);
+                        $observacao = "Saída automática do orçamento #{$orcamento['numero']}";
+                        $stmt->bindParam(':observacao', $observacao);
+                        $stmt->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+                        $stmt->execute();
+
+                        // Atualizar estoque do produto
+                        $stmt = $pdo->prepare("UPDATE produtos 
+                                        SET estoque_atual = estoque_atual - :quantidade 
+                                        WHERE id = :produto_id");
+                        $stmt->bindParam(':produto_id', $item['produto_id'], PDO::PARAM_INT);
+                        $stmt->bindParam(':quantidade', $item['quantidade']);
+                        $stmt->execute();
+                    }
+                }
+
+                $pdo->commit();
+                $mensagem = alerta('Orçamento aprovado com sucesso!', 'success');
+                
+                // Adicionar notificação de orçamento aprovado
+                adicionarNotificacao(
+                    "Orçamento #{$orcamento['numero']} foi APROVADO!", 
+                    'success', 
+                    "orcamento_visualizar.php?id={$id}"
+                );
+                
+                // Usar função especializada para notificação com som
+                notificarOrcamento($id, 'aprovar', ['valor_total' => $orcamento['valor_total']]);
+            } catch (Exception $e) {
+                try {
+                    $pdo->rollBack(); // Corrigido para rollBack() com B maiúsculo
+                } catch (Exception $rollbackError) {
+                    // Ignora erro de rollback
+                }
+                $mensagem = alerta('Erro ao processar baixa no estoque: ' . $e->getMessage(), 'danger');
+            }
+        } else {
+            $mensagem = alerta('Orçamento rejeitado com sucesso.', 'warning');
+            
+            // Adicionar notificação de orçamento rejeitado
+            adicionarNotificacao(
+                "Orçamento #{$orcamento['numero']} foi REJEITADO", 
+                'danger', 
+                "orcamento_visualizar.php?id={$id}"
+            );
+            
+            // Usar função especializada para notificação com som
+            notificarOrcamento($id, 'rejeitar');
+        }
+
+        // Recarregar orçamento com status atualizado
+        $orcamento = buscarOrcamento($id);
+    }
+}
+
+// Se for acesso externo (cliente)
+if (!$acesso_interno) {
+    // Início do HTML para cliente
+    ?>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?></title>
+        
+        <!-- Meta tags para SEO -->
+        <meta name="description" content="Orçamento #<?php echo $orcamento['numero']; ?> para <?php echo $cliente['nome']; ?> - Serviços de calhas e rufos com qualidade e preço justo.">
+        <meta name="keywords" content="orçamento, calhas, rufos, serviços, construção">
+        
+        <!-- Open Graph / Facebook / WhatsApp -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="<?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+        <meta property="og:title" content="Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?>">
+        <meta property="og:description" content="Clique para visualizar seu orçamento completo. Válido até <?php echo dataParaBr($orcamento['data_validade']); ?>">
+        <meta property="og:image" content="<?php echo BASE_URL; ?>img/social/orcamento_share.svg">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="<?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+        <meta property="twitter:title" content="Orçamento #<?php echo $orcamento['numero']; ?> - <?php echo APP_NAME; ?>">
+        <meta property="twitter:description" content="Clique para visualizar seu orçamento completo. Válido até <?php echo dataParaBr($orcamento['data_validade']); ?>">
+        <meta property="twitter:image" content="<?php echo BASE_URL; ?>img/social/orcamento_share.svg">
+        
+        <!-- CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+        <link href="css/styles.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?php echo $orcamento['numero']; ?></h2>
+                </div>
+                <div class="card-body">
+                    <?php echo $mensagem; ?>
+    <?php
+} else {
+    // Cabeçalho para uso interno
+    ?>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file-invoice-dollar me-2"></i>Orçamento #<?php echo $orcamento['numero']; ?></h1>
+        <div>
+            <a href="orcamentos.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+            <button onclick="imprimirOrcamento();" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+            <div class="btn-group ms-2">
+                <a href="orcamento_form.php?id=<?php echo $orcamento['id']; ?>" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Editar
+                </a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                    <span class="visually-hidden">Mais opções</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <!-- Opções de status -->
+                    <?php if ($orcamento['status'] == 'aprovado'): ?>
+                        <?php if ($orcamento['status_pagamento'] == 'pendente' || $orcamento['status_pagamento'] == 'pago_parcial'): ?>
+                            <li>
+                                <a class="dropdown-item" href="caixa_form.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Registrar Pagamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <!-- Opções de status de execução -->
+                        <li>
+                            <a class="dropdown-item text-secondary fw-bold">
+                                <i class="fas fa-tasks me-2"></i>Status de Execução
+                            </a>
+                        </li>
+                        <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=pendente">
+                                    <i class="fas fa-circle me-2 text-secondary"></i>Marcar como Pendente
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'instalacao_agendada' && $orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-alt me-2 text-info"></i>Agendar Serviço
+                                </a>
+                            </li>
+                        <?php else: ?>
+                            <li>
+                                <a class="dropdown-item" href="agendamento.php?orcamento_id=<?php echo $orcamento['id']; ?>">
+                                    <i class="fas fa-calendar-alt me-2 text-warning"></i>Gerenciar Agendamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'andamento'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=andamento">
+                                    <i class="fas fa-spinner me-2 text-warning"></i>Marcar Em Andamento
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($orcamento['status_execucao'] != 'finalizado'): ?>
+                            <li>
+                                <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=finalizar">
+                                    <i class="fas fa-check-circle me-2 text-success"></i>Marcar como Finalizado
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções específicas para orçamentos rejeitados -->
+                    <?php if ($orcamento['status'] == 'rejeitado'): ?>
+                    <li>
+                        <a class="dropdown-item" href="?id=<?php echo $orcamento['id']; ?>&acao=reabrir">
+                            <i class="fas fa-redo-alt me-2"></i>Reabrir Orçamento
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
+                    <!-- Opções gerais -->
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="copiarLinkCliente(); return false;">
+                            <i class="fas fa-link me-2"></i>Copiar Link do Cliente
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="mailto:<?php echo $cliente['email']; ?>?subject=Orçamento <?php echo $orcamento['numero']; ?>&body=Olá <?php echo $cliente['nome']; ?>, segue o link para acessar seu orçamento: <?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>">
+                            <i class="fas fa-envelope me-2"></i>Enviar por Email
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="https://api.whatsapp.com/send?phone=<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>&text=Olá <?php echo urlencode($cliente['nome']); ?>, segue o link para acessar seu orçamento: <?php echo urlencode(BASE_URL . 'orcamento_visualizar.php?codigo=' . $orcamento['codigo_acesso']); ?>" target="_blank">
+                            <i class="fab fa-whatsapp me-2 text-success"></i>Enviar por WhatsApp
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" onclick="confirmarExclusao(<?php echo $orcamento['id']; ?>, '<?php echo $orcamento['numero']; ?>', 'orcamentos.php'); return false;">
+                            <i class="fas fa-trash me-2"></i>Excluir
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <?php echo $mensagem; ?>
+    <?php
+}
+?>
+
+<!-- CONTEÚDO COMUM PARA AMBOS OS TIPOS DE ACESSO -->
+<div class="orcamento-container" id="orcamento-imprimir">
+    <div class="orcamento-header">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <h2 class="mb-0"><?php echo APP_NAME; ?></h2>
+                <p class="text-muted mb-0">Orçamento de Calhas e Rufos</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <!-- Status do orçamento -->
+                <span class="status-box status-<?php echo $orcamento['status']; ?>">
+                    <?php echo ucfirst($orcamento['status']); ?>
+                </span>
+                
+                <!-- Status de pagamento -->
+                <?php if ($orcamento['status_pagamento'] == 'pago_total'): ?>
+                <span class="status-box status-pago ms-2">
+                    Pago Total
+                </span>
+                <?php elseif ($orcamento['status_pagamento'] == 'pago_parcial'): ?>
+                <span class="status-box status-pago-parcial ms-2">
+                    Pago Parcial
+                </span>
+                <?php endif; ?>
+                
+                <!-- Status de execução -->
+                <?php if ($orcamento['status_execucao'] != 'pendente'): ?>
+                    <?php 
+                    $status_class = '';
+                    $texto_status = '';
+                    
+                    switch ($orcamento['status_execucao']) {
+                        case 'instalacao_agendada':
+                            $status_class = 'status-agendado';
+                            $texto_status = 'Instalação Agendada';
+                            break;
+                        case 'orcamento_agendado':
+                            $status_class = 'status-agendado';
+                            $texto_status = 'Orçamento Agendado';
+                            break;
+                        case 'andamento':
+                            $status_class = 'status-andamento';
+                            $texto_status = 'Instalação em Andamento';
+                            break;
+                        case 'finalizado':
+                            $status_class = 'status-finalizado';
+                            $texto_status = 'Instalação Finalizada';
+                            break;
+                        default:
+                            $texto_status = ucfirst($orcamento['status_execucao']);
+                    }
+                    ?>
+                    <span class="status-box <?php echo $status_class; ?> ms-2">
+                        <?php echo $texto_status; ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Dados do Cliente</h5>
+                <p class="mb-0"><strong>Nome:</strong> <?php echo $cliente['nome']; ?></p>
+                <?php if (!empty($cliente['cpf_cnpj'])): ?>
+                    <p class="mb-0"><strong>CPF/CNPJ:</strong> <?php echo $cliente['cpf_cnpj']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['telefone'])): ?>
+                    <p class="mb-0"><strong>Telefone:</strong> <?php echo $cliente['telefone']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['email'])): ?>
+                    <p class="mb-0"><strong>Email:</strong> <?php echo $cliente['email']; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($cliente['endereco'])): ?>
+                    <p class="mb-0"><strong>Endereço:</strong> <?php echo $cliente['endereco']; ?></p>
+                <?php endif; ?>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <h5>Dados do Orçamento</h5>
+                <p class="mb-0"><strong>Número:</strong> <?php echo $orcamento['numero']; ?></p>
+                <p class="mb-0"><strong>Data:</strong> <?php echo dataParaBr($orcamento['data_criacao']); ?></p>
+                <p class="mb-0"><strong>Validade:</strong> <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+                <p class="mb-0"><strong>Forma de Pagamento:</strong> <?php echo ($orcamento['forma_pagamento'] == 'vista') ? 'À Vista' : 'Até 12x Sem Juros'; ?></p>
+                
+                <?php if (isset($agendamento) && $agendamento): ?>
+                    <div class="dados-agendamento">
+                        <?php 
+                        // Verifica se é um orçamento agendado ou instalação agendada com base no status
+                        $tipo_agendamento = "INSTALAÇÃO AGENDADA";
+                        $cor_agendamento = "text-success";
+                        
+                        if ($agendamento['status'] == 'orcamento_agendado' || 
+                            (isset($agendamento['tipo_colaborador']) && $agendamento['tipo_colaborador'] == 'orcamentista')) {
+                            $tipo_agendamento = "ORÇAMENTO AGENDADO";
+                            $cor_agendamento = "text-primary";
+                        }
+                        ?>
+                        <p class="mb-0 mt-3"><strong class="<?php echo $cor_agendamento; ?>"><i class="fas fa-calendar-check me-1"></i> <?php echo $tipo_agendamento; ?></strong></p>
+                        <p class="mb-0"><strong>Data:</strong> <?php echo date('d/m/Y', strtotime($agendamento['data_agendamento'])); ?></p>
+                        <p class="mb-0"><strong>Horário:</strong> <?php echo substr($agendamento['hora_inicio'], 0, 5); ?></p>
+                        <p class="mb-0"><strong>Profissional:</strong> <?php echo $agendamento['colaborador_nome']; ?></p>
+                        <?php if (!empty($agendamento['colaborador_telefone'])): ?>
+                            <p class="mb-0"><strong>Contato:</strong> <?php echo $agendamento['colaborador_telefone']; ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validade do orçamento -->
+    <div class="text-center mb-4">
+        <p>Este orçamento é válido até <?php echo dataParaBr($orcamento['data_validade']); ?></p>
+    </div>
+
+    <h5 class="mb-3">Itens do Orçamento</h5>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-orcamento">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Unidade</th>
+                    <th class="text-center">Quantidade</th>
+                    <th class="text-end">Valor Unitário</th>
+                    <th class="text-end">Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (count($itens) > 0): ?>
+                    <?php foreach ($itens as $index => $item): ?>
+                        <?php 
+                            $valor_unitario_com_mo = $item['valor_unitario'] * (1 + ($orcamento['taxa_mao_obra'] / 100));
+                            $valor_total_com_mo = $valor_unitario_com_mo * $item['quantidade'];
+                        ?>
+                        <tr>
+                            <td><?php echo $index + 1; ?></td>
+                            <td><?php echo $item['descricao']; ?></td>
+                            <td><?php echo $item['unidade']; ?></td>
+                            <td class="text-center"><?php echo number_format($item['quantidade'], 2, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo formataValor($valor_unitario_com_mo); ?></td>
+                            <td class="text-end"><?php echo formataValor($valor_total_com_mo); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum item encontrado para este orçamento.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <?php if ($orcamento['forma_pagamento'] == 'vista'): 
+                    // Buscar a configuração do percentual de desconto à vista
+                    $desconto_vista = 10; // Valor padrão de 10%
+                    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = 'desconto_pagamento_vista'");
+                    $stmt->execute();
+                    if ($stmt->rowCount() > 0) {
+                        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $desconto_vista = floatval($config['valor']);
+                    }
+                    
+                    // Calcular o subtotal (valor antes do desconto)
+                    $subtotal = $orcamento['valor_total'] / (1 - ($desconto_vista/100));
+                    $valor_desconto = $subtotal - $orcamento['valor_total'];
+                ?>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                    <td class="text-end"><?php echo formataValor($subtotal); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Desconto à Vista (<?php echo $desconto_vista; ?>%):</td>
+                    <td class="text-end"><?php echo formataValor($valor_desconto); ?></td>
+                </tr>
+                <?php endif; ?>
+                <tr>
+                    <td colspan="5" class="text-end fw-bold">Valor Total:</td>
+                    <td class="text-end"><strong><?php echo formataValor($orcamento['valor_total']); ?></strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <?php if (count($pagamentos) > 0): ?>
+    <div class="mt-4">
+        <h5><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Forma de Pagamento</th>
+                        <th>Descrição</th>
+                        <?php if ($acesso_interno): ?>
+                        <th>Usuário</th>
+                        <?php endif; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pagamentos as $pagamento): ?>
+                    <tr>
+                        <td><?php echo dataParaBr($pagamento['data_operacao']); ?></td>
+                        <td class="text-end"><?php echo formataValor($pagamento['valor']); ?></td>
+                        <td>
+                            <?php 
+                            switch ($pagamento['forma_pagamento']) {
+                                case 'dinheiro':
+                                    echo '<span class="badge bg-success">Dinheiro</span>';
+                                    break;
+                                case 'cartao_credito':
+                                    echo '<span class="badge bg-primary">Cartão de Crédito</span>';
+                                    break;
+                                case 'cartao_debito':
+                                    echo '<span class="badge bg-info">Cartão de Débito</span>';
+                                    break;
+                                case 'pix':
+                                    echo '<span class="badge bg-warning text-dark">PIX</span>';
+                                    break;
+                                default:
+                                    echo '<span class="badge bg-secondary">Outros</span>';
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo $pagamento['descricao']; ?></td>
+                        <?php if ($acesso_interno): ?>
+                        <td><?php echo $pagamento['usuario_nome'] ?? 'Sistema'; ?></td>
+                        <?php endif; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <td colspan="1"><strong>Total Pago:</strong></td>
+                        <td class="text-end"><strong><?php echo formataValor($total_pago); ?></strong></td>
+                        <td colspan="<?php echo $acesso_interno ? '3' : '2'; ?>">
+                            <?php if ($total_pago > 0 && $total_pago < $orcamento['valor_total']): ?>
+                            <span class="text-primary">Valor Restante: <?php echo formataValor($orcamento['valor_total'] - $total_pago); ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($orcamento['observacoes'])): ?>
+        <div class="mt-4">
+            <h5>Observações</h5>
+            <div class="card">
+                <div class="card-body bg-light">
+                    <?php echo nl2br($orcamento['observacoes']); ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+    
+    <?php /* Removida seção duplicada de informações de agendamento */ ?>
+
+    <div class="orcamento-footer mt-5">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <?php if ($acesso_interno && $orcamento['status'] == 'pendente'): ?>
+                <div class="mt-4">
+                    <form method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+                        <button type="submit" name="decisao" value="aprovar" class="btn btn-success mx-2">
+                            <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                        </button>
+                        <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger mx-2">
+                            <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                        </button>
+                    </form>
+
+                    <!-- Status de Agendamento -->
+                    <?php 
+                    // Verificar status atual do orçamento e do agendamento
+                    $status_execucao = $orcamento['status_execucao'];
+                    $mostrar_status = false;
+                    $mostrar_botoes_aprovacao = false;
+                    
+                    // Se tiver agendamento ou for pendente, mostrar detalhes do status
+                    if ($status_execucao == 'pendente' || isset($agendamento)) {
+                        $mostrar_status = true;
+                        
+                        // Se tiver agendamento, mostrar o status dele
+                        if (isset($agendamento) && $agendamento) {
+                            $status_agendamento = $agendamento['status'];
+                            $agendamento_id = $agendamento['id'];
+                            
+                            // Mostrar botões apenas se o status do agendamento for pendente
+                            $mostrar_botoes_aprovacao = ($status_agendamento == 'pendente');
+                            
+                            if ($status_agendamento == 'pendente') {
+                                $status_msg = "Solicitação de orçamento pendente de aprovação"; 
+                            } elseif ($status_agendamento == 'orcamento_agendado') {
+                                $status_msg = "Orçamento já agendado para atendimento"; 
+                            } else {
+                                $status_msg = "Solicitação de orçamento {$status_agendamento}"; 
+                            }
+                        } else {
+                            // Se não tiver agendamento mas for pendente, é do site
+                            $status_msg = "Solicitação de orçamento pendente (site)";
+                            $agendamento_id = 0;
+                            $mostrar_botoes_aprovacao = true;
+                        }
+                    }
+                    
+                    // Atualizar mensagem e esconder botões se o orçamento já estiver agendado
+                    if ($status_execucao == 'orcamento_agendado' || $status_execucao == 'instalacao_agendada') {
+                        $mostrar_botoes_aprovacao = false;
+                        $status_msg = "Orçamento já agendado para atendimento";
+                    }
+                    
+                    if ($mostrar_status):
+                    ?>
+                    <div class="mt-3 border-top pt-3">
+                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i><?php echo $status_msg; ?></p>
+                        
+                        <?php if ($mostrar_botoes_aprovacao): ?>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+                            <input type="hidden" name="agendamento_id" value="<?php echo $agendamento_id; ?>">
+                            <button type="submit" name="agendamento_decisao" value="aprovar" class="btn btn-outline-success mx-2">
+                                <i class="fas fa-calendar-check me-2"></i>Aprovar Agendamento
+                            </button>
+                            <button type="submit" name="agendamento_decisao" value="reprovar" class="btn btn-outline-danger mx-2">
+                                <i class="fas fa-calendar-times me-2"></i>Reprovar Agendamento
+                            </button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php if (!$acesso_interno && $orcamento['status'] == 'pendente'): ?>
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Avaliação do Orçamento</h5>
+        </div>
+        <div class="card-body">
+            <p>Prezado(a) <?php echo $cliente['nome']; ?>, avalie o orçamento acima e informe sua decisão:</p>
+
+            <form method="post" class="mt-3">
+                <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
+
+                <div class="d-flex justify-content-center">
+                    <button type="submit" name="decisao" value="aprovar" class="btn btn-success btn-lg mx-2">
+                        <i class="fas fa-check-circle me-2"></i>Aprovar Orçamento
+                    </button>
+
+                    <button type="submit" name="decisao" value="rejeitar" class="btn btn-danger btn-lg mx-2">
+                        <i class="fas fa-times-circle me-2"></i>Rejeitar Orçamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+<?php elseif (!$acesso_interno && $orcamento['status'] != 'pendente'): ?>
+    <div class="alert alert-<?php echo ($orcamento['status'] == 'aprovado') ? 'success' : 'danger'; ?> mt-4">
+        <h5 class="alert-heading">
+            <?php if ($orcamento['status'] == 'aprovado'): ?>
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    <i class="fas fa-check-double me-2"></i>Orçamento Finalizado!
+                <?php else: ?>
+                    <i class="fas fa-check-circle me-2"></i>Orçamento Aprovado!
+                <?php endif; ?>
+            <?php else: ?>
+                <i class="fas fa-times-circle me-2"></i>Orçamento Rejeitado!
+            <?php endif; ?>
+        </h5>
+        <p class="mb-0">
+            <?php if ($orcamento['status'] == 'aprovado'): ?>
+                <?php if ($orcamento['status_execucao'] == 'finalizado'): ?>
+                    Nossa equipe já realizou o serviço. Agradecemos pela confiança em nosso trabalho. Caso precise de algum esclarecimento adicional ou tenha qualquer questão, estamos à disposição.
+                <?php else: ?>
+                    Agradecemos por aprovar nosso orçamento. Você pode agendar a execução do serviço diretamente através deste link.
+                <?php endif; ?>
+            <?php else: ?>
+                Você rejeitou este orçamento. Caso queira discutir alterações ou fazer uma nova cotação, entre em contato conosco.
+            <?php endif; ?>
+        </p>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['codigo']) && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
+<!-- Seção de agendamento para clientes -->
+<div class="card mb-4" id="agendamento">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>
+            <?php if ($orcamento['status_execucao'] == 'instalacao_agendada'): ?>
+                Reagendar Serviço
+            <?php else: ?>
+                Agendar Serviço
+            <?php endif; ?>
+        </h5>
+    </div>
+    <div class="card-body">
+        <form id="formAgendamento" method="post" action="agendar_servico.php">
+            <input type="hidden" name="orcamento_id" value="<?php echo $orcamento['id']; ?>">
+            <input type="hidden" name="codigo" value="<?php echo $_GET['codigo']; ?>">
+            <input type="hidden" name="tempo_previsto" value="<?php echo $orcamento['tempo_previsto']; ?>">
+            <input type="hidden" name="unidade_tempo" value="<?php echo $orcamento['unidade_tempo']; ?>">
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="data_servico" class="form-label required-field">Data de Execução</label>
+                    <input type="date" class="form-control" id="data_servico" name="data_servico" required min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
+                    <small class="text-muted">Selecione a data desejada para a execução do serviço.</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="hora_inicio" class="form-label required-field">Horário de Início</label>
+                    <select class="form-select" id="hora_inicio" name="hora_inicio" required>
+                        <option value="">Selecione o horário</option>
+                        <?php
+                        // Obter configurações de horário de funcionamento
+                        $stmt_conf = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim')");
+                        $config = $stmt_conf->fetchAll(PDO::FETCH_KEY_PAIR);
+
+                        // Valores padrão caso não existam configurações
+                        $horario_inicio = isset($config['horario_inicio']) ? $config['horario_inicio'] : '07:00';
+                        $horario_fim = isset($config['horario_fim']) ? $config['horario_fim'] : '17:00';
+                        
+                        // Calcular hora máxima possível com base no tempo previsto
+                        $tempo_previsto = $orcamento['tempo_previsto'];
+                        $unidade_tempo = $orcamento['unidade_tempo'];
+                        
+                        // Converter tempo previsto para minutos
+                        $duracao_minutos = $tempo_previsto;
+                        if ($unidade_tempo === 'horas') {
+                            $duracao_minutos = $tempo_previsto * 60;
+                        } else if ($unidade_tempo === 'dias') {
+                            $duracao_minutos = $tempo_previsto * 60 * 8; // 8 horas por dia
+                        }
+                        
+                        // Extrair as horas e minutos do horário de fim
+                        list($horas_fim, $minutos_fim) = explode(':', $horario_fim);
+                        $minutos_total_fim = ($horas_fim * 60) + $minutos_fim;
+                        
+                        // Extrair as horas e minutos do horário de início
+                        list($horas_inicio, $minutos_inicio) = explode(':', $horario_inicio);
+                        $minutos_total_inicio = ($horas_inicio * 60) + $minutos_inicio;
+                        
+                        // Calcular hora máxima para início (hora_fim - duração em minutos)
+                        $hora_maxima_minutos = $minutos_total_fim - $duracao_minutos;
+                        $hora_maxima_horas = floor($hora_maxima_minutos / 60);
+                        $hora_maxima_mins = $hora_maxima_minutos % 60;
+                        
+                        // Garantir que não seja menor que o horário de início
+                        $hora_maxima_horas = max($horas_inicio, $hora_maxima_horas);
+                        
+                        // Criar intervalo de horas em incrementos de 1 hora
+                        for ($hora = $horas_inicio; $hora <= $hora_maxima_horas; $hora++) {
+                            // Para a primeira hora, considerar os minutos de início
+                            $min_inicial = ($hora == $horas_inicio) ? $minutos_inicio : 0;
+                            // Para a última hora, considerar os minutos calculados
+                            $max_min = ($hora == $hora_maxima_horas) ? $hora_maxima_mins : 59;
+                            
+                            // Adicionar opções para cada hora disponvel em incrementos de 30 min
+                            for ($min = $min_inicial; $min <= $max_min; $min += 30) {
+                                if ($min == 60) continue; // Pular quando for exatamente 60 minutos
+                                $hora_str = str_pad($hora, 2, '0', STR_PAD_LEFT) . ':' . str_pad($min, 2, '0', STR_PAD_LEFT);
+                                echo "<option value=\"{$hora_str}\">{$hora_str}</option>";
+                            }
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_almoco_inicio; ?> e das <?php echo $horario_almoco_fim; ?> às <?php echo $horario_fim; ?>.</small>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="colaborador_id" class="form-label required-field">Instalador</label>
+                    <select class="form-select" id="colaborador_id" name="colaborador_id" required>
+                        <option value="">Selecione um instalador disponível</option>
+                        <?php
+                        // A lista será carregada via JavaScript, dependendo da data e hora selecionadas
+                        $selected_id = $orcamento['colaborador_id'] ?? 0;
+                        if ($selected_id > 0) {
+                            // Buscar o colaborador diretamente na tabela de colaboradores
+                            $stmt = $pdo->prepare("SELECT id, nome FROM colaboradores WHERE id = :id AND tipo = 'instalador' AND status = 'ativo'");
+                            $stmt->bindParam(':id', $selected_id, PDO::PARAM_INT);
+                            $stmt->execute();
+                            
+                            if ($colaborador = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                echo "<option value=\"{$colaborador['id']}\" selected>{$colaborador['nome']}</option>";
+                            }
+                        }
+                        ?>
+                    </select>
+                    <small class="text-muted"><?php 
+                    // Verificar se o serviço vai atravessar o horário de almoço
+                    $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_almoco_inicio', 'horario_almoco_fim')");
+                    $config_almoco = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+                    
+                    // Usar os valores do banco ou padrões
+                    $horario_almoco_inicio = isset($config_almoco['horario_almoco_inicio']) ? $config_almoco['horario_almoco_inicio'] : '11:00';
+                    $horario_almoco_fim = isset($config_almoco['horario_almoco_fim']) ? $config_almoco['horario_almoco_fim'] : '13:00';
+                    
+                    // Calcular diferença em horas do horário de almoço
+                    $inicio_almoco = strtotime($horario_almoco_inicio);
+                    $fim_almoco = strtotime($horario_almoco_fim);
+                    $diferenca_horas = round(($fim_almoco - $inicio_almoco) / 3600, 1);
+                    
+                    // Verificar se o serviço atravessa o horário de almoço
+                    $hora_inicio_servico = isset($_GET['hora']) ? $_GET['hora'] : '08:00'; // Hora padrão ou do GET
+                    
+                    // Converter para timestamp
+                    $data_hoje = date('Y-m-d');
+                    $inicio_servico = strtotime($data_hoje . ' ' . $hora_inicio_servico);
+                    
+                    // Calcular fim do serviço sem considerar almoço
+                    $duracao_minutos = $orcamento['tempo_previsto'];
+                    if ($orcamento['unidade_tempo'] == 'horas') {
+                        $duracao_minutos = $orcamento['tempo_previsto'] * 60;
+                    } else if ($orcamento['unidade_tempo'] == 'dias') {
+                        $duracao_minutos = $orcamento['tempo_previsto'] * 60 * 8; // 8 horas por dia
+                    }
+                    
+                    $fim_servico = $inicio_servico + ($duracao_minutos * 60); // Converter minutos para segundos
+                    
+                    // Verificar se atravessa o almoço
+                    // A condição para atravessar o almoço é começar antes do almoço e terminar depois do almoço
+                    $comeca_antes_almoco = $inicio_servico < $inicio_almoco;
+                    $termina_depois_almoco = $fim_servico > $fim_almoco;
+                    
+                    // Um serviço atravessa o horário de almoço se começar antes do almoço e terminar depois do almoço
+                    $atravessa_almoco = $comeca_antes_almoco && $termina_depois_almoco;
+                    
+                    // Calcular a diferença em horas do horário de almoço (normalmente 2 horas)
+                    $diferenca_segundos = strtotime($horario_almoco_fim) - strtotime($horario_almoco_inicio);
+                    $diferenca_horas = $diferenca_segundos / 3600; // Converter segundos para horas
+                    
+                    if ($atravessa_almoco && $orcamento['unidade_tempo'] == 'horas') {
+                        // Exibir mensagem com tempo total incluindo almoço
+                        $tempo_total = $orcamento['tempo_previsto'] + $diferenca_horas;
+                        echo "Tempo previsto para este serviço: {$tempo_total} horas, incluindo {$diferenca_horas} horas de almoço";
+                    } else {
+                        // Exibir mensagem normal
+                        echo "Tempo previsto para este serviço: {$orcamento['tempo_previsto']} {$orcamento['unidade_tempo']}";
+                    }
+                    ?>.</small>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Importante:</strong> Apenas colaboradores disponíveis para este horário são mostrados na lista.
+                Os horários de trabalho são das <?php echo $horario_inicio; ?> às <?php echo $horario_almoco_inicio; ?> e das <?php echo $horario_almoco_fim; ?> às <?php echo $horario_fim; ?> horas.
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-calendar-check me-2"></i>Confirmar Agendamento
+            </button>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if (!$acesso_interno && $orcamento['status'] == 'aprovado' && $orcamento['status_execucao'] != 'finalizado'): ?>
+<script>
+    // Script para validar o horário e carregar colaboradores disponíveis
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataServico = document.getElementById('data_servico');
+        const horaInicio = document.getElementById('hora_inicio');
+        const colaboradorSelect = document.getElementById('colaborador_id');
+        const tempoPrevisto = <?php echo $orcamento['tempo_previsto']; ?>;
+        const unidadeTempo = '<?php echo $orcamento['unidade_tempo']; ?>';
+        
+        // Converter tempo previsto para minutos
+        let duracaoMinutos = tempoPrevisto;
+        if (unidadeTempo === 'horas') {
+            duracaoMinutos = tempoPrevisto * 60;
+        } else if (unidadeTempo === 'dias') {
+            duracaoMinutos = tempoPrevisto * 60 * 8; // Considerando 8 horas por dia
+        }
+        
+        // Função para carregar colaboradores disponíveis
+        function carregarColaboradoresDisponiveis() {
+            const dataValue = dataServico.value;
+            const horaValue = horaInicio.value;
+            
+            // Verificar se ambos os campos estão preenchidos
+            if (!dataValue || !horaValue) return;
+            
+            // Limpar opções atuais exceto a primeira
+            const firstOption = colaboradorSelect.options[0];
+            colaboradorSelect.innerHTML = '';
+            colaboradorSelect.appendChild(firstOption);
+            
+            // Definir mensagem de carregamento
+            const loadingOption = document.createElement('option');
+            loadingOption.text = 'Carregando colaboradores disponíveis...';
+            loadingOption.disabled = true;
+            colaboradorSelect.appendChild(loadingOption);
+            colaboradorSelect.selectedIndex = 1;
+            
+            // Buscar colaboradores disponíveis via AJAX
+            fetch(`ajax/verificar_colaboradores_disponiveis.php?data=${dataValue}&hora=${horaValue}&tempo_previsto=${tempoPrevisto}&unidade_tempo=${unidadeTempo}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    if (data.status === 'sucesso') {
+                        // Preencher select com colaboradores disponíveis
+                        if (data.colaboradores.length > 0) {
+                            data.colaboradores.forEach(colaborador => {
+                                const option = document.createElement('option');
+                                option.value = colaborador.id;
+                                option.text = colaborador.nome;
+                                colaboradorSelect.appendChild(option);
+                            });
+                        } else {
+                            // Se não há colaboradores disponíveis
+                            const naoDisponivelOption = document.createElement('option');
+                            naoDisponivelOption.text = 'Nenhum colaborador disponível neste horário';
+                            naoDisponivelOption.disabled = true;
+                            colaboradorSelect.appendChild(naoDisponivelOption);
+                        }
+                    } else {
+                        // Exibir mensagem de erro
+                        const erroOption = document.createElement('option');
+                        erroOption.text = 'Erro ao carregar colaboradores: ' + data.mensagem;
+                        erroOption.disabled = true;
+                        colaboradorSelect.appendChild(erroOption);
+                    }
+                })
+                .catch(error => {
+                    // Remover opção de carregamento
+                    colaboradorSelect.removeChild(loadingOption);
+                    
+                    // Exibir mensagem de erro de conexão
+                    const erroOption = document.createElement('option');
+                    erroOption.text = 'Erro de conexão ao buscar colaboradores';
+                    erroOption.disabled = true;
+                    colaboradorSelect.appendChild(erroOption);
+                    console.error('Erro:', error);
+                });
+        }
+        
+        // Eventos para acionar a busca de colaboradores disponíveis
+        dataServico.addEventListener('change', carregarColaboradoresDisponiveis);
+        
+        // Ao selecionar hora, validar se há tempo suficiente e buscar colaboradores
+        horaInicio.addEventListener('change', function() {
+            const horaInicioStr = this.value;
+            if (!horaInicioStr) return;
+            
+            const [hora, minuto] = horaInicioStr.split(':').map(Number);
+            const horaInicioMinutos = hora * 60 + minuto;
+            
+            // Obter horário de fim do expediente das configurações PHP
+            const horarioFim = '<?php echo $horario_fim; ?>';
+            const [horaFim, minutoFim] = horarioFim.split(':').map(Number);
+            const fimExpedienteMinutos = horaFim * 60 + minutoFim;
+            
+            // Verificar se o serviço pode ser concluído no mesmo dia
+            if (horaInicioMinutos + duracaoMinutos > fimExpedienteMinutos) {
+                alert('Atenção: O serviço não poderá ser concluído no mesmo dia com este horário de início.\nO serviço será continuado no próximo dia disponível.');
+            }
+            
+            carregarColaboradoresDisponiveis();
+        });
+    });
+</script>
+<?php endif; ?>
+
+<?php 
+// Finalizando HTML para acesso externo
+if (!$acesso_interno): 
+?>
+                </div>
+            </div>
+
+            <footer class="text-center text-muted my-5">
+                <p>&copy; <?php echo date('Y'); ?> - <?php echo APP_NAME; ?></p>
+            </footer>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+<?php 
+    exit; // Encerrar script para acesso externo
+else: 
+?>
+
+<script>
+// Função para imprimir orçamento
+function imprimirOrcamento() {
+    window.print();
+}
+
+// Função para copiar link para o cliente
+function copiarLinkCliente() {
+    const link = '<?php echo BASE_URL; ?>orcamento_visualizar.php?codigo=<?php echo $orcamento['codigo_acesso']; ?>';
+
+    // Criar elemento de texto temporário
+    const temp = document.createElement('input');
+    temp.value = link;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+
+    alert('Link copiado para a área de transferência!');
+}
+</script>
+
+<?php 
+    require_once('includes/footer.php'); 
+endif;
+?>
+
+<script>
+// Verificar se há uma mensagem de pagamento registrado e recarregar a página uma vez
+if (window.location.href.includes('mensagem=pago') || window.location.href.includes('mensagem=pagamento_parcial')) {
+    // Verificar se já recarregamos a página
+    if (!sessionStorage.getItem('recarregouPaginaOrcamento')) {
+        // Marcar que já recarregamos a página
+        sessionStorage.setItem('recarregouPaginaOrcamento', 'true');
+        // Recarregar a página após um pequeno atraso
+        setTimeout(function() {
+            window.location.reload();
+        }, 300);
+    } else {
+        // Limpar a marca após a recarga
+        sessionStorage.removeItem('recarregouPaginaOrcamento');
+    }
+}
+</script>

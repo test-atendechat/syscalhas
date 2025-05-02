@@ -1,0 +1,80 @@
+RewriteEngine On
+
+# Definir diretório base
+RewriteBase /
+
+# Não aplicar regras a arquivos e diretórios existentes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Regras para URLs amigáveis dos módulos principais
+
+# Clientes
+RewriteRule ^clientes$ modules/clientes/clientes.php [L]
+RewriteRule ^cliente/novo$ modules/clientes/cliente_form.php [L]
+RewriteRule ^cliente/editar/([0-9]+)$ modules/clientes/cliente_form.php?id=$1 [L]
+
+# Orçamentos
+RewriteRule ^orcamentos$ modules/orcamentos/orcamentos.php [L]
+RewriteRule ^orcamento/novo$ modules/orcamentos/orcamento_form.php [L]
+RewriteRule ^orcamento/editar/([0-9]+)$ modules/orcamentos/orcamento_form.php?id=$1 [L]
+RewriteRule ^orcamento/visualizar/([0-9]+)$ modules/orcamentos/orcamento_visualizar.php?id=$1 [L]
+
+# Vendas
+RewriteRule ^vendas$ modules/vendas/vendas.php [L]
+RewriteRule ^venda/nova$ modules/vendas/venda_form.php [L]
+RewriteRule ^venda/editar/([0-9]+)$ modules/vendas/venda_form.php?id=$1 [L]
+RewriteRule ^venda/visualizar/([0-9]+)$ modules/vendas/venda_visualizar.php?id=$1 [L]
+
+# Produtos e Estoque
+RewriteRule ^produtos$ modules/estoque/produtos.php [L]
+RewriteRule ^produto/novo$ modules/estoque/produto_form.php [L]
+RewriteRule ^produto/editar/([0-9]+)$ modules/estoque/produto_form.php?id=$1 [L]
+RewriteRule ^estoque$ modules/estoque/estoque.php [L]
+RewriteRule ^estoque/entrada$ modules/estoque/estoque_entrada.php [L]
+RewriteRule ^estoque/saida$ modules/estoque/estoque_saida.php [L]
+RewriteRule ^estoque/movimentacoes$ modules/estoque/estoque_movimentacoes.php [L]
+
+# Agendamentos
+RewriteRule ^agendamentos$ modules/agendamentos/agendamento.php [L]
+RewriteRule ^agendar$ modules/agendamentos/agendar_servico.php [L]
+RewriteRule ^agenda/colaborador/([0-9]+)$ modules/agendamentos/colaborador_agenda.php?id=$1 [L]
+RewriteRule ^agenda/imprimir/([0-9]+)$ modules/agendamentos/imprimir_agenda_colaborador.php?id=$1 [L]
+
+# Colaboradores
+RewriteRule ^colaboradores$ modules/colaboradores/colaboradores.php [L]
+RewriteRule ^colaborador/novo$ modules/colaboradores/colaborador_form.php [L]
+RewriteRule ^colaborador/editar/([0-9]+)$ modules/colaboradores/colaborador_form.php?id=$1 [L]
+RewriteRule ^colaborador/equipe$ modules/colaboradores/colaborador_equipe.php [L]
+
+# Financeiro
+RewriteRule ^caixa$ modules/caixa/caixa.php [L]
+RewriteRule ^caixa/abrir$ modules/caixa/caixa_abrir.php [L]
+RewriteRule ^caixa/fechar$ modules/caixa/caixa_fechar.php [L]
+RewriteRule ^contas$ modules/financeiro/contas_pagar.php [L]
+RewriteRule ^conta/nova$ modules/financeiro/conta_pagar_form.php [L]
+RewriteRule ^conta/editar/([0-9]+)$ modules/financeiro/conta_pagar_form.php?id=$1 [L]
+RewriteRule ^conta/pagar/([0-9]+)$ modules/financeiro/pagar_conta.php?id=$1 [L]
+
+# Relatórios
+RewriteRule ^relatorios/vendas$ modules/vendas/relatorios_vendas.php [L]
+RewriteRule ^relatorios/orcamentos$ modules/orcamentos/relatorios_orcamentos.php [L]
+RewriteRule ^relatorios/produtos$ modules/vendas/relatorios_produtos_vendidos.php [L]
+RewriteRule ^relatorios/estoque$ modules/estoque/relatorios_estoque_baixo.php [L]
+RewriteRule ^relatorios/financeiro$ modules/financeiro/relatorio_financeiro.php [L]
+RewriteRule ^relatorios/contas$ modules/financeiro/relatorios_contas.php [L]
+RewriteRule ^relatorios/colaboradores$ modules/colaboradores/relatorio_colaboradores.php [L]
+
+# Usuários
+RewriteRule ^usuarios$ modules/usuarios/usuarios.php [L]
+RewriteRule ^login$ modules/usuarios/login.php [L]
+RewriteRule ^logout$ modules/usuarios/logout.php [L]
+RewriteRule ^perfil$ modules/usuarios/perfil.php [L]
+RewriteRule ^permissoes/([0-9]+)$ modules/usuarios/usuario_permissoes.php?id=$1 [L]
+
+# Sistema
+RewriteRule ^dashboard$ modules/sistema/dashboard.php [L]
+RewriteRule ^configuracoes$ modules/sistema/configuracoes.php [L]
+
+# Regra padrão - redirecionar para o index.php
+RewriteRule ^(.*)$ index.php [L]

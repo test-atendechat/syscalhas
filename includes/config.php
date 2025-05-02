@@ -1,8 +1,10 @@
 <?php
+// Incluir configuração de caminhos
+require_once __DIR__ . '/paths.php';
+
 // Configurações do sistema
 define('APP_NAME', 'SANDRO CALHAS LTDA');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'https://' . $_SERVER['HTTP_HOST'] . '/');
 
 // Dados da empresa
 define('EMPRESA_TELEFONE', '(19) 99262-0970');
