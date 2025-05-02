@@ -150,7 +150,7 @@ try {
         $data_fim_completa = $data_hora_fim->format('Y-m-d H:i:s');
         
         $stmt = $pdo->prepare("SELECT DISTINCT instalador_id FROM agendamentos 
-                         WHERE status = 'agendado' AND 
+                         WHERE (status = 'agendado' OR status = 'orcamento_agendado' OR status = 'instalacao_agendada' OR status = 'pendente') AND 
                          ((
                             -- Verificar usando campos data_inicio/data_fim (formato timestamp)
                             (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
