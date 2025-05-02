@@ -162,7 +162,7 @@ require_once('includes/header.php');
         </div>
         <?php else: ?>
         <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>Não há instalações agendadas para os próximos <?php echo $dias; ?> dias.
+            <i class="fas fa-info-circle me-2"></i>Não há orçamentos ou instalações agendados para os próximos <?php echo $dias; ?> dias.
         </div>
         <?php endif; ?>
     </div>
@@ -236,7 +236,7 @@ require_once('includes/header.php');
         </div>
         <?php else: ?>
         <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>Não há instalações agendadas para os próximos <?php echo $dias; ?> dias.
+            <i class="fas fa-info-circle me-2"></i>Não há orçamentos ou instalações agendados para os próximos <?php echo $dias; ?> dias.
         </div>
         <?php endif; ?>
     </div>
