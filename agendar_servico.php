@@ -148,17 +148,21 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 $stmt_delete->execute();
             }
             
-            // Verificar se o colaborador selecionado (instalador) existe na tabela instaladores
+            // Verificar se o colaborador selecionado existe e obter seu tipo
             if ($colaborador_id > 0) {
-                // Verificar se o colaborador instalador existe
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM colaboradores WHERE id = :colaborador_id AND tipo = 'instalador' AND status = 'ativo'");
+                // Verificar se o colaborador existe e obter seu tipo
+                $stmt = $pdo->prepare("SELECT tipo FROM colaboradores WHERE id = :colaborador_id AND status = 'ativo'");
                 $stmt->bindParam(':colaborador_id', $colaborador_id, PDO::PARAM_INT);
                 $stmt->execute();
                 
-                if ($stmt->fetchColumn() == 0) {
-                    // Se o instalador não existir ou não estiver ativo, lançar erro
-                    throw new Exception('O instalador selecionado não existe ou está inativo. Por favor, selecione outro instalador.');
+                $colaborador = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$colaborador) {
+                    // Se o colaborador não existir ou não estiver ativo, lançar erro
+                    throw new Exception('O colaborador selecionado não existe ou está inativo. Por favor, selecione outro colaborador.');
                 }
+                
+                // Armazenar o tipo de colaborador para uso posterior
+                $tipo_colaborador = $colaborador['tipo'];
                 
                 // Agora verificar se o instalador está disponível no horário
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
@@ -246,6 +250,12 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Gerar código de confirmação
             $codigo_confirmacao = md5(uniqid(rand(), true));
             
+            // Determinar o status do agendamento baseado no tipo de colaborador
+            $status_agendamento = 'instalacao_agendada';
+            if (isset($tipo_colaborador) && $tipo_colaborador == 'orcamentista') {
+                $status_agendamento = 'orcamento_agendado';
+            }
+            
             // Inserir agendamento
             $stmt = $pdo->prepare("INSERT INTO agendamentos (
                                 orcamento_id, instalador_id, data_inicio, data_fim, 
@@ -253,7 +263,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                 hora_inicio, hora_fim)
                                 VALUES (
                                 :orcamento_id, :instalador_id, :data_inicio, :data_fim, 
-                                'instalacao_agendada', :codigo_confirmacao, TRUE, NOW(), :data_agendamento,
+                                :status_agendamento, :codigo_confirmacao, TRUE, NOW(), :data_agendamento,
                                 :hora_inicio, :hora_fim)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
@@ -270,18 +280,23 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $stmt->bindParam(':hora_inicio', $hora_inicio_apenas);
             $stmt->bindParam(':hora_fim', $hora_fim_apenas);
             $stmt->bindParam(':codigo_confirmacao', $codigo_confirmacao);
+            $stmt->bindParam(':status_agendamento', $status_agendamento);
             $stmt->execute();
             
-            // Atualizar status de execução do orçamento
-            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada' WHERE id = :id");
+            // Atualizar status de execução do orçamento baseado no tipo de colaborador
+            $status_execucao = $status_agendamento; // Usar o mesmo status definido anteriormente
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = :status_execucao WHERE id = :id");
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
+            $stmt->bindParam(':status_execucao', $status_execucao);
             $stmt->execute();
             
             // Commit da transação
             $pdo->commit();
             
             // Verificar se foi reagendamento ou novo agendamento
-            $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'instalacao_agendada'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM agendamentos 
+                               WHERE orcamento_id = :orcamento_id 
+                               AND status NOT IN ('instalacao_agendada', 'orcamento_agendado')");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             $agendamentos_previos = $stmt->fetchColumn();
