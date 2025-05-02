@@ -478,12 +478,7 @@ require_once('includes/header.php');
                         </select>
                         <small class="text-muted">Selecione o horário para verificar disponibilidade</small>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Verificar Disponibilidade</label><br>
-                        <button type="button" id="verificarDisponibilidade" class="btn btn-info text-white">
-                            <i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis
-                        </button>
-                    </div>
+
                 </div>
                 
                 <div class="col-md-3">
@@ -692,7 +687,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configuração da verificação de disponibilidade
     const dataServico = document.getElementById('data_servico');
     const horaServico = document.getElementById('hora_servico');
-    const btnVerificarDisponibilidade = document.getElementById('verificarDisponibilidade');
     const orcamentistaSelect = document.getElementById('orcamentista_id');
     const instaladorSelect = document.getElementById('colaborador_id');
     const tempoPrevisto = document.getElementById('tempo_previsto').value || 60;
@@ -704,13 +698,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const horaValue = horaServico.value;
         
         if (!dataValue || !horaValue) {
-            alert('Por favor, selecione data e horário para verificar a disponibilidade.');
             return;
         }
-        
-        // Mostrar mensagem de carregamento
-        btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Verificando...';
-        btnVerificarDisponibilidade.disabled = true;
         
         // Limpar opções existentes
         const orcamentistaFirstOption = orcamentistaSelect.options[0];
