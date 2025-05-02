@@ -96,6 +96,35 @@ if (!function_exists('buscarAgendamentoAtivo')) {
         
         return null;
     }
+    
+    /**
+     * Verifica e gerencia agendamentos com base no status do orçamento
+     * Esta função irá excluir agendamentos quando os status não fizerem mais sentido
+     * 
+     * @param int $orcamento_id ID do orçamento
+     * @param string $novo_status Novo status do orçamento
+     * @return bool|string True se tudo ocorrer bem, ou mensagem de erro
+     */
+    function gerenciarAgendamentosStatus($orcamento_id, $novo_status) {
+        global $pdo;
+        
+        try {
+            // 1. Verificar status que devem ter agendamentos
+            $manter_agendamento = in_array($novo_status, ['orcamento_agendado', 'instalacao_agendada', 'pendente']);
+            
+            // 2. Se o status novo não requer agendamento, excluir todos os agendamentos existentes
+            if (!$manter_agendamento) {
+                $stmt_delete = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :orcamento_id");
+                $stmt_delete->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+                $stmt_delete->execute();
+                return true;
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+    }
 }
 
 // Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
@@ -159,42 +188,69 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
     $acao = $_GET['acao'];
     
     if ($acao == 'finalizar') {
-        // Atualizar status de execução para finalizado
-        $stmt = $pdo->prepare("UPDATE orcamentos SET 
-                            status_execucao = 'finalizado', 
-                            data_finalizacao = CURRENT_DATE 
-                            WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $pdo->beginTransaction();
         
-        if ($stmt->execute()) {
-            $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso!', 'success');
+        try {
+            // 1. Verificar e remover agendamentos que não são mais necessários
+            gerenciarAgendamentosStatus($id, 'finalizado');
             
-            // Buscar dados para notificação
+            // 2. Atualizar status de execução para finalizado
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'finalizado', 
+                                data_finalizacao = CURRENT_DATE 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 3. Buscar dados para notificação
             $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
                                        JOIN clientes c ON o.cliente_id = c.id
                                        WHERE o.id = :id");
             $stmt_notify->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt_notify->execute();
             $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
+            
+            // 4. Confirmar todas as alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem e notificação
+            $mensagem = alerta('Orçamento marcado como FINALIZADO com sucesso e removido da agenda!', 'success');
             
             // Gerar notificação
             notificarOrcamento($id, 'finalizado', [
                 'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
             ]);
-        } else {
-            $mensagem = alerta('Erro ao finalizar orçamento', 'danger');
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao finalizar orçamento: ' . $e->getMessage(), 'danger');
         }
     } elseif ($acao == 'andamento') {
-        // Atualizar status de execução para em andamento
-        $stmt = $pdo->prepare("UPDATE orcamentos SET 
-                            status_execucao = 'andamento' 
-                            WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        // Iniciar uma transação para garantir que todas as operações sejam feitas corretamente
+        $pdo->beginTransaction();
         
-        if ($stmt->execute()) {
-            $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso!', 'success');
+        try {
+            // 1. Primeiro, encontrar o agendamento associado a este orçamento
+            $stmt_agendamento = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id");
+            $stmt_agendamento->bindParam(':orcamento_id', $id, PDO::PARAM_INT);
+            $stmt_agendamento->execute();
+            $agendamento = $stmt_agendamento->fetch(PDO::FETCH_ASSOC);
             
-            // Buscar dados para notificação
+            // 2. Se existir um agendamento, excluí-lo
+            if ($agendamento) {
+                $agendamento_id = $agendamento['id'];
+                $stmt_delete = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
+                $stmt_delete->bindParam(':agendamento_id', $agendamento_id, PDO::PARAM_INT);
+                $stmt_delete->execute();
+            }
+            
+            // 3. Atualizar status de execução para em andamento
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'andamento' 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 4. Buscar dados para notificação
             $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome FROM orcamentos o 
                                        JOIN clientes c ON o.cliente_id = c.id
                                        WHERE o.id = :id");
@@ -202,24 +258,38 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
             $stmt_notify->execute();
             $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
             
+            // 5. Confirmar todas as alterações
+            $pdo->commit();
+            
+            // 6. Gerar mensagem de sucesso e notificação
+            $mensagem_adicional = $agendamento ? ' e removido da agenda do colaborador' : '';
+            $mensagem = alerta('Orçamento marcado como EM ANDAMENTO com sucesso' . $mensagem_adicional . '!', 'success');
+            
             // Gerar notificação
             notificarOrcamento($id, 'andamento', [
                 'cliente_nome' => $dados['cliente_nome'] ?? 'Cliente'
             ]);
-        } else {
-            $mensagem = alerta('Erro ao atualizar status de execução', 'danger');
+        } catch (Exception $e) {
+            // Se ocorrer algum erro, fazer rollback das alterações
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao atualizar status para EM ANDAMENTO: ' . $e->getMessage(), 'danger');
         }
     } elseif ($acao == 'pendente') {
-        // Atualizar status de execução para pendente
-        $stmt = $pdo->prepare("UPDATE orcamentos SET 
-                            status_execucao = 'pendente' 
-                            WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $pdo->beginTransaction();
         
-        if ($stmt->execute()) {
-            $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+        try {
+            // 1. Verificar e gerenciar agendamentos
+            // Pendente pode ter agendamento, mas nosso gerenciador vai verificar status
+            gerenciarAgendamentosStatus($id, 'pendente');
             
-            // Buscar dados para notificação
+            // 2. Atualizar status de execução para pendente
+            $stmt = $pdo->prepare("UPDATE orcamentos SET 
+                                status_execucao = 'pendente' 
+                                WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // 3. Buscar dados para notificação
             $stmt_notify = $pdo->prepare("SELECT c.nome as cliente_nome, o.numero FROM orcamentos o 
                                        JOIN clientes c ON o.cliente_id = c.id
                                        WHERE o.id = :id");
@@ -227,14 +297,21 @@ if (isset($_GET['id']) && isset($_GET['acao'])) {
             $stmt_notify->execute();
             $dados = $stmt_notify->fetch(PDO::FETCH_ASSOC);
             
+            // 4. Confirmar alterações
+            $pdo->commit();
+            
+            // 5. Gerar mensagem e notificação
+            $mensagem = alerta('Orçamento marcado como PENDENTE com sucesso!', 'success');
+            
             // Gerar notificação
             adicionarNotificacao(
                 "Orçamento #{$dados['numero']} para {$dados['cliente_nome']} marcado como PENDENTE", 
                 'warning', 
                 "orcamento_visualizar.php?id={$id}"
             );
-        } else {
-            $mensagem = alerta('Erro ao atualizar status do orçamento.', 'danger');
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $mensagem = alerta('Erro ao atualizar status para PENDENTE: ' . $e->getMessage(), 'danger');
         }
     } elseif ($acao == 'reabrir') {
         // Reabrir orçamento rejeitado (mudar status para pendente)
