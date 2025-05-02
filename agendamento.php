@@ -199,8 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt->bindParam(':hora_fim', $hora_fim_valor);
             $stmt->execute();
             
-            // Atualizar status de execução do orçamento
-            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada' WHERE id = :id");
+            // Atualizar status de execução do orçamento de acordo com o tipo de agendamento
+            $status_execucao = ($tipo_agendamento == 'orcamentista') ? 'orcamento_agendado' : 'instalacao_agendada';
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = :status_execucao WHERE id = :id");
+            $stmt->bindParam(':status_execucao', $status_execucao);
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
