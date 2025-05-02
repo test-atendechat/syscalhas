@@ -25,7 +25,7 @@ try {
     $stmt = $pdo->prepare("SELECT p.id, p.descricao, p.unidade, SUM(i.quantidade) as quantidade_necessaria,
                       o.id as orcamento_id, o.numero as orcamento_numero, c.nome as cliente_nome,
                       a.data_agendamento, a.data_inicio, a.hora_inicio,
-                      cl.nome as colaborador_nome
+                      cl.nome as colaborador_nome, cl.tipo as colaborador_tipo
                       FROM orcamento_itens i
                       JOIN produtos p ON i.produto_id = p.id
                       JOIN orcamentos o ON i.orcamento_id = o.id
@@ -38,7 +38,7 @@ try {
                       ) OR (
                           (a.data_inicio::date >= :data_atual AND a.data_inicio::date <= :data_limite)
                       ))
-                      GROUP BY p.id, p.descricao, p.unidade, o.id, o.numero, c.nome, a.data_agendamento, a.data_inicio, a.hora_inicio, cl.nome
+                      GROUP BY p.id, p.descricao, p.unidade, o.id, o.numero, c.nome, a.data_agendamento, a.data_inicio, a.hora_inicio, cl.nome, cl.tipo
                       ORDER BY a.data_agendamento, a.data_inicio, o.numero");
     $stmt->bindParam(':data_atual', $data_atual);
     $stmt->bindParam(':data_limite', $data_limite);
@@ -58,6 +58,7 @@ try {
                 'data_inicio' => $material['data_inicio'],
                 'hora_inicio' => $material['hora_inicio'],
                 'colaborador_nome' => $material['colaborador_nome'],
+                'colaborador_tipo' => $material['colaborador_tipo'],
                 'materiais' => []
             ];
         }
@@ -195,7 +196,12 @@ require_once('includes/header.php');
                                 }
                                 ?>
                             </span> - 
-                            <span class="text-secondary">Instalador: <?php echo $orcamento_info['colaborador_nome']; ?></span>
+                            <span class="text-secondary">
+                                <?php 
+                                    $tipo_colaborador = ($orcamento_info['colaborador_tipo'] == 'orcamentista') ? 'Orçamentista' : 'Instalador';
+                                    echo $tipo_colaborador . ': ' . $orcamento_info['colaborador_nome']; 
+                                ?>
+                            </span>
                         </div>
                     </button>
                 </h2>
