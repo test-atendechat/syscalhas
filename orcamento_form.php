@@ -29,7 +29,8 @@ $titulo = 'Novo Orçamento';
 $mensagem = '';
 $forma_pagamento = 'prazo'; // Default payment method
 $desconto_vista = 10; // Default discount for cash payment
-$colaborador_id = 0; // Colaborador responsável pelo orçamento
+$colaborador_id = 0; // Instalador responsável pela instalação
+$orcamentista_id = 0; // Orçamentista responsável pelo orçamento
 $tempo_previsto = 60; // Tempo padrão de 60 minutos
 $unidade_tempo = 'minutos'; // Unidade de tempo padrão (minutos, horas, dias)
 
@@ -65,6 +66,7 @@ if (isset($_GET['id'])) {
         $codigo_acesso = $orcamento['codigo_acesso'];
         $forma_pagamento = $orcamento['forma_pagamento'];
         $colaborador_id = $orcamento['colaborador_id'] ?? 0;
+        $orcamentista_id = $orcamento['orcamentista_id'] ?? 0;
         $itens = buscarItensOrcamento($id);
         $acao = 'atualizar';
         $titulo = 'Editar Orçamento';
@@ -84,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
     $observacoes = limpaString($_POST['observacoes']);
     $forma_pagamento = $_POST['forma_pagamento'];
     $colaborador_id = intval($_POST['colaborador_id'] ?? 0);
+    $orcamentista_id = intval($_POST['orcamentista_id'] ?? 0);
 
     // Validar os dados
     if ($cliente_id <= 0) {
@@ -107,7 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao'])) {
                 'forma_pagamento' => $forma_pagamento,
                 'tempo_previsto' => $tempo_previsto,
                 'unidade_tempo' => $unidade_tempo,
-                'colaborador_id' => ($colaborador_id > 0) ? $colaborador_id : null
+                'colaborador_id' => ($colaborador_id > 0) ? $colaborador_id : null,
+                'orcamentista_id' => ($orcamentista_id > 0) ? $orcamentista_id : null
             ];
 
             if ($acao_form == 'cadastrar') {
