@@ -1032,9 +1032,10 @@ if (!$acesso_interno) {
                         }
                     }
                     
-                    // Também não mostrar botões se o orçamento já estiver agendado
+                    // Atualizar mensagem e esconder botões se o orçamento já estiver agendado
                     if ($status_execucao == 'orcamento_agendado' || $status_execucao == 'instalacao_agendada') {
                         $mostrar_botoes_aprovacao = false;
+                        $status_msg = "Orçamento já agendado para atendimento";
                     }
                     
                     if ($mostrar_status):
