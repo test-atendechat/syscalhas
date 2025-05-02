@@ -5,6 +5,9 @@ require_once('includes/functions.php');
 require_once('includes/notificacoes.php');
 require_once('notificacao_orcamento.php');
 
+// Definir flag para que agendamentos possam ser encontrados independente do status do orçamento
+define('BUSCAR_TODOS_AGENDAMENTOS', true);
+
 // Garantir que todas as funções personalizadas estejam disponíveis
 if (!function_exists('buscarAgendamentoAtivo')) {
     /**
@@ -242,12 +245,10 @@ if (isset($_GET['id'])) {
             $total_pago += $pagamento['valor'];
         }
         
-        // Buscar dados de agendamento se o status de execução for 'agendado'
+        // Buscar dados de agendamento independente do status
         $agendamento = null;
-        if ($orcamento['status_execucao'] == 'agendado' || $orcamento['status_execucao'] == 'orcamento_agendado') {
-            // Usar a nova função para buscar agendamento ativo
-            $agendamento = buscarAgendamentoAtivo($id);
-        }
+        // Sempre buscar agendamento para verificar se há pendentes
+        $agendamento = buscarAgendamentoAtivo($id);
     } else {
         $mensagem = alerta('Orçamento não encontrado!', 'danger');
     }
@@ -284,12 +285,10 @@ if (isset($_GET['id'])) {
             $total_pago += $pagamento['valor'];
         }
         
-        // Buscar dados de agendamento se o status de execução for 'agendado'
+        // Buscar dados de agendamento independente do status
         $agendamento = null;
-        if ($orcamento['status_execucao'] == 'agendado' || $orcamento['status_execucao'] == 'orcamento_agendado') {
-            // Usar a nova função para buscar agendamento ativo
-            $agendamento = buscarAgendamentoAtivo($id);
-        }
+        // Sempre buscar agendamento para verificar se há pendentes
+        $agendamento = buscarAgendamentoAtivo($id);
     } else {
         // Template HTML mínimo para exibir erro
         ?>
@@ -898,9 +897,14 @@ if (!$acesso_interno) {
                         </button>
                     </form>
 
-                    <?php if (isset($agendamento) && $agendamento && $agendamento['status'] == 'pendente'): ?>
+                    <!-- Debug: Status de Agendamento -->
+                    <?php 
+                    // Verificar se há agendamento e mostrar os botões
+                    if (isset($agendamento) && $agendamento): 
+                        $status_agendamento = $agendamento['status'];
+                    ?>
                     <div class="mt-3 border-top pt-3">
-                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Solicitação de orçamento aguardando verificação</p>
+                        <p class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Solicitação de orçamento <?php echo $status_agendamento; ?></p>
                         <form method="post" class="d-inline">
                             <input type="hidden" name="id" value="<?php echo $orcamento['id']; ?>">
                             <input type="hidden" name="agendamento_id" value="<?php echo $agendamento['id']; ?>">
