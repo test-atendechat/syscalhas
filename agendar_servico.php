@@ -105,7 +105,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 // Agora verificar se o instalador está disponível no horário
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM agendamentos 
                                      WHERE instalador_id = :colaborador_id 
-                                     AND status = 'agendado' 
+                                     AND status = 'instalacao_agendada' 
                                      AND ((
                                         -- Verificar usando campos data_inicio/data_fim (formato timestamp)
                                         (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
@@ -146,7 +146,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                      WHERE tipo = 'instalador' AND status = 'ativo' 
                                      AND id NOT IN (
                                          SELECT DISTINCT instalador_id FROM agendamentos 
-                                         WHERE status = 'agendado' 
+                                         WHERE status = 'instalacao_agendada' 
                                          AND ((
                                             -- Verificar usando campos data_inicio/data_fim (formato timestamp)
                                             (data_inicio IS NOT NULL AND data_fim IS NOT NULL) AND
@@ -195,7 +195,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                                 hora_inicio, hora_fim)
                                 VALUES (
                                 :orcamento_id, :instalador_id, :data_inicio, :data_fim, 
-                                'agendado', :codigo_confirmacao, TRUE, NOW(), :data_agendamento,
+                                'instalacao_agendada', :codigo_confirmacao, TRUE, NOW(), :data_agendamento,
                                 :hora_inicio, :hora_fim)");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->bindParam(':instalador_id', $colaborador_id, PDO::PARAM_INT);
@@ -215,7 +215,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $stmt->execute();
             
             // Atualizar status de execução do orçamento
-            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada' WHERE id = :id");
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             
@@ -223,7 +223,7 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             $pdo->commit();
             
             // Verificar se foi reagendamento ou novo agendamento
-            $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'agendado'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'instalacao_agendada'");
             $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             $agendamentos_previos = $stmt->fetchColumn();

@@ -16,7 +16,7 @@ require_once(__DIR__ . '/includes/notificacoes.php');
  * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $orcamento_id, $status = 'agendado') {
+function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $orcamento_id, $status = 'instalacao_agendada') {
     $link = "agendamento.php?id={$agendamento_id}&orcamento_id={$orcamento_id}";
     
     // Determinar o tipo de agendamento com base no status
@@ -45,7 +45,7 @@ function notificarNovoAgendamento($agendamento_id, $data_formatada, $hora_inicio
  * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, $hora_inicio, $cliente_nome, $status = 'agendado') {
+function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, $hora_inicio, $cliente_nome, $status = 'instalacao_agendada') {
     $link = "agendamento.php?id={$agendamento_id}";
     $tipo_titulo = ucfirst($tipo);
     $icone = '';
@@ -101,7 +101,7 @@ function notificarAlteracaoAgendamento($agendamento_id, $tipo, $data_formatada, 
  * @param string $status Status do agendamento (opcional)
  * @return bool Sucesso ou falha
  */
-function notificarLembreteAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $tempo_restante, $status = 'agendado') {
+function notificarLembreteAgendamento($agendamento_id, $data_formatada, $hora_inicio, $cliente_nome, $tempo_restante, $status = 'instalacao_agendada') {
     $link = "agendamento.php?id={$agendamento_id}";
     
     // Determinar o tipo de atendimento com base no status

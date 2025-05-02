@@ -76,7 +76,7 @@ else if ($orcamento_id > 0) {
     // Verificar se há agendamentos ativos (pendentes ou agendados)
     $has_agendamento_ativo = false;
     foreach ($agendamentos as $agendamento) {
-        if ($agendamento['status'] == 'agendado' || $agendamento['status'] == 'pendente') {
+        if ($agendamento['status'] == 'instalacao_agendada' || $agendamento['status'] == 'pendente') {
             $has_agendamento_ativo = true;
             break;
         }
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['acao']) && $_POST['aca
             $stmt->execute();
             
             // Atualizar status de execução do orçamento
-            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'agendado' WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE orcamentos SET status_execucao = 'instalacao_agendada' WHERE id = :id");
             $stmt->bindParam(':id', $orcamento_id, PDO::PARAM_INT);
             $stmt->execute();
             

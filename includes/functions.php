@@ -426,7 +426,7 @@ function buscarAgendamentoAtivo($orcamento_id) {
     $stmt = $db->prepare("SELECT a.*, c.nome as colaborador_nome, c.tipo as colaborador_tipo, c.telefone as colaborador_telefone
                       FROM agendamentos a
                       LEFT JOIN colaboradores c ON a.instalador_id = c.id
-                      WHERE a.orcamento_id = :orcamento_id AND a.status = 'agendado'
+                      WHERE a.orcamento_id = :orcamento_id AND a.status = 'instalacao_agendada'
                       ORDER BY a.data_inicio DESC LIMIT 1");
     $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
     $stmt->execute();

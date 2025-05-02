@@ -51,7 +51,7 @@ try {
     $instalador_atual = $dados_atuais ? $dados_atuais['instalador_atual'] : null;
     
     // Tratar transição de status
-    if ($status_atual == 'orcamento_agendado' && $status_novo == 'agendado') {
+    if ($status_atual == 'orcamento_agendado' && $status_novo == 'instalacao_agendada') {
         // Validação de dados para instalação
         if ($instalador_id <= 0 || empty($data_instalacao) || empty($hora_instalacao)) {
             $pdo->rollback();
