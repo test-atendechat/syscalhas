@@ -446,7 +446,7 @@ if (isset($_GET['acao']) && $_GET['acao'] == 'excluir' && isset($_GET['registro_
                             <td>
                                 <span class="badge bg-<?php 
                                     // Mapear os status para as cores corretas
-                                    if ($agendamento['status'] == 'agendado' || $agendamento['status'] == 'orcamento_agendado' || $agendamento['status'] == 'instalacao_agendada') {
+                                    if ($agendamento['status'] == 'orcamento_agendado' || $agendamento['status'] == 'instalacao_agendada') {
                                         echo 'primary'; // Azul para todos agendamentos
                                     } elseif ($agendamento['status'] == 'concluido' || $agendamento['status'] == 'finalizado') {
                                         echo 'success'; // Verde para finalizados
