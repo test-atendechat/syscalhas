@@ -135,6 +135,19 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
             // Iniciar transação
             $pdo->beginTransaction();
             
+            // Verificar e excluir quaisquer agendamentos anteriores para este orçamento
+            // Isso é importante quando há transição de um orçamento agendado para instalação agendada
+            $stmt_check_prev = $pdo->prepare("SELECT id FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'cancelado'");
+            $stmt_check_prev->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+            $stmt_check_prev->execute();
+            
+            if ($stmt_check_prev->rowCount() > 0) {
+                // Excluir agendamentos anteriores
+                $stmt_delete = $pdo->prepare("DELETE FROM agendamentos WHERE orcamento_id = :orcamento_id AND status != 'cancelado'");
+                $stmt_delete->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
+                $stmt_delete->execute();
+            }
+            
             // Verificar se o colaborador selecionado (instalador) existe na tabela instaladores
             if ($colaborador_id > 0) {
                 // Verificar se o colaborador instalador existe
