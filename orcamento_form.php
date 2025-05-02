@@ -754,26 +754,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         instaladorSelect.appendChild(naoDisponivelOption);
                     }
                 } else {
-                    alert('Erro ao verificar instaladores: ' + data.mensagem);
+                    console.error('Erro ao verificar instaladores: ' + data.mensagem);
                 }
-                
-                // Restaurar botão
-                btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis';
-                btnVerificarDisponibilidade.disabled = false;
             })
             .catch(error => {
                 console.error('Erro na verificação:', error);
-                alert('Erro ao verificar colaboradores disponíveis: ' + error.message);
-                
-                // Restaurar botão
-                btnVerificarDisponibilidade.innerHTML = '<i class="fas fa-search me-1"></i>Verificar Colaboradores Disponíveis';
-                btnVerificarDisponibilidade.disabled = false;
             });
     }
     
-    // Adicionar evento ao botão de verificar disponibilidade
-    if (btnVerificarDisponibilidade) {
-        btnVerificarDisponibilidade.addEventListener('click', verificarDisponibilidade);
+    // Adicionar eventos para verificar disponibilidade quando data ou hora mudar
+    if (dataServico) {
+        dataServico.addEventListener('change', verificarDisponibilidade);
+    }
+    
+    if (horaServico) {
+        horaServico.addEventListener('change', verificarDisponibilidade);
     }
     
     // Inicializar formatação monetária para campos existentes
