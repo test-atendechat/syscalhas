@@ -517,7 +517,7 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                             }
                             ?>
                         </select>
-                        <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?>.</small>
+                        <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_almoco_inicio; ?> e das <?php echo $horario_almoco_fim; ?> às <?php echo $horario_fim; ?>.</small>
                     </div>
                 </div>
                 
@@ -557,7 +557,7 @@ if ($orcamentista_id > 0 && !empty($data_selecionada)) {
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Importante:</strong> Apenas orçamentistas disponíveis para este horário são mostrados na lista.
-                    Os horários de trabalho são das <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?> horas.
+                    Os horários de trabalho são das <?php echo $horario_inicio; ?> às <?php echo $horario_almoco_inicio; ?> e das <?php echo $horario_almoco_fim; ?> às <?php echo $horario_fim; ?> horas.
                 </div>
                 
                 <div class="d-grid gap-2">

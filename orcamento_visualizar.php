@@ -1198,7 +1198,7 @@ if (!$acesso_interno) {
                         }
                         ?>
                     </select>
-                    <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_fim; ?>.</small>
+                    <small class="text-muted">Horário de trabalho: <?php echo $horario_inicio; ?> às <?php echo $horario_almoco_inicio; ?> e das <?php echo $horario_almoco_fim; ?> às <?php echo $horario_fim; ?>.</small>
                 </div>
             </div>
             
@@ -1253,8 +1253,14 @@ if (!$acesso_interno) {
                     
                     $fim_servico = $inicio_servico + ($duracao_minutos * 60); // Converter minutos para segundos
                     
-                    // Verificar se atravessa o almoço (começa antes do almoço e termina depois do início do almoço)
-                    $atravessa_almoco = ($inicio_servico < $inicio_almoco && $fim_servico > $inicio_almoco);
+                    // Verificar se atravessa o almoço
+                    // 1. Começa antes do almoço e termina depois do início do almoço
+                    // 2. Não começa durante o almoço (11:00-13:00)
+                    $comeca_antes_almoco = $inicio_servico < $inicio_almoco;
+                    $termina_depois_inicio_almoco = $fim_servico > $inicio_almoco;
+                    $comeca_durante_almoco = ($inicio_servico >= $inicio_almoco && $inicio_servico < $fim_almoco);
+                    
+                    $atravessa_almoco = $comeca_antes_almoco && $termina_depois_inicio_almoco && !$comeca_durante_almoco;
                     
                     if ($atravessa_almoco && $orcamento['unidade_tempo'] == 'horas') {
                         // Exibir mensagem com tempo total incluindo almoço
