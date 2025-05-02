@@ -122,12 +122,20 @@ try {
     $hora_almoco_fim = new DateTime($data . ' ' . $horario_almoco_fim);
     
     // Se o período solicitado começar durante o horário de almoço
-    // Nota: Permitimos que serviços que começam antes do almoço continuem durante o período de almoço
     if ($data_hora_inicio >= $hora_almoco_inicio && $data_hora_inicio < $hora_almoco_fim) {
         $resposta['mensagem'] = 'O horário selecionado interfere com o período de almoço (' . 
                                 $horario_almoco_inicio . ' - ' . $horario_almoco_fim . '). Por favor, escolha um horário antes ou depois deste período.';
         echo json_encode($resposta);
         exit;
+    }
+    
+    // Ajustar a duração do serviço considerando o horário de almoço
+    // Se o serviço começar antes do almoço e terminar depois
+    if ($data_hora_inicio < $hora_almoco_inicio && $data_hora_fim > $hora_almoco_fim) {
+        // Adicionar a duração do almoço ao tempo de término
+        $diferenca_almoco = $hora_almoco_inicio->diff($hora_almoco_fim);
+        $minutos_almoco = ($diferenca_almoco->h * 60) + $diferenca_almoco->i;
+        $data_hora_fim->add(new DateInterval('PT' . $minutos_almoco . 'M'));
     }
     
     // Verificar se a tabela agendamentos tem registros

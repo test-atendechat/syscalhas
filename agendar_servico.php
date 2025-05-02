@@ -87,6 +87,25 @@ if (empty($orcamento_id) || empty($codigo) || empty($data_servico) || empty($hor
                 throw new Exception('O horário selecionado está fora do horário de funcionamento (' . $horario_inicio . ' - ' . $horario_fim . ').');
             }
             
+            // Verificar período de almoço
+            $hora_almoco_inicio = new DateTime($data_servico . ' ' . $horario_almoco_inicio);
+            $hora_almoco_fim = new DateTime($data_servico . ' ' . $horario_almoco_fim);
+            
+            // Se o período solicitado começar durante o horário de almoço
+            if ($data_hora_inicio >= $hora_almoco_inicio && $data_hora_inicio < $hora_almoco_fim) {
+                throw new Exception('O horário selecionado interfere com o período de almoço (' . 
+                                $horario_almoco_inicio . ' - ' . $horario_almoco_fim . '). Por favor, escolha um horário antes ou depois deste período.');
+            }
+            
+            // Ajustar a duração do serviço considerando o horário de almoço
+            // Se o serviço começar antes do almoço e terminar depois
+            if ($data_hora_inicio < $hora_almoco_inicio && $data_hora_fim > $hora_almoco_inicio) {
+                // Adicionar a duração do almoço ao tempo de término
+                $diferenca_almoco = $hora_almoco_inicio->diff($hora_almoco_fim);
+                $minutos_almoco = ($diferenca_almoco->h * 60) + $diferenca_almoco->i;
+                $data_hora_fim->add(new DateInterval('PT' . $minutos_almoco . 'M'));
+            }
+            
             // Iniciar transação
             $pdo->beginTransaction();
             
