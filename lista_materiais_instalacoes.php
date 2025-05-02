@@ -32,7 +32,7 @@ try {
                       JOIN clientes c ON o.cliente_id = c.id
                       JOIN agendamentos a ON o.id = a.orcamento_id
                       JOIN colaboradores cl ON a.instalador_id = cl.id
-                      WHERE (a.status IN ('instalacao_agendada', 'orcamento_agendado')) 
+                      WHERE (a.status IN ('agendado', 'orcamento_agendado')) 
                       AND ((
                           (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
                       ) OR (
@@ -79,7 +79,7 @@ try {
                           JOIN produtos p ON i.produto_id = p.id
                           JOIN orcamentos o ON i.orcamento_id = o.id
                           JOIN agendamentos a ON o.id = a.orcamento_id
-                          WHERE (a.status IN ('instalacao_agendada', 'orcamento_agendado')) 
+                          WHERE (a.status IN ('agendado', 'orcamento_agendado')) 
                           AND ((
                               (a.data_agendamento >= :data_atual AND a.data_agendamento <= :data_limite)
                           ) OR (
