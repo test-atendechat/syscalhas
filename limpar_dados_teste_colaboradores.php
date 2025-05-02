@@ -36,7 +36,21 @@ try {
     $pdo->exec("DELETE FROM notificacoes WHERE tipo LIKE '%agendamento%'");
     echo "<p class='text-success'><i class='fas fa-check-circle'></i> Notificações de agendamentos removidas.</p>";
     
-    // 4. Limpar colaboradores existentes
+    // 4. Limpar registros da tabela colaborador_equipe que dependem de colaboradores
+    $pdo->exec("DELETE FROM colaborador_equipe WHERE 1=1");
+    echo "<p class='text-success'><i class='fas fa-check-circle'></i> Tabela colaborador_equipe limpa.</p>";
+    
+    // 5. Verificar outras tabelas que possam referenciar colaboradores
+    // Vamos verificar e limpar outras tabelas que tenham referências
+    try {
+        $pdo->exec("DELETE FROM equipes WHERE 1=1");
+        echo "<p class='text-success'><i class='fas fa-check-circle'></i> Tabela equipes limpa.</p>";
+    } catch (Exception $e) {
+        // Ignora caso a tabela não exista
+        echo "<p class='text-warning'><i class='fas fa-exclamation-triangle'></i> Nota: " . $e->getMessage() . "</p>";
+    }
+    
+    // 6. Limpar colaboradores existentes
     $pdo->exec("DELETE FROM colaboradores WHERE 1=1");
     echo "<p class='text-success'><i class='fas fa-check-circle'></i> Tabela colaboradores limpa.</p>";
     
