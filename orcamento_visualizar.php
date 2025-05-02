@@ -72,7 +72,7 @@ if (!function_exists('buscarAgendamentoAtivo')) {
                               FROM agendamentos a 
                               JOIN colaboradores c ON a.instalador_id = c.id
                               WHERE a.orcamento_id = :orcamento_id 
-                              AND (a.status = 'agendado' OR a.status = 'orcamento_agendado' OR a.status = 'instalacao_agendada' OR a.status = 'pendente')
+                              AND (a.status = 'instalacao_agendada' OR a.status = 'orcamento_agendado' OR a.status = 'pendente')
                               ORDER BY a.data_agendamento DESC LIMIT 1");
         $stmt->bindParam(':orcamento_id', $orcamento_id, PDO::PARAM_INT);
         $stmt->execute();

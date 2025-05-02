@@ -76,17 +76,17 @@ try {
         $stmt_insert->bindParam(':instalador_id', $instalador_id);
         $stmt_insert->bindParam(':data_agendamento', $data_formatada);
         $stmt_insert->bindParam(':hora_inicio', $hora_instalacao);
-        $stmt_insert->bindValue(':status', 'agendado');
+        $stmt_insert->bindValue(':status', 'instalacao_agendada');
         $stmt_insert->execute();
         
-        // Atualizar status do orçamento
-        $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status = 'agendado' WHERE id = :orcamento_id");
+        // Atualizar status do orçamento (já deve estar aprovado)
+        $stmt_orcamento = $pdo->prepare("UPDATE orcamentos SET status = 'aprovado' WHERE id = :orcamento_id");
         $stmt_orcamento->bindParam(':orcamento_id', $orcamento_id);
         $stmt_orcamento->execute();
         
         $mensagem = "Orçamento agendado para instalação com sucesso!";
     } 
-    else if ($status_atual == 'agendado' && $status_novo == 'em_andamento') {
+    else if ($status_atual == 'instalacao_agendada' && $status_novo == 'em_andamento') {
         // Mudança de instalação agendada para instalação em andamento
         // Remover o agendamento da agenda do instalador
         $stmt_delete = $pdo->prepare("DELETE FROM agendamentos WHERE id = :agendamento_id");
