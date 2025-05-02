@@ -121,8 +121,9 @@ try {
     $hora_almoco_inicio = new DateTime($data . ' ' . $horario_almoco_inicio);
     $hora_almoco_fim = new DateTime($data . ' ' . $horario_almoco_fim);
     
-    // Se o período solicitado estiver dentro ou sobrepor o horário de almoço
-    if (($data_hora_inicio < $hora_almoco_fim && $data_hora_fim > $hora_almoco_inicio)) {
+    // Se o período solicitado começar durante o horário de almoço
+    // Nota: Permitimos que serviços que começam antes do almoço continuem durante o período de almoço
+    if ($data_hora_inicio >= $hora_almoco_inicio && $data_hora_inicio < $hora_almoco_fim) {
         $resposta['mensagem'] = 'O horário selecionado interfere com o período de almoço (' . 
                                 $horario_almoco_inicio . ' - ' . $horario_almoco_fim . '). Por favor, escolha um horário antes ou depois deste período.';
         echo json_encode($resposta);
