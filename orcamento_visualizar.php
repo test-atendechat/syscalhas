@@ -7,6 +7,19 @@ require_once('includes/functions.php');
 require_once('includes/notificacoes.php');
 require_once('notificacao_orcamento.php');
 
+// Garantir acesso às variáveis globais de conexão
+global $db, $pdo;
+
+// Carregar configurações de horários
+$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'horario_almoco_inicio', 'horario_almoco_fim')");
+$config_horarios = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Definir os horários a partir das configurações
+$horario_inicio = isset($config_horarios['horario_inicio']) ? $config_horarios['horario_inicio'] : '07:00';
+$horario_fim = isset($config_horarios['horario_fim']) ? $config_horarios['horario_fim'] : '17:00';
+$horario_almoco_inicio = isset($config_horarios['horario_almoco_inicio']) ? $config_horarios['horario_almoco_inicio'] : '11:00';
+$horario_almoco_fim = isset($config_horarios['horario_almoco_fim']) ? $config_horarios['horario_almoco_fim'] : '13:00';
+
 // Verificar a existência do orçamento ANTES de qualquer saída HTML
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $codigo = isset($_GET['codigo']) ? $_GET['codigo'] : '';
@@ -85,21 +98,8 @@ if (!function_exists('buscarAgendamentoAtivo')) {
     }
 }
 
-// Garantir acesso às variáveis globais de conexão
-global $db, $pdo;
-
-// Carregar configurações de horários
-$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'horario_almoco_inicio', 'horario_almoco_fim')");
-$config_horarios = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
-
-// Definir os horários a partir das configurações
-$horario_inicio = isset($config_horarios['horario_inicio']) ? $config_horarios['horario_inicio'] : '07:00';
-$horario_fim = isset($config_horarios['horario_fim']) ? $config_horarios['horario_fim'] : '17:00';
-$horario_almoco_inicio = isset($config_horarios['horario_almoco_inicio']) ? $config_horarios['horario_almoco_inicio'] : '11:00';
-$horario_almoco_fim = isset($config_horarios['horario_almoco_fim']) ? $config_horarios['horario_almoco_fim'] : '13:00';
-
 // Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
-if (!isset($pdo)) {
+if (!isset($pdo) || !isset($db)) {
     // Tentar criar uma nova conexão como último recurso
     try {
         if (DB_TYPE == 'mysql') {
@@ -1270,6 +1270,10 @@ if (!$acesso_interno) {
                     
                     // Um serviço atravessa o horário de almoço se começar antes do almoço e terminar depois do almoço
                     $atravessa_almoco = $comeca_antes_almoco && $termina_depois_almoco;
+                    
+                    // Calcular a diferença em horas do horário de almoço (normalmente 2 horas)
+                    $diferenca_segundos = strtotime($horario_almoco_fim) - strtotime($horario_almoco_inicio);
+                    $diferenca_horas = $diferenca_segundos / 3600; // Converter segundos para horas
                     
                     if ($atravessa_almoco && $orcamento['unidade_tempo'] == 'horas') {
                         // Exibir mensagem com tempo total incluindo almoço
