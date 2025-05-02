@@ -88,6 +88,16 @@ if (!function_exists('buscarAgendamentoAtivo')) {
 // Garantir acesso às variáveis globais de conexão
 global $db, $pdo;
 
+// Carregar configurações de horários
+$stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes WHERE chave IN ('horario_inicio', 'horario_fim', 'horario_almoco_inicio', 'horario_almoco_fim')");
+$config_horarios = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Definir os horários a partir das configurações
+$horario_inicio = isset($config_horarios['horario_inicio']) ? $config_horarios['horario_inicio'] : '07:00';
+$horario_fim = isset($config_horarios['horario_fim']) ? $config_horarios['horario_fim'] : '17:00';
+$horario_almoco_inicio = isset($config_horarios['horario_almoco_inicio']) ? $config_horarios['horario_almoco_inicio'] : '11:00';
+$horario_almoco_fim = isset($config_horarios['horario_almoco_fim']) ? $config_horarios['horario_almoco_fim'] : '13:00';
+
 // Se por algum motivo ainda não estiverem definidas, tentar inicializá-las
 if (!isset($pdo)) {
     // Tentar criar uma nova conexão como último recurso
@@ -1254,13 +1264,12 @@ if (!$acesso_interno) {
                     $fim_servico = $inicio_servico + ($duracao_minutos * 60); // Converter minutos para segundos
                     
                     // Verificar se atravessa o almoço
-                    // 1. Começa antes do almoço e termina depois do início do almoço
-                    // 2. Não começa durante o almoço (11:00-13:00)
+                    // A condição para atravessar o almoço é começar antes do almoço e terminar depois do almoço
                     $comeca_antes_almoco = $inicio_servico < $inicio_almoco;
-                    $termina_depois_inicio_almoco = $fim_servico > $inicio_almoco;
-                    $comeca_durante_almoco = ($inicio_servico >= $inicio_almoco && $inicio_servico < $fim_almoco);
+                    $termina_depois_almoco = $fim_servico > $fim_almoco;
                     
-                    $atravessa_almoco = $comeca_antes_almoco && $termina_depois_inicio_almoco && !$comeca_durante_almoco;
+                    // Um serviço atravessa o horário de almoço se começar antes do almoço e terminar depois do almoço
+                    $atravessa_almoco = $comeca_antes_almoco && $termina_depois_almoco;
                     
                     if ($atravessa_almoco && $orcamento['unidade_tempo'] == 'horas') {
                         // Exibir mensagem com tempo total incluindo almoço
